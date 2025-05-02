@@ -18,7 +18,7 @@ const Index = () => {
         </div>
         
         <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
-          Call Nexus
+          Invorto AI
         </h1>
         
         <p className="text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, subDays } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
+import { Button } from '@/components/ui/button';
+import { Phone } from 'lucide-react';
 
 interface DailyCallData {
   date: string;
@@ -17,6 +20,7 @@ interface DailyCallData {
 }
 
 const Analytics: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7days');
   const [chartData, setChartData] = useState<DailyCallData[]>([]);
@@ -70,23 +74,37 @@ const Analytics: React.FC = () => {
   const getTotalCredits = (): number => {
     return chartData.reduce((total, day) => total + day.credits, 0);
   };
+
+  const handleMakeCallsClick = () => {
+    navigate('/dashboard');
+  };
   
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Call Analytics</h1>
+          <h1 className="text-3xl font-bold">Invorto AI Analytics</h1>
           
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Time Range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7days">7 Days</SelectItem>
-              <SelectItem value="30days">30 Days</SelectItem>
-              <SelectItem value="90days">90 Days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-4 items-center">
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Time Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7days">7 Days</SelectItem>
+                <SelectItem value="30days">30 Days</SelectItem>
+                <SelectItem value="90days">90 Days</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Button 
+              onClick={handleMakeCallsClick}
+              className="flex items-center gap-2 bg-purple hover:bg-purple-dark"
+            >
+              <Phone size={16} />
+              Make Calls
+            </Button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -33,9 +33,10 @@ const Navbar: React.FC = () => {
   return (
     <div className="bg-card border-r border-border h-screen p-4 flex flex-col">
       <div className="flex items-center justify-center mb-8">
-        <Link to="/dashboard">
+        <Link to="/analytics">
           <Logo />
         </Link>
+        <span className="ml-3 text-xl font-bold">Invorto AI</span>
       </div>
       
       <div className="flex flex-col space-y-2">
