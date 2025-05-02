@@ -1,0 +1,32 @@
+
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="url(#paint0_linear_1_2)"/>
+  <g filter="url(#filter0_d_1_2)">
+    <rect x="250" y="150" width="300" height="300" rx="60" fill="black"/>
+    <path d="M325 200C325 197.239 327.239 195 330 195H470C472.761 195 475 197.239 475 200V400C475 402.761 472.761 405 470 405H330C327.239 405 325 402.761 325 400V200Z" fill="#9b87f5"/>
+    <rect x="340" y="220" width="120" height="20" rx="10" fill="white"/>
+    <rect x="340" y="260" width="120" height="20" rx="10" fill="white"/>
+    <rect x="340" y="300" width="120" height="20" rx="10" fill="white"/>
+    <rect x="340" y="340" width="120" height="20" rx="10" fill="white"/>
+    <circle cx="400" cy="380" r="15" stroke="white" stroke-width="6"/>
+    <path d="M315 240C308.373 240 303 245.373 303 252V280C303 286.627 308.373 292 315 292H319V332L359 292H395C401.627 292 407 286.627 407 280V252C407 245.373 401.627 240 395 240H315Z" fill="#D6BCFA"/>
+    <path d="M475 315H507C513.627 315 519 320.373 519 327V355C519 361.627 513.627 367 507 367H503V407L463 367H427C420.373 367 415 361.627 415 355V327C415 320.373 420.373 315 427 315H475Z" fill="#7E69AB"/>
+  </g>
+  <text x="400" y="500" font-family="Arial" font-size="36" fill="white" text-anchor="middle">Call Nexus</text>
+  <defs>
+    <filter id="filter0_d_1_2" x="245" y="149" width="310" height="310" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="4"/>
+      <feGaussianBlur stdDeviation="2.5"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_2"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_2" result="shape"/>
+    </filter>
+    <linearGradient id="paint0_linear_1_2" x1="0" y1="0" x2="800" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A1F2C"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+  </defs>
+</svg>
