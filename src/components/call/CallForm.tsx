@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Phone } from 'lucide-react'; // Fixed import (uppercase 'P')
+import { Phone } from 'lucide-react';
 import { validatePhoneNumber } from '@/utils/phoneUtils';
 
 export interface CallFormProps {
@@ -20,7 +19,7 @@ export interface CallFormProps {
     developer: string;
     project: string;
   }) => void;
-  disabled?: boolean; // Make this prop optional with a default value
+  disabled?: boolean;
 }
 
 const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }) => {
@@ -71,8 +70,8 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
   };
 
   return (
-    <Card className="w-full shadow-md mb-6">
-      <CardHeader className="bg-gray-50 dark:bg-gray-800">
+    <Card className="w-full shadow-md mb-6 bg-background">
+      <CardHeader className="bg-muted/50 dark:bg-gray-800">
         <CardTitle className="text-xl flex items-center gap-2">
           <Phone className="h-5 w-5" />
           Initiate Call
@@ -83,7 +82,7 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
       </CardHeader>
       
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-4 pt-6 bg-background">
           <div className="space-y-2">
             <Label htmlFor="phone-number">Phone Number</Label>
             <Input
@@ -131,7 +130,7 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
           </div>
         </CardContent>
         
-        <CardFooter>
+        <CardFooter className="bg-background">
           <Button 
             type="submit" 
             className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
