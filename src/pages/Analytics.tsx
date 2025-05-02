@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, subDays } from 'date-fns';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
 
@@ -14,22 +13,31 @@ interface DailyCallData {
   calls: number;
   duration: number;
   credits: number;
-  count: number; // Added this property to match the expected type
+  count: number; // This is needed for the AnalyticsChart component
 }
 
 const Analytics: React.FC = () => {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7days');
   const [chartData, setChartData] = useState<DailyCallData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
     if (!user) return;
+    
+    // Set loading state
+    setIsLoading(true);
     
     // Generate dummy data for now
     // In a real app, this would fetch from an API
     const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
     const dummyData = generateDummyData(days);
-    setChartData(dummyData);
+    
+    // Simulate API call with a small delay
+    setTimeout(() => {
+      setChartData(dummyData);
+      setIsLoading(false);
+    }, 500);
     
   }, [timeRange, user]);
   
@@ -61,10 +69,6 @@ const Analytics: React.FC = () => {
   
   const getTotalCredits = (): number => {
     return chartData.reduce((total, day) => total + day.credits, 0);
-  };
-
-  const formatXAxisTick = (value: string): string => {
-    return value;
   };
   
   return (
@@ -126,6 +130,7 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <AnalyticsChart 
                   data={chartData} 
+                  isLoading={isLoading}
                   dataKey="calls"
                   color="#8854d0"
                 />
@@ -144,6 +149,7 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <AnalyticsChart 
                   data={chartData} 
+                  isLoading={isLoading}
                   dataKey="duration"
                   color="#3b82f6"
                 />
@@ -162,6 +168,7 @@ const Analytics: React.FC = () => {
               <CardContent>
                 <AnalyticsChart 
                   data={chartData} 
+                  isLoading={isLoading}
                   dataKey="credits"
                   color="#ef4444"
                 />

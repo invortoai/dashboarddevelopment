@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface AnalyticsChartProps {
-  data: Array<{ date: string; count: number }>;
-  isLoading: boolean;
+  data: Array<{ date: string; count: number; [key: string]: any }>;
+  isLoading?: boolean;
+  dataKey?: string;
+  color?: string;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -21,7 +23,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ data, isLoading }) => {
+const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ 
+  data, 
+  isLoading = false,
+  dataKey = 'count',
+  color = '#9b87f5'
+}) => {
   if (isLoading) {
     return (
       <Card>
@@ -62,9 +69,9 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({ data, isLoading }) => {
               <YAxis tick={{ fill: '#999' }} />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
-                dataKey="count" 
+                dataKey={dataKey}
                 name="Calls" 
-                fill="#9b87f5"
+                fill={color}
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
