@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import Logo from '../Logo';
-import { Phone, BarChart2, User, History } from 'lucide-react';
+import { BarChart2, User, History } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { logout } = useAuth();
@@ -36,26 +36,20 @@ const Navbar: React.FC = () => {
         <Link to="/analytics">
           <Logo />
         </Link>
-        <span className="ml-3 text-xl font-bold">Invorto AI</span>
+        <span className="ml-3 text-xl font-bold">INVORTO AI</span>
       </div>
       
       <div className="flex flex-col space-y-2">
         <NavLink 
-          to="/dashboard" 
-          icon={<Phone size={20} />} 
-          label="Call Form" 
+          to="/analytics" 
+          icon={<BarChart2 size={20} />} 
+          label="Analytics" 
         />
         
         <NavLink 
           to="/history" 
           icon={<History size={20} />} 
           label="Call History" 
-        />
-        
-        <NavLink 
-          to="/analytics" 
-          icon={<BarChart2 size={20} />} 
-          label="Analytics" 
         />
         
         <NavLink 

@@ -5,11 +5,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, subDays } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
 import { Button } from '@/components/ui/button';
 import { Phone } from 'lucide-react';
+import { supabase } from '@/services/supabaseClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface DailyCallData {
   date: string;
@@ -19,9 +21,17 @@ interface DailyCallData {
   count: number; // This is needed for the AnalyticsChart component
 }
 
+interface CallDetail {
+  id: string;
+  call_duration: number;
+  credits_consumed: number;
+  created_at: string;
+}
+
 const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [timeRange, setTimeRange] = useState('7days');
   const [chartData, setChartData] = useState<DailyCallData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,35 +42,82 @@ const Analytics: React.FC = () => {
     // Set loading state
     setIsLoading(true);
     
-    // Generate dummy data for now
-    // In a real app, this would fetch from an API
-    const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
-    const dummyData = generateDummyData(days);
+    const fetchCallData = async () => {
+      try {
+        const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
+        const startDate = subDays(new Date(), days).toISOString();
+        
+        // Fetch actual call data from Supabase
+        const { data: callDetails, error } = await supabase
+          .from('call_details')
+          .select('id, call_duration, credits_consumed, created_at')
+          .eq('user_id', user.id)
+          .gte('created_at', startDate)
+          .order('created_at', { ascending: true });
+        
+        if (error) {
+          console.error('Error fetching call data:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to fetch call data',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Process the data to group by day
+        const processedData = processCallData(callDetails || [], days);
+        setChartData(processedData);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error in data processing:', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to process call data',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+      }
+    };
     
-    // Simulate API call with a small delay
-    setTimeout(() => {
-      setChartData(dummyData);
-      setIsLoading(false);
-    }, 500);
-    
-  }, [timeRange, user]);
+    fetchCallData();
+  }, [timeRange, user, toast]);
   
-  // Generate dummy data for the chart
-  const generateDummyData = (days: number): DailyCallData[] => {
-    return Array.from({ length: days }).map((_, i) => {
+  // Process call data to group by day
+  const processCallData = (callDetails: CallDetail[], days: number): DailyCallData[] => {
+    // Create empty data structure for all days in the range
+    const daysMap: Record<string, DailyCallData> = {};
+    
+    // Initialize all days in the range
+    for (let i = 0; i < days; i++) {
       const date = format(subDays(new Date(), days - i - 1), 'MMM dd');
-      const calls = Math.floor(Math.random() * 5) + 1;
-      const duration = Math.floor(Math.random() * 30) + 5;
-      const credits = duration * 10;
-      
-      return {
+      daysMap[date] = {
         date,
-        calls,
-        duration,
-        credits,
-        count: calls // Set count equal to calls to match the expected type
+        calls: 0,
+        duration: 0,
+        credits: 0,
+        count: 0
       };
+    }
+    
+    // Fill in actual call data
+    callDetails.forEach(call => {
+      const callDate = format(parseISO(call.created_at), 'MMM dd');
+      
+      // Only process if the date is in our range
+      if (daysMap[callDate]) {
+        daysMap[callDate].calls += 1;
+        daysMap[callDate].count += 1;
+        daysMap[callDate].duration += call.call_duration || 0;
+        daysMap[callDate].credits += call.credits_consumed || 0;
+      }
     });
+    
+    // Convert map to array and sort by date
+    return Object.values(daysMap).sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
   };
   
   const getTotalCalls = (): number => {
@@ -83,7 +140,7 @@ const Analytics: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Invorto AI Analytics</h1>
+          <h1 className="text-3xl font-bold">INVORTO AI Dashboard</h1>
           
           <div className="flex gap-4 items-center">
             <Select value={timeRange} onValueChange={setTimeRange}>
@@ -99,7 +156,7 @@ const Analytics: React.FC = () => {
             
             <Button 
               onClick={handleMakeCallsClick}
-              className="flex items-center gap-2 bg-purple hover:bg-purple-dark"
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
             >
               <Phone size={16} />
               Make Calls
