@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
   }
   
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/analytics" />;
   }
   
   return <LoginForm />;

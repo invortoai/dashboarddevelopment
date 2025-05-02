@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         localStorage.setItem('user', JSON.stringify(user));
-        navigate('/dashboard');
+        navigate('/analytics');  // Redirect to analytics instead of dashboard
         toast({
           title: "Signup successful",
           description: "Welcome to the app!",
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         localStorage.setItem('user', JSON.stringify(user));
-        navigate('/dashboard');
+        navigate('/analytics');  // Redirect to analytics instead of dashboard
         toast({
           title: "Login successful",
           description: "Welcome back!",

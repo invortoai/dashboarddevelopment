@@ -140,7 +140,7 @@ const Analytics: React.FC = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">INVORTO AI Dashboard</h1>
+          <h1 className="text-3xl font-bold">Welcome, {user?.name || 'User'}</h1>
           
           <div className="flex gap-4 items-center">
             <Select value={timeRange} onValueChange={setTimeRange}>
