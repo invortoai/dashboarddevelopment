@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -9,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
-import Logo from '../Logo';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -56,8 +54,8 @@ const SignUpForm = () => {
     <div className="flex min-h-screen items-center justify-center p-4 animated-bg">
       <div className="w-full max-w-md space-y-6 rounded-lg bg-card p-6 shadow-lg">
         <div className="flex flex-col items-center space-y-2">
-          <Logo />
-          <h1 className="text-2xl font-bold text-white">Create an account</h1>
+          <h1 className="text-3xl font-bold text-white">INVORTO AI</h1>
+          <h2 className="text-2xl font-bold text-white">Create an account</h2>
           <p className="text-sm text-muted-foreground">
             Enter your information to get started
           </p>
