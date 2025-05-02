@@ -11,3 +11,6 @@ export const formatPhoneNumber = (number: string): string => {
   // Format as XXX-XXX-XXXX
   return number.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
 };
+
+// Add an alias for backward compatibility
+export const isValidPhoneNumber = validatePhoneNumber;

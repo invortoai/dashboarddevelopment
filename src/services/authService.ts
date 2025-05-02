@@ -34,21 +34,25 @@ export const signUp = async (name: string, phoneNumber: string, password: string
     if (error) throw error;
 
     // Record user signup activity
-    await supabase.from('user_activity').insert({
-      user_id: newUser.id,
-      activity_type: 'signup',
-      timestamp: currentTime,
-    });
+    if (newUser) {
+      await supabase.from('user_activity').insert({
+        user_id: newUser.id,
+        activity_type: 'signup',
+        timestamp: currentTime,
+      });
 
-    const user: User = {
-      id: newUser.id,
-      name: newUser.name,
-      phoneNumber: newUser.phone_number,
-      credit: newUser.credit,
-      signupTime: newUser.signup_time,
-    };
+      const user: User = {
+        id: newUser.id,
+        name: newUser.name,
+        phoneNumber: newUser.phone_number,
+        credit: newUser.credit,
+        signupTime: newUser.signup_time,
+      };
 
-    return { success: true, message: 'User successfully registered', user };
+      return { success: true, message: 'User successfully registered', user };
+    } else {
+      throw new Error('Failed to create user');
+    }
   } catch (error) {
     console.error('Sign up error:', error);
     return { success: false, message: 'Failed to register user' };

@@ -9,13 +9,149 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      call_details: {
+        Row: {
+          call_attempted: boolean | null
+          call_duration: number | null
+          call_log_id: string | null
+          call_recording: string | null
+          call_status: string | null
+          call_time: string | null
+          created_at: string
+          credits_consumed: number | null
+          developer: string
+          feedback: string | null
+          id: string
+          number: string
+          project: string
+          summary: string | null
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          call_attempted?: boolean | null
+          call_duration?: number | null
+          call_log_id?: string | null
+          call_recording?: string | null
+          call_status?: string | null
+          call_time?: string | null
+          created_at?: string
+          credits_consumed?: number | null
+          developer: string
+          feedback?: string | null
+          id?: string
+          number: string
+          project: string
+          summary?: string | null
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          call_attempted?: boolean | null
+          call_duration?: number | null
+          call_log_id?: string | null
+          call_recording?: string | null
+          call_status?: string | null
+          call_time?: string | null
+          created_at?: string
+          credits_consumed?: number | null
+          developer?: string
+          feedback?: string | null
+          id?: string
+          number?: string
+          project?: string
+          summary?: string | null
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity: {
+        Row: {
+          activity_type: string
+          call_detail_id: string | null
+          id: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          call_detail_id?: string | null
+          id?: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          call_detail_id?: string | null
+          id?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_call_detail_id_fkey"
+            columns: ["call_detail_id"]
+            isOneToOne: false
+            referencedRelation: "call_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_details: {
+        Row: {
+          credit: number
+          id: string
+          last_login: string | null
+          name: string
+          password: string
+          phone_number: string
+          signup_time: string
+        }
+        Insert: {
+          credit?: number
+          id?: string
+          last_login?: string | null
+          name: string
+          password: string
+          phone_number: string
+          signup_time?: string
+        }
+        Update: {
+          credit?: number
+          id?: string
+          last_login?: string | null
+          name?: string
+          password?: string
+          phone_number?: string
+          signup_time?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_credits: {
+        Args: { user_id_param: string; credits_to_deduct: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

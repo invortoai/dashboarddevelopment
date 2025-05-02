@@ -14,6 +14,7 @@ interface DailyCallData {
   calls: number;
   duration: number;
   credits: number;
+  count: number; // Added this property to match the expected type
 }
 
 const Analytics: React.FC = () => {
@@ -44,7 +45,8 @@ const Analytics: React.FC = () => {
         date,
         calls,
         duration,
-        credits
+        credits,
+        count: calls // Set count equal to calls to match the expected type
       };
     });
   };

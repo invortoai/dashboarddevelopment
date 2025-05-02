@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Phone } from 'lucide-react'; // Fixed import (uppercase 'P')
-import { isValidPhoneNumber } from '@/utils/phoneUtils';
+import { validatePhoneNumber } from '@/utils/phoneUtils';
 
 export interface CallFormProps {
   onCallInitiated: (data: {
@@ -42,7 +42,7 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
     
     if (!number.trim()) {
       newErrors.number = 'Phone number is required';
-    } else if (!isValidPhoneNumber(number)) {
+    } else if (!validatePhoneNumber(number)) {
       newErrors.number = 'Please enter a valid 10-digit phone number';
     }
     
