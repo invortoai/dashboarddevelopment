@@ -3,13 +3,17 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Logo from '../Logo';
-import { BarChart2, User, History, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const { logout } = useAuth();
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -26,19 +30,95 @@ const Navbar: React.FC = () => {
   }) => {
     const active = isActive(to);
     
+    const handleClick = () => {
+      if (isMobile) {
+        setMobileOpen(false);
+      }
+    };
+    
     return (
-      <Link to={to} className="block w-full">
+      <Link to={to} className="block w-full" onClick={handleClick}>
         <Button
           variant={active ? "secondary" : "ghost"}
-          className={`flex items-center gap-2 w-full justify-start transition-none`}
+          className="flex items-center gap-2 w-full justify-start transition-none"
         >
           {icon}
-          <span className={`${collapsed ? 'hidden' : 'hidden md:inline'}`}>{label}</span>
+          <span className={isMobile || collapsed ? 'md:inline' : 'inline'}>{label}</span>
         </Button>
       </Link>
     );
   };
 
+  // Render mobile sidebar using Sheet component
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed top-0 left-0 right-0 h-14 bg-sidebar border-b border-border flex items-center px-4 z-20">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Menu size={24} />
+          </Button>
+          <div className="flex-1 flex justify-center">
+            <Logo className="h-8" />
+          </div>
+        </div>
+        
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw]">
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between p-4 border-b border-border">
+                <div className="flex items-center">
+                  <Logo className="h-8" />
+                  <span className="ml-3 text-xl font-bold text-sidebar-foreground">INVORTO AI</span>
+                </div>
+              </div>
+              
+              <div className="flex-1 flex flex-col space-y-2 p-4">
+                <NavLink 
+                  to="/analytics" 
+                  icon={<BarChart2 size={20} />} 
+                  label="Analytics" 
+                />
+                
+                <NavLink 
+                  to="/history" 
+                  icon={<History size={20} />} 
+                  label="Call History" 
+                />
+                
+                <NavLink 
+                  to="/profile" 
+                  icon={<User size={20} />} 
+                  label="Profile" 
+                />
+              </div>
+              
+              <div className="p-4 border-t border-border">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    logout();
+                  }}
+                >
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+        
+        {/* Add top margin to content */}
+        <div className="h-14"></div>
+      </>
+    );
+  }
+
+  // Desktop sidebar
   return (
     <div 
       className={`bg-sidebar text-sidebar-foreground border-r border-border h-screen flex flex-col transition-width duration-200 ease-in-out ${
@@ -51,14 +131,6 @@ const Navbar: React.FC = () => {
           <Logo className={collapsed ? 'h-8 w-8' : 'h-8'} />
           {!collapsed && <span className="ml-3 text-xl font-bold">INVORTO AI</span>}
         </Link>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="flex md:hidden"
-          onClick={toggleSidebar}
-        >
-          {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </Button>
       </div>
       
       <div className="flex-1 flex flex-col space-y-2 px-2">

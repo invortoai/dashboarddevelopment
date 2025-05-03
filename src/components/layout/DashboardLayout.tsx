@@ -2,6 +2,7 @@
 import React, { ReactNode } from 'react';
 import Navbar from './Navbar';
 import { useAuth } from '@/context/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Navigate } from 'react-router-dom';
 
 interface DashboardLayoutProps {
@@ -10,6 +11,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   // Show loading state
   if (loading) {
@@ -33,7 +35,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Navbar />
-      <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+      <main className={`flex-1 overflow-auto p-4 md:p-6 ${isMobile ? 'pt-16' : ''}`}>
+        {children}
+      </main>
     </div>
   );
 };
