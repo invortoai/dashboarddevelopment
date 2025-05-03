@@ -79,6 +79,7 @@ export type Database = {
           call_attempted: boolean | null
           call_detail_id: string
           call_duration: number | null
+          call_log: string | null
           call_recording: string | null
           call_status: string | null
           call_time: string | null
@@ -97,6 +98,7 @@ export type Database = {
           call_attempted?: boolean | null
           call_detail_id: string
           call_duration?: number | null
+          call_log?: string | null
           call_recording?: string | null
           call_status?: string | null
           call_time?: string | null
@@ -115,6 +117,7 @@ export type Database = {
           call_attempted?: boolean | null
           call_detail_id?: string
           call_duration?: number | null
+          call_log?: string | null
           call_recording?: string | null
           call_status?: string | null
           call_time?: string | null

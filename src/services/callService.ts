@@ -1,8 +1,9 @@
+
 import { supabase } from './supabaseClient';
 import { CallDetails, UserActivity } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
 
-const WEBHOOK_URL = 'https://hook.eu2.make.com/z8v8mbkvftv1v5w1l5au12brvi6yto3e';
+const WEBHOOK_URL = 'https://n8n.srv743759.hstgr.cloud/webhook/1845214a-2b66-4b02-86fa-379cfd38fef3';
 const CREDITS_PER_MINUTE = 10;
 
 export const initiateCall = async (userId: string, number: string, developer: string, project: string): Promise<{ 
