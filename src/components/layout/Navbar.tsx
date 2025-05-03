@@ -12,7 +12,7 @@ const Navbar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
 
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   const toggleSidebar = () => {
@@ -24,10 +24,11 @@ const Navbar: React.FC = () => {
     icon, 
     label 
   }) => (
-    <Link to={to}>
+    <Link to={to} className="block w-full">
       <Button
         variant={isActive(to) ? "secondary" : "ghost"}
         className="flex items-center gap-2 w-full justify-start"
+        onClick={(e) => e.stopPropagation()}
       >
         {icon}
         <span className={`${collapsed ? 'hidden' : 'hidden md:inline'}`}>{label}</span>
@@ -50,7 +51,10 @@ const Navbar: React.FC = () => {
           variant="ghost" 
           size="icon"
           className="flex md:hidden"
-          onClick={toggleSidebar}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSidebar();
+          }}
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </Button>
@@ -80,7 +84,10 @@ const Navbar: React.FC = () => {
         <Button 
           variant="outline" 
           className={`w-full ${collapsed ? 'p-2' : ''}`}
-          onClick={() => logout()}
+          onClick={(e) => {
+            e.stopPropagation();
+            logout();
+          }}
         >
           {collapsed ? 'Out' : 'Logout'}
         </Button>
@@ -91,7 +98,10 @@ const Navbar: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={toggleSidebar}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSidebar();
+          }}
           className="h-8 w-8"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}

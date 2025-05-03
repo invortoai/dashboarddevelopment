@@ -15,7 +15,7 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     // Query the call_details table directly for status information
     const { data, error } = await supabase
       .from('call_details')
-      .select('call_status, call_duration, transcript, call_recording, summary')
+      .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed')
       .eq('id', callDetailId)
       .single();
       
@@ -30,6 +30,11 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     
     console.log('Retrieved call status data from call_details:', data);
     
+    // Determine if call is complete or has errors
+    const isError = data.call_status?.toLowerCase().includes('error') || 
+                    data.call_status?.toLowerCase().includes('busy') ||
+                    data.call_status?.toLowerCase().includes('failed');
+    
     // Determine if call is complete based on data
     const isComplete = 
       (data.call_duration !== null && data.call_duration > 0) || 
@@ -37,7 +42,8 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
       (data.call_recording !== null) ||
       (data.summary !== null) ||
       (data.call_status === 'completed') ||
-      (data.call_status?.toLowerCase().includes('complete'));
+      (data.call_status?.toLowerCase().includes('complete')) ||
+      isError;
     
     return { 
       success: true, 
@@ -49,7 +55,8 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
         callDuration: data.call_duration,
         transcript: data.transcript,
         callRecording: data.call_recording,
-        summary: data.summary
+        summary: data.summary,
+        creditsConsumed: data.credits_consumed
       }
     };
   } catch (error) {

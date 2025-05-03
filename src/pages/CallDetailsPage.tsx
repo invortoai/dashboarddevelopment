@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -160,7 +161,15 @@ const CallDetailsPage: React.FC = () => {
     
     if (isComplete) return 'completed';
     
-    if (callDetails.callStatus?.includes('in-progress')) return 'in-progress';
+    const statusLower = callDetails.callStatus?.toLowerCase() || '';
+    
+    if (statusLower.includes('error') || 
+        statusLower.includes('busy') || 
+        statusLower.includes('failed')) {
+      return 'completed'; // Show as completed for error states
+    }
+    
+    if (statusLower.includes('in-progress')) return 'in-progress';
     
     if (callDetails.callAttempted) return 'initiating';
     
