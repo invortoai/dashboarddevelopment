@@ -66,7 +66,7 @@ const Dashboard: React.FC = () => {
   
   // Function to poll for updates directly from call_log
   const startPollingForUpdates = (callId: string) => {
-    // Setup polling interval to check for updates (every 10 seconds)
+    // Setup polling interval to check for updates (every 5 seconds)
     const intervalId = setInterval(async () => {
       try {
         console.log('Polling for updates for call ID:', callId);
@@ -84,11 +84,11 @@ const Dashboard: React.FC = () => {
           }
           
           // Update the status based on the call details
-          if (callDetails.callDuration) {
+          if (callDetails.callDuration || callDetails.summary) {
+            console.log('Call completed, stopping polling');
             setCallStatus('completed');
             setCallResult(callDetails);
             clearInterval(intervalId); // Stop polling once completed
-            console.log('Call completed, stopping polling');
           } else if (callDetails.callStatus === 'yes' || callDetails.callAttempted) {
             setCallStatus('in-progress');
             console.log('Call in progress');
@@ -97,9 +97,9 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Error during polling:', error);
       }
-    }, 5000); // Poll every 5 seconds (reduced from 10 seconds)
+    }, 5000); // Poll every 5 seconds
     
-    // Clean up the interval when the component unmounts
+    // Return cleanup function
     return () => clearInterval(intervalId);
   };
   
