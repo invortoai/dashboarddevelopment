@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,6 +95,11 @@ const CallStatus: React.FC<CallStatusProps> = ({
   const hasError = rawStatus?.toLowerCase().includes('error') || 
                   rawStatus?.toLowerCase().includes('busy') || 
                   rawStatus?.toLowerCase().includes('failed');
+
+  const isSuccessful = status === 'completed' && 
+                     !hasError && 
+                     (rawStatus?.toLowerCase().includes('answered') || 
+                      rawStatus?.toLowerCase().includes('complete'));
   
   return (
     <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -124,6 +130,12 @@ const CallStatus: React.FC<CallStatusProps> = ({
                   <span className="inline-flex items-center text-amber-500">
                     <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
                     Connection Issue
+                  </span>
+                )}
+                {isSuccessful && (
+                  <span className="inline-flex items-center text-green-600 bg-[#F2FCE2] px-2 py-1 rounded">
+                    <Check className="h-4 w-4 mr-1" />
+                    Connection Successful
                   </span>
                 )}
               </div>
