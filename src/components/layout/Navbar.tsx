@@ -62,7 +62,7 @@ const Navbar: React.FC = () => {
             <Menu size={24} />
           </Button>
           <div className="flex-1 flex justify-center">
-            <Logo className="h-8" />
+            <span className="text-xl font-bold">INVORTO AI</span>
           </div>
         </div>
         
