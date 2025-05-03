@@ -196,44 +196,26 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 };
 
 const CallStatusBadge: React.FC<{ call: CallDetails }> = ({ call }) => {
-  // Determine call status based on data presence and callStatus field
-  const hasCompletionIndicators = 
-    (call.callDuration && call.callDuration > 0) || 
-    !!call.transcript || 
-    !!call.callRecording || 
-    !!call.summary;
+  // Display the raw status from the database, with a fallback for empty status
+  const status = call.callStatus || 'pending';
   
-  const hasError = call.callStatus?.toLowerCase().includes('error');
-  const isInProgress = call.callStatus?.toLowerCase().includes('in-progress');
-  const isInitiated = call.callAttempted && call.callLogId;
-  
-  let status: string;
+  // Choose the color based on the status text
   let bgColor: string = '';
   let textColor: string = '';
   
-  if (hasCompletionIndicators) {
-    status = 'completed';
+  if (status.toLowerCase().includes('complete') || status.toLowerCase() === 'completed') {
     bgColor = 'bg-green-500/20';
     textColor = 'text-green-500';
-  } else if (hasError) {
-    status = 'failed';
+  } else if (status.toLowerCase().includes('error') || status.toLowerCase().includes('fail') || status.toLowerCase().includes('busy')) {
     bgColor = 'bg-red-500/20';
     textColor = 'text-red-500';
-  } else if (isInProgress) {
-    status = 'in-progress';
+  } else if (status.toLowerCase().includes('progress')) {
     bgColor = 'bg-blue-500/20';
     textColor = 'text-blue-500';
-  } else if (isInitiated) {
-    status = 'initiated';
+  } else if (status.toLowerCase().includes('init')) {
     bgColor = 'bg-yellow-500/20';
     textColor = 'text-yellow-500';
-  } else if (call.callStatus) {
-    // If there's a callStatus but none of the above conditions are met
-    status = call.callStatus.toLowerCase();
-    bgColor = 'bg-purple-500/20';
-    textColor = 'text-purple-500';
   } else {
-    status = 'pending';
     bgColor = 'bg-gray-500/20';
     textColor = 'text-gray-500';
   }
