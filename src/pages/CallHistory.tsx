@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
 import { getCallHistory } from '@/services/call/callLog';
+import { autoSyncCallLogToDetails } from '@/services/call/syncData';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +15,7 @@ const CallHistory: React.FC = () => {
   const [calls, setCalls] = useState<CallDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
   
   const fetchCallHistory = async () => {
     if (!user) return;
@@ -22,7 +24,14 @@ const CallHistory: React.FC = () => {
       setLoading(true);
       console.log('Fetching call history for user:', user.id);
       
-      // Get the call history directly from call_log
+      // First sync all call data from call_log to call_details
+      const syncResult = await autoSyncCallLogToDetails(user.id);
+      if (syncResult.success) {
+        setSyncStatus(`Synced ${syncResult.synced} call records`);
+        console.log('Sync result:', syncResult);
+      }
+      
+      // Then get the call history from call_details
       const result = await getCallHistory(user.id);
       
       if (result.success && result.callHistory) {
@@ -46,6 +55,8 @@ const CallHistory: React.FC = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      // Clear sync status after 3 seconds
+      setTimeout(() => setSyncStatus(null), 3000);
     }
   };
   
@@ -63,13 +74,18 @@ const CallHistory: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Call History</h1>
-          <Button 
-            onClick={handleRefresh} 
-            disabled={loading || refreshing}
-            variant="outline"
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh Data'}
-          </Button>
+          <div className="flex items-center gap-2">
+            {syncStatus && (
+              <span className="text-sm text-green-500">{syncStatus}</span>
+            )}
+            <Button 
+              onClick={handleRefresh} 
+              disabled={loading || refreshing}
+              variant="outline"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh Data'}
+            </Button>
+          </div>
         </div>
         
         <p className="text-muted-foreground">

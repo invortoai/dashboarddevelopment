@@ -21,6 +21,7 @@ const Dashboard: React.FC = () => {
   } | null>(null);
   const [callStatus, setCallStatus] = useState<'initiating' | 'in-progress' | 'completed' | null>(null);
   const [callResult, setCallResult] = useState<CallDetails | null>(null);
+  const [lastPolled, setLastPolled] = useState<Date | null>(null);
   
   // Function to handle call initiation
   const handleCallInitiate = async (data: { number: string; developer: string; project: string }) => {
@@ -43,7 +44,7 @@ const Dashboard: React.FC = () => {
           description: "Call has been initiated successfully. Please wait for the status to update.",
         });
         
-        // Start polling for call updates
+        // Start polling for updates
         if (result.callDetails.id) {
           startPollingForUpdates(result.callDetails.id);
         }
@@ -66,10 +67,12 @@ const Dashboard: React.FC = () => {
   
   // Function to poll for updates and sync data between call_log and call_details
   const startPollingForUpdates = (callId: string) => {
-    // Setup polling interval to check for updates (every 5 seconds)
+    // Setup polling interval to check for updates (every 3 seconds)
     const intervalId = setInterval(async () => {
       try {
-        console.log('Polling for updates for call ID:', callId);
+        const now = new Date();
+        console.log('Polling for updates for call ID:', callId, 'at', now.toISOString());
+        setLastPolled(now);
         
         // First sync data from call_log to call_details to ensure consistency
         const syncResult = await syncCallLogToCallDetails(callId);
@@ -88,7 +91,7 @@ const Dashboard: React.FC = () => {
           }
           
           // Get status directly from call_log's call_status field
-          if (callDetails.callStatus === 'completed') {
+          if (callDetails.callStatus === 'completed' || callDetails.callDuration) {
             console.log('Call completed, stopping polling');
             setCallStatus('completed');
             setCallResult(callDetails);
@@ -101,7 +104,7 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Error during polling:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000); // Poll every 3 seconds (reduced from 5 seconds for faster updates)
     
     // Return cleanup function
     return () => clearInterval(intervalId);
@@ -112,6 +115,7 @@ const Dashboard: React.FC = () => {
     setCallData(null);
     setCallStatus(null);
     setCallResult(null);
+    setLastPolled(null);
   };
   
   return (
@@ -130,6 +134,7 @@ const Dashboard: React.FC = () => {
             developer={callData.developer}
             status={callStatus}
             callLogId={callData.callLogId}
+            lastPolled={lastPolled}
           />
         )}
         

@@ -1,19 +1,22 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatTimeAgo } from '@/utils/dateUtils';
 
 interface CallStatusProps {
   number: string;
   developer: string;
   status: 'initiating' | 'in-progress' | 'completed' | null;
   callLogId?: string;
+  lastPolled?: Date | null;
 }
 
 const CallStatus: React.FC<CallStatusProps> = ({ 
   number, 
   developer,
   status,
-  callLogId
+  callLogId,
+  lastPolled
 }) => {
   if (!status) return null;
 
@@ -40,10 +43,17 @@ const CallStatus: React.FC<CallStatusProps> = ({
             )}
             
             {status === 'in-progress' && (
-              <p>
-                Call in progress with <span className="font-bold">{developer}</span> on{' '}
-                <span className="font-bold">{number}</span>. The status will be updated once the call is finished.
-              </p>
+              <div>
+                <p>
+                  Call in progress with <span className="font-bold">{developer}</span> on{' '}
+                  <span className="font-bold">{number}</span>. The status will be updated once the call is finished.
+                </p>
+                {lastPolled && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last checked: {formatTimeAgo(lastPolled)}
+                  </p>
+                )}
+              </div>
             )}
             
             {status === 'completed' && (
