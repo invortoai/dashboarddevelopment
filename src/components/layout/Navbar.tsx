@@ -22,6 +22,16 @@ const Navbar: React.FC = () => {
     setCollapsed(!collapsed);
   };
 
+  const NavIcon: React.FC = () => (
+    <div className="flex justify-center items-center">
+      <img 
+        src="/lovable-uploads/403b2243-2bf2-497c-ab4e-c99274057bdd.png" 
+        alt="Invorto Logo" 
+        className="h-8 w-auto"
+      />
+    </div>
+  );
+
   const NavLink: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ 
     to, 
     icon, 
@@ -56,7 +66,7 @@ const Navbar: React.FC = () => {
             <Menu size={24} />
           </Button>
           <div className="flex-1 flex justify-center">
-            <span className="text-xl font-bold">INVORTO AI</span>
+            <NavIcon />
           </div>
         </div>
         
@@ -64,7 +74,7 @@ const Navbar: React.FC = () => {
           <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw]">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b border-border">
-                <span className="text-xl font-bold text-sidebar-foreground">INVORTO AI</span>
+                <NavIcon />
               </div>
               
               <div className="flex-1 flex flex-col space-y-2 p-4">
@@ -118,7 +128,8 @@ const Navbar: React.FC = () => {
       style={{ willChange: 'width' }}
     >
       <div className="flex items-center justify-center mb-8 p-4">
-        <span className={`text-xl font-bold ${collapsed ? 'hidden' : 'block'}`}>INVORTO AI</span>
+        <NavIcon />
+        <span className={`text-xl font-bold ml-2 ${collapsed ? 'hidden' : 'block'}`}>INVORTO</span>
       </div>
       
       <div className="flex-1 flex flex-col space-y-2 px-2">

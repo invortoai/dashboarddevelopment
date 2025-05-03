@@ -175,7 +175,7 @@ const Analytics: React.FC = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Duration</CardTitle>
-              <CardDescription className="text-2xl font-bold">{getTotalDuration()} mins</CardDescription>
+              <CardDescription className="text-2xl font-bold">{getTotalDuration()} secs</CardDescription>
             </CardHeader>
           </Card>
           
@@ -218,7 +218,7 @@ const Analytics: React.FC = () => {
               <CardHeader>
                 <CardTitle>Call Duration</CardTitle>
                 <CardDescription>
-                  Total call duration in minutes
+                  Total call duration in seconds
                 </CardDescription>
               </CardHeader>
               <CardContent>

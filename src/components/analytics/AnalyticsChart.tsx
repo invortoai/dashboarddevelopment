@@ -15,7 +15,7 @@ const CustomTooltip = ({ active, payload, label, dataKey }: any) => {
     // Determine the proper label for the tooltip based on dataKey
     let displayLabel = "Calls";
     if (dataKey === "duration") {
-      displayLabel = "Minutes";
+      displayLabel = "Seconds";
     } else if (dataKey === "credits") {
       displayLabel = "Credits";
     }
@@ -56,11 +56,19 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
       </Card>
     );
   }
+  
+  // Determine chart title based on dataKey
+  let chartTitle = "Daily Call Volume";
+  if (dataKey === "duration") {
+    chartTitle = "Call Duration (seconds)";
+  } else if (dataKey === "credits") {
+    chartTitle = "Credits Used";
+  }
 
   return (
     <Card>
       <CardContent className="p-6">
-        <h2 className="text-xl font-bold mb-4">Daily Call Volume</h2>
+        <h2 className="text-xl font-bold mb-4">{chartTitle}</h2>
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
