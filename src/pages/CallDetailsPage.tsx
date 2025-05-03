@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
@@ -21,63 +21,67 @@ const CallDetailsPage: React.FC = () => {
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [isComplete, setIsComplete] = useState<boolean>(false);
   
-  useEffect(() => {
-    const fetchCallDetails = async () => {
-      if (!user || !id) return;
+  // Define fetchCallDetails as a useCallback to avoid recreating it on each render
+  const fetchCallDetails = useCallback(async () => {
+    if (!user || !id) return;
+    
+    try {
+      // We don't set loading to true here when polling to avoid UI flicker
+      if (!callDetails) {
+        setLoading(true);
+      }
       
-      try {
-        // We don't set loading to true here when polling to avoid UI flicker
-        if (!callDetails) {
-          setLoading(true);
+      console.log('Fetching call details for ID:', id);
+      
+      // Get status directly from call_details table
+      const statusResult = await getCallStatusFromDetails(id);
+      console.log('Status result from call_details:', statusResult);
+      
+      // Get data from call_log
+      const result = await getCallLogData(id);
+      
+      if (result.success && result.callData) {
+        console.log('Call log data fetched:', result.callData);
+        
+        // Combine data, with call_details status data taking precedence
+        const combinedData = {
+          ...result.callData,
+          ...(statusResult.success && statusResult.callData ? statusResult.callData : {})
+        };
+        
+        console.log('Combined call details:', combinedData);
+        setCallDetails(combinedData);
+        
+        // Mark as complete if we have completion indicators
+        if (statusResult.isComplete) {
+          setIsComplete(true);
         }
-        
-        console.log('Fetching call details for ID:', id);
-        
-        // Get status directly from call_details table
-        const statusResult = await getCallStatusFromDetails(id);
-        console.log('Status result from call_details:', statusResult);
-        
-        // Get data from call_log
-        const result = await getCallLogData(id);
-        
-        if (result.success && result.callData) {
-          console.log('Call log data fetched:', result.callData);
-          
-          // Combine data, with call_details status data taking precedence
-          const combinedData = {
-            ...result.callData,
-            ...(statusResult.success && statusResult.callData ? statusResult.callData : {})
-          };
-          
-          console.log('Combined call details:', combinedData);
-          setCallDetails(combinedData);
-          
-          // Mark as complete if we have completion indicators
-          if (statusResult.isComplete) {
-            setIsComplete(true);
-          }
-        } else {
-          console.error('Failed to fetch call log data:', result.message);
-          toast({
-            title: "Error",
-            description: result.message,
-            variant: "destructive",
-          });
-          navigate('/history');
-        }
-      } catch (error) {
-        console.error('Error fetching call details:', error);
+
+        // Update lastPolled timestamp
+        setLastPolled(new Date());
+      } else {
+        console.error('Failed to fetch call log data:', result.message);
         toast({
           title: "Error",
-          description: "Failed to load call details. Redirecting to call history.",
+          description: result.message,
           variant: "destructive",
         });
         navigate('/history');
-      } finally {
-        setLoading(false);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error fetching call details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load call details. Redirecting to call history.",
+        variant: "destructive",
+      });
+      navigate('/history');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user, navigate, toast, callDetails]);
+  
+  useEffect(() => {
     fetchCallDetails();
     
     // Set up a polling interval only when the call is not yet complete
@@ -89,7 +93,7 @@ const CallDetailsPage: React.FC = () => {
     }, 10000); // Poll every 10 seconds
     
     return () => clearInterval(intervalId);
-  }, [id, user, navigate, toast, isComplete]);
+  }, [fetchCallDetails, id, user, isComplete]);
   
   const handleFeedbackSubmit = async (feedback: string) => {
     if (!user || !id || !feedback.trim()) return;
