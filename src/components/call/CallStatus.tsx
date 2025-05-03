@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatTimeAgo } from '@/utils/dateUtils';
 
@@ -20,6 +20,33 @@ const CallStatus: React.FC<CallStatusProps> = ({
   lastPolled,
   rawStatus
 }) => {
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  
+  // Add timer for in-progress calls
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (status === 'in-progress' && !rawStatus?.toLowerCase().includes('error')) {
+      // Start a timer that updates every second
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [status, rawStatus]);
+  
+  // Format the timer as mm:ss
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   if (!status) return null;
 
   const hasError = rawStatus?.toLowerCase().includes('error') || 
@@ -35,7 +62,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
             {status === 'in-progress' && !hasError && (
               <span className="inline-flex items-center">
                 <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
-                Live
+                Live {elapsedSeconds > 0 && `- ${formatTime(elapsedSeconds)}`}
               </span>
             )}
             {hasError && (

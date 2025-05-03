@@ -1,14 +1,17 @@
 
 import { supabase } from '../supabaseClient';
 
+/**
+ * Sync a specific call_log entry to call_details
+ */
 export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
   success: boolean;
   message: string;
 }> => {
   try {
-    console.log('Syncing call log data to call details for ID:', callDetailId);
+    console.log('Syncing call_log to call_details for ID:', callDetailId);
     
-    // Get the call log data for this call detail ID
+    // Get the data from call_log for this specific call detail ID
     const { data: callLogData, error: callLogError } = await supabase
       .from('call_log')
       .select('*')
@@ -17,89 +20,76 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       
     if (callLogError || !callLogData) {
       console.error('Error fetching call log data:', callLogError);
-      return { success: false, message: 'Could not find call log data to sync' };
-    }
-    
-    console.log('Found call log data to sync:', callLogData);
-    
-    // Calculate credits consumed if needed
-    let creditsConsumed = callLogData.credits_consumed;
-    if (creditsConsumed === null && callLogData.call_duration && callLogData.call_duration > 0) {
-      // Calculate credits based on duration (10 credits per minute)
-      const CREDITS_PER_MINUTE = 10;
-      const durationMinutes = parseFloat(String(callLogData.call_duration)) / 60;
-      creditsConsumed = Math.max(CREDITS_PER_MINUTE, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
-      console.log(`Calculated missing credits consumed: ${creditsConsumed} for ${callLogData.call_duration} seconds`);
+      return { success: false, message: 'No call log data found to sync' };
     }
     
     // Update the call_details table with the data from call_log
     const { error: updateError } = await supabase
       .from('call_details')
       .update({
-        call_attempted: callLogData.call_attempted,
+        call_log_id: callLogData.id,
         call_status: callLogData.call_status,
+        call_attempted: callLogData.call_attempted,
+        call_duration: callLogData.call_duration,
         call_time: callLogData.call_time,
-        call_duration: callLogData.call_duration ? 
-          Math.round(parseFloat(String(callLogData.call_duration))) : null,
+        credits_consumed: callLogData.credits_consumed,
+        summary: callLogData.summary,
         call_recording: callLogData.call_recording,
         transcript: callLogData.transcript,
-        summary: callLogData.summary,
-        credits_consumed: creditsConsumed,
         feedback: callLogData.feedback
       })
       .eq('id', callDetailId);
       
     if (updateError) {
-      console.error('Error updating call details:', updateError);
-      return { success: false, message: 'Failed to sync call log data to call details' };
+      console.error('Error syncing data to call_details:', updateError);
+      return { success: false, message: 'Failed to sync data to call details' };
     }
     
-    console.log('Successfully synced call log data to call details for ID:', callDetailId);
-    return { success: true, message: 'Call log data synced to call details successfully' };
+    return { success: true, message: 'Successfully synced call log data to call details' };
   } catch (error) {
-    console.error('Sync call log to details error:', error);
-    return { success: false, message: 'Failed to sync call log data to call details' };
+    console.error('Sync call log to call details error:', error);
+    return { success: false, message: 'Failed to sync call log to call details' };
   }
 };
 
+/**
+ * Sync all call_log entries to call_details for a user
+ */
 export const autoSyncCallLogToDetails = async (userId: string): Promise<{
   success: boolean;
   message: string;
-  synced?: number;
+  syncCount?: number;
 }> => {
   try {
-    // Find all call_log records that might have newer data than call_details
-    const { data: callLogs, error: callLogsError } = await supabase
-      .from('call_log')
-      .select('call_detail_id')
+    console.log('Auto-syncing call_log to call_details for user ID:', userId);
+    
+    // Get all call_details entries for this user
+    const { data: callDetails, error: detailsError } = await supabase
+      .from('call_details')
+      .select('id, call_log_id')
       .eq('user_id', userId);
       
-    if (callLogsError || !callLogs || callLogs.length === 0) {
-      return { success: true, message: 'No call logs found to sync', synced: 0 };
+    if (detailsError) {
+      console.error('Error fetching call details:', detailsError);
+      return { success: false, message: 'Failed to fetch call details for sync' };
     }
     
-    // Extract the call detail IDs
-    const callDetailIds = callLogs.map(log => log.call_detail_id);
-    console.log('Found call logs to sync for IDs:', callDetailIds);
-    
-    // Sync each call log with its call detail
-    let syncedCount = 0;
-    for (const callDetailId of callDetailIds) {
-      if (!callDetailId) continue;
-      
-      const result = await syncCallLogToCallDetails(callDetailId);
-      if (result.success) {
-        syncedCount++;
+    // For each call detail, sync from call_log
+    let syncCount = 0;
+    for (const detail of callDetails) {
+      if (detail.id) {
+        const result = await syncCallLogToCallDetails(detail.id);
+        if (result.success) syncCount++;
       }
     }
     
     return { 
       success: true, 
-      message: `Successfully synced ${syncedCount} call records from call_log to call_details`, 
-      synced: syncedCount 
+      message: `Synced all records`, 
+      syncCount 
     };
   } catch (error) {
-    console.error('Auto sync call logs error:', error);
+    console.error('Auto sync call log to details error:', error);
     return { success: false, message: 'Failed to auto-sync call logs to call details' };
   }
 };
