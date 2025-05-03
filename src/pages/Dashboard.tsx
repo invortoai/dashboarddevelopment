@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
 import CallResult from '@/components/call/CallResult';
-import { initiateCall } from '@/services/callService';
+import { initiateCall, syncCallLogToCallDetails } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/services/supabaseClient';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -43,8 +43,10 @@ const Dashboard: React.FC = () => {
           description: "Call has been initiated successfully. Please wait for the status to update.",
         });
         
-        // Real implementation would use webhooks to receive updates from the external call service
-        // This would update the status based on actual call progress
+        // Start polling for call updates
+        if (result.callDetails.id) {
+          startPollingForUpdates(result.callDetails.id);
+        }
       } else {
         toast({
           title: "Call Failed",
@@ -60,6 +62,62 @@ const Dashboard: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+  
+  // Function to poll for updates from call_log
+  const startPollingForUpdates = (callId: string) => {
+    // Setup polling interval to check for updates (every 10 seconds)
+    const intervalId = setInterval(async () => {
+      try {
+        // Sync data from call_log to call_details
+        const syncResult = await syncCallLogToCallDetails(callId);
+        
+        if (syncResult.success) {
+          // Check the call status after sync
+          const { data, error } = await supabase
+            .from('call_details')
+            .select('*')
+            .eq('id', callId)
+            .single();
+            
+          if (data && !error) {
+            // Process the updated data
+            const callDetails: CallDetails = {
+              id: data.id,
+              userId: data.user_id,
+              number: data.number,
+              developer: data.developer,
+              project: data.project,
+              callAttempted: data.call_attempted,
+              callLogId: data.call_log_id,
+              callStatus: data.call_status,
+              summary: data.summary,
+              callRecording: data.call_recording,
+              transcript: data.transcript,
+              callDuration: data.call_duration,
+              callTime: data.call_time,
+              creditsConsumed: data.credits_consumed,
+              feedback: data.feedback,
+              createdAt: data.created_at
+            };
+            
+            // Update the status based on the call details
+            if (data.call_duration) {
+              setCallStatus('completed');
+              setCallResult(callDetails);
+              clearInterval(intervalId); // Stop polling once completed
+            } else if (data.call_status === 'yes') {
+              setCallStatus('in-progress');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error during polling:', error);
+      }
+    }, 10000); // Poll every 10 seconds
+    
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
   };
   
   // Reset the call state

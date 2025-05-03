@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
 import { Button } from '@/components/ui/button';
-import { getCallDetails, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
+import { getCallDetails, submitFeedback, viewRecording, viewTranscript, syncCallLogToCallDetails } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +23,10 @@ const CallDetailsPage: React.FC = () => {
       
       try {
         setLoading(true);
+        
+        // Sync data from call_log to call_details before fetching
+        await syncCallLogToCallDetails(id);
+        
         const result = await getCallDetails(id, user.id);
         
         if (result.success && result.callDetails) {
@@ -50,6 +53,15 @@ const CallDetailsPage: React.FC = () => {
     };
     
     fetchCallDetails();
+    
+    // Set up a polling interval to check for updates
+    const intervalId = setInterval(() => {
+      if (id && user) {
+        fetchCallDetails();
+      }
+    }, 30000); // Poll every 30 seconds
+    
+    return () => clearInterval(intervalId);
   }, [id, user, navigate, toast]);
   
   const handleFeedbackSubmit = async (feedback: string) => {
@@ -140,9 +152,30 @@ const CallDetailsPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Call Details</h1>
-          <Button variant="outline" onClick={() => navigate('/history')}>
-            Back to Call History
-          </Button>
+          <div className="flex gap-2">
+            {id && (
+              <Button variant="secondary" onClick={async () => {
+                if (id) {
+                  setLoading(true);
+                  await syncCallLogToCallDetails(id);
+                  const result = await getCallDetails(id, user?.id || '');
+                  if (result.success && result.callDetails) {
+                    setCallDetails(result.callDetails);
+                    toast({
+                      title: "Success",
+                      description: "Call data refreshed successfully.",
+                    });
+                  }
+                  setLoading(false);
+                }
+              }}>
+                Refresh Data
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate('/history')}>
+              Back to Call History
+            </Button>
+          </div>
         </div>
         
         <CallDetailsComponent
