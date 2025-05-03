@@ -1,6 +1,7 @@
 
 import { supabase } from '../supabaseClient';
 import { CallDetails } from '../../types';
+import { syncCallLogToCallDetails } from './syncData';
 
 export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
   success: boolean;
@@ -12,7 +13,11 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
   try {
     console.log('Fetching call status from call_details for ID:', callDetailId);
     
-    // Query the call_details table directly for status information
+    // First attempt to sync data from call_log to call_details to ensure we have latest data
+    const syncResult = await syncCallLogToCallDetails(callDetailId);
+    console.log('Sync result:', syncResult);
+    
+    // Now query the call_details table for status information
     const { data, error } = await supabase
       .from('call_details')
       .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed')

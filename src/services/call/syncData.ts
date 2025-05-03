@@ -29,7 +29,8 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
         call_attempted: callLogData.call_attempted,
         call_status: callLogData.call_status,
         call_time: callLogData.call_time,
-        call_duration: callLogData.call_duration,
+        call_duration: callLogData.call_duration ? 
+          Math.round(parseFloat(String(callLogData.call_duration))) : null,
         call_recording: callLogData.call_recording,
         transcript: callLogData.transcript,
         summary: callLogData.summary,

@@ -7,6 +7,7 @@ import CallStatus from '@/components/call/CallStatus';
 import { Button } from '@/components/ui/button';
 import { getCallLogData, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
+import { syncCallLogToCallDetails } from '@/services/call/syncData';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +34,10 @@ const CallDetailsPage: React.FC = () => {
       }
       
       console.log('Fetching call details for ID:', id);
+      
+      // Force sync from call_log to call_details
+      const syncResult = await syncCallLogToCallDetails(id);
+      console.log('Sync result before getting status:', syncResult);
       
       // Get status directly from call_details table
       const statusResult = await getCallStatusFromDetails(id);
@@ -218,22 +223,24 @@ const CallDetailsPage: React.FC = () => {
         
         {/* Display current call status */}
         <CallStatus
-          number={callDetails.number}
-          developer={callDetails.developer}
+          number={callDetails?.number || ''}
+          developer={callDetails?.developer || ''}
           status={getCallStatusForDisplay()}
-          callLogId={callDetails.callLogId}
+          callLogId={callDetails?.callLogId}
           lastPolled={lastPolled}
-          rawStatus={callDetails.callStatus}
+          rawStatus={callDetails?.callStatus}
         />
         
         <div className="mt-6">
-          <CallDetailsComponent
-            callDetails={callDetails}
-            onFeedbackSubmit={handleFeedbackSubmit}
-            onRecordingView={handleRecordingView}
-            onTranscriptView={handleTranscriptView}
-            isSubmittingFeedback={submittingFeedback}
-          />
+          {callDetails && (
+            <CallDetailsComponent
+              callDetails={callDetails}
+              onFeedbackSubmit={handleFeedbackSubmit}
+              onRecordingView={handleRecordingView}
+              onTranscriptView={handleTranscriptView}
+              isSubmittingFeedback={submittingFeedback}
+            />
+          )}
         </div>
       </div>
     </DashboardLayout>
