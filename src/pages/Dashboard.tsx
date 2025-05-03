@@ -83,14 +83,13 @@ const Dashboard: React.FC = () => {
             setCallData(prev => prev ? { ...prev, callLogId: callDetails.callLogId } : null);
           }
           
-          // Update the status based on the call details
-          // Check for callStatus first, then other indicators
-          if (callDetails.callStatus === 'completed' || callDetails.callDuration || callDetails.summary) {
+          // Get status directly from call_log's call_status field
+          if (callDetails.callStatus === 'completed') {
             console.log('Call completed, stopping polling');
             setCallStatus('completed');
             setCallResult(callDetails);
             clearInterval(intervalId); // Stop polling once completed
-          } else if (callDetails.callStatus === 'yes' || callDetails.callAttempted) {
+          } else if (callDetails.callStatus === 'in-progress' || callDetails.callStatus === 'yes' || callDetails.callAttempted) {
             setCallStatus('in-progress');
             console.log('Call in progress');
           }
