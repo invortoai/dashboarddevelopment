@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -208,6 +207,7 @@ const Dashboard: React.FC = () => {
             onFeedbackSubmit={handleFeedbackSubmit}
             onViewDetails={handleViewDetails}
             onClose={resetCallState}
+            isPopup={true} // Explicitly set to true for call from dashboard
           />
         )}
       </div>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -255,7 +254,7 @@ const CallDetailsPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Display current call status with working close handler */}
+        {/* Display current call status as a regular component, not a popup */}
         <CallStatus
           number={callDetails?.number || ''}
           developer={callDetails?.developer || ''}
@@ -263,6 +262,7 @@ const CallDetailsPage: React.FC = () => {
           callLogId={callDetails?.callLogId}
           lastPolled={lastPolled}
           rawStatus={callDetails?.callStatus}
+          isPopup={false} // Set to false for call details page
           onClose={handleClose}
         />
         
