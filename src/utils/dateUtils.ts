@@ -4,22 +4,20 @@ import { toZonedTime } from 'date-fns-tz';
 
 /**
  * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm a
+ * This function now correctly formats the date without adding an extra 5:30 hours
  */
 export const formatToIST = (date: Date | string): string => {
   if (!date) return '';
   
-  // Convert the input date to a Date object
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
   try {
-    // Convert to IST timezone using date-fns-tz
-    const istDate = toZonedTime(dateObj, 'Asia/Kolkata');
+    // Convert the input date to a Date object
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    // Format using date-fns with correct format string
-    // Use 'dd-MMM-yyyy hh:mm a' for proper formatting (MMM for month abbreviation, a for AM/PM)
-    return format(istDate, 'dd-MMM-yyyy hh:mm a');
+    // Use the date directly without timezone conversion
+    // This prevents the system from adding an extra 5:30 hours
+    return format(dateObj, 'dd-MMM-yyyy hh:mm a');
   } catch (error) {
-    console.error('Error formatting date to IST:', error);
+    console.error('Error formatting date:', error);
     return 'Invalid Date';
   }
 };

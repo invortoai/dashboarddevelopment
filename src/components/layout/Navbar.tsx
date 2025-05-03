@@ -22,13 +22,10 @@ const Navbar: React.FC = () => {
     setCollapsed(!collapsed);
   };
 
+  // Just show the logo text without an image
   const NavIcon: React.FC = () => (
     <div className="flex justify-center items-center">
-      <img 
-        src="/lovable-uploads/403b2243-2bf2-497c-ab4e-c99274057bdd.png" 
-        alt="Invorto Logo" 
-        className="h-8 w-auto"
-      />
+      <span className="text-xl font-bold text-white">INVORTO</span>
     </div>
   );
 
@@ -129,7 +126,6 @@ const Navbar: React.FC = () => {
     >
       <div className="flex items-center justify-center mb-8 p-4">
         <NavIcon />
-        <span className={`text-xl font-bold ml-2 ${collapsed ? 'hidden' : 'block'}`}>INVORTO</span>
       </div>
       
       <div className="flex-1 flex flex-col space-y-2 px-2">

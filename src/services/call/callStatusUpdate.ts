@@ -70,6 +70,13 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       updateObject.credits_consumed = data.creditsConsumed;
     }
     
+    // Ensure we always set a minimum credit consumption for successful calls
+    if ((updateObject.credits_consumed === undefined || updateObject.credits_consumed === 0) && data.callDuration && data.callDuration > 0) {
+      // Default to minimum 10 credits for any successful call with duration
+      updateObject.credits_consumed = 10;
+      console.log(`Setting minimum credits consumed: 10 for call with duration ${data.callDuration} seconds`);
+    }
+    
     // Only update if we have actual data
     if (Object.keys(updateObject).length > 0) {
       console.log('Updating call_log with completion data:', updateObject);

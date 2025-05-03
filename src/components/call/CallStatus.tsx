@@ -135,8 +135,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
       <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-2xl">
           <Card className="bg-card border-2 border-purple relative">
-            {/* Only show close button for error states, completed states with feedback form, or when feedback form is active */}
-            {(hasError || showCloseButton) && onClose && (
+            {/* Only show close button for error states or when feedback form is active */}
+            {((hasError || showCloseButton) && onClose) && (
               <button 
                 onClick={onClose} 
                 className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
@@ -194,7 +194,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                               <div className="ml-3">
                                 <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
                                 <div className="mt-2 text-sm text-yellow-700">
-                                  <p>After your call has completed, click the button below to check its status</p>
+                                  <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below to check its status</p>
                                 </div>
                                 <div className="mt-4">
                                   <Button 
@@ -230,7 +230,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                             <div className="ml-3">
                               <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
                               <div className="mt-2 text-sm text-yellow-700">
-                                <p>After your call has completed, click the button below to check its status</p>
+                                <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below to check its status</p>
                               </div>
                               <div className="mt-4">
                                 <Button 
@@ -308,10 +308,10 @@ const CallStatus: React.FC<CallStatusProps> = ({
                           </div>
                         )}
 
-                        {/* Always show Credits Used section, even if 0 */}
+                        {/* Always show Credits Used section */}
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Credits Used</p>
-                          <p className="font-medium">{callResult?.creditsConsumed ?? 0}</p>
+                          <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
                         </div>
                       </div>
 
