@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,7 +98,18 @@ const CallStatus: React.FC<CallStatusProps> = ({
   return (
     <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="w-full max-w-2xl">
-        <Card className="bg-card border-2 border-purple">
+        <Card className="bg-card border-2 border-purple relative">
+          {/* Close button positioned at the top-right edge of the card */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute -right-1 -top-1 text-red-500 hover:text-red-700 z-20"
+            onClick={() => onClose && onClose()}
+          >
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close</span>
+          </Button>
+          
           <CardContent className="p-6">
             <div className="flex flex-col space-y-4">
               <div className="flex items-center justify-between">
@@ -116,16 +126,6 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     Connection Issue
                   </span>
                 )}
-                {/* Close button in the top right corner */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 text-red-500 hover:text-red-700"
-                  onClick={onClose}
-                >
-                  <X className="h-5 w-5" />
-                  <span className="sr-only">Close</span>
-                </Button>
               </div>
 
               {callLogId && (

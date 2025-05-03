@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -233,7 +234,7 @@ const CallDetailsPage: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-0 top-0 text-muted-foreground hover:text-foreground z-10"
+          className="absolute right-0 top-0 text-red-500 hover:text-red-700 z-10"
           onClick={handleClose}
         >
           <X className="h-5 w-5" />
@@ -248,13 +249,13 @@ const CallDetailsPage: React.FC = () => {
                 Check Status
               </Button>
             )}
-            <Button variant="outline" onClick={() => navigate('/history')}>
+            <Button variant="outline" onClick={handleClose}>
               Back to Call History
             </Button>
           </div>
         </div>
         
-        {/* Display current call status */}
+        {/* Display current call status with working close handler */}
         <CallStatus
           number={callDetails?.number || ''}
           developer={callDetails?.developer || ''}
@@ -262,6 +263,7 @@ const CallDetailsPage: React.FC = () => {
           callLogId={callDetails?.callLogId}
           lastPolled={lastPolled}
           rawStatus={callDetails?.callStatus}
+          onClose={handleClose}
         />
         
         <div className="mt-6">
