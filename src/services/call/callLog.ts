@@ -31,9 +31,9 @@ export const getCallLogData = async (callDetailId: string): Promise<{
       number: callLogData.number,
       developer: callLogData.developer,
       project: callLogData.project,
-      callAttempted: callLogData.call_attempted,
+      callAttempted: callLogData.call_attempted || true, // Default to true if present in call_log
       callLogId: callLogData.id,
-      callStatus: callLogData.call_status,
+      callStatus: callLogData.call_status || 'yes', // Default to 'yes' to trigger the in-progress state
       summary: callLogData.summary,
       callRecording: callLogData.call_recording,
       transcript: callLogData.transcript,
@@ -78,9 +78,9 @@ export const getCallHistory = async (userId: string): Promise<{
       number: call.number,
       developer: call.developer,
       project: call.project,
-      callAttempted: call.call_attempted,
+      callAttempted: call.call_attempted || true, // Default to true if in call_log
       callLogId: call.id,
-      callStatus: call.call_status,
+      callStatus: call.call_status || 'yes', // Default to 'yes' to show in-progress in the UI
       summary: call.summary,
       callRecording: call.call_recording,
       transcript: call.transcript,

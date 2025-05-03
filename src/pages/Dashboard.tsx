@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
@@ -7,7 +8,6 @@ import { initiateCall, getCallLogData } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -89,7 +89,7 @@ const Dashboard: React.FC = () => {
             setCallResult(callDetails);
             clearInterval(intervalId); // Stop polling once completed
             console.log('Call completed, stopping polling');
-          } else if (callDetails.callStatus === 'yes') {
+          } else if (callDetails.callStatus === 'yes' || callDetails.callAttempted) {
             setCallStatus('in-progress');
             console.log('Call in progress');
           }
@@ -97,7 +97,7 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Error during polling:', error);
       }
-    }, 10000); // Poll every 10 seconds
+    }, 5000); // Poll every 5 seconds (reduced from 10 seconds)
     
     // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);
