@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const Navbar: React.FC = () => {
   const { logout } = useAuth();
@@ -21,10 +23,10 @@ const Navbar: React.FC = () => {
     setCollapsed(!collapsed);
   };
 
-  // Just show the logo text without an image
+  // Use the Logo component
   const NavIcon: React.FC = () => (
     <div className="flex justify-center items-center">
-      <span className="text-xl font-bold text-white">INVORTO</span>
+      <Logo />
     </div>
   );
 
