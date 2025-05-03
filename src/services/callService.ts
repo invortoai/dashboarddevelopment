@@ -1,4 +1,3 @@
-
 import { supabase } from './supabaseClient';
 import { CallDetails, UserActivity } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
@@ -58,7 +57,8 @@ export const initiateCall = async (userId: string, number: string, developer: st
       
     if (activityError) throw activityError;
     
-    // Create a call_log entry
+    // Create a call_log entry with only the necessary information from call_details
+    // No dummy or placeholder data is included
     const { data: callLog, error: callLogError } = await supabase
       .from('call_log')
       .insert({
@@ -117,24 +117,17 @@ export const updateCallStatus = async (callId: string, data: {
   callTime?: string;
 }): Promise<{ success: boolean; message: string }> => {
   try {
-    // First get the call details to find call_log_id
-    const { data: callDetails, error: detailsError } = await supabase
-      .from('call_details')
-      .select('id')
-      .eq('id', callId)
-      .single();
-    
-    if (detailsError) throw detailsError;
-    
-    // Update the call_log table
-    await supabase
-      .from('call_log')
-      .update({
-        call_attempted: data.callAttempted,
-        call_status: data.callStatus,
-        call_time: data.callTime,
-      })
-      .eq('call_detail_id', callId);
+    // Update the call_log table with only verified status information
+    if (data.callAttempted !== undefined || data.callStatus !== undefined || data.callTime !== undefined) {
+      await supabase
+        .from('call_log')
+        .update({
+          call_attempted: data.callAttempted,
+          call_status: data.callStatus,
+          call_time: data.callTime,
+        })
+        .eq('call_detail_id', callId);
+    }
     
     // Update the call_details table
     await supabase
@@ -164,33 +157,33 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
   try {
     const currentTime = getCurrentISTDateTime();
     
-    // Update the call_log table
-    const { error: logError } = await supabase
-      .from('call_log')
-      .update({
-        summary: data.summary,
-        call_recording: data.callRecording,
-        transcript: data.transcript,
-        call_duration: data.callDuration,
-        credits_consumed: data.creditsConsumed,
-      })
-      .eq('call_detail_id', callId);
-      
-    if (logError) throw logError;
+    // Only update fields that have actual processed data, not dummy values
+    let updateObject: any = {};
     
-    // Update the call_details table
-    const { error: callError } = await supabase
-      .from('call_details')
-      .update({
-        summary: data.summary,
-        call_recording: data.callRecording,
-        transcript: data.transcript,
-        call_duration: data.callDuration,
-        credits_consumed: data.creditsConsumed,
-      })
-      .eq('id', callId);
+    if (data.summary) updateObject.summary = data.summary;
+    if (data.callRecording) updateObject.call_recording = data.callRecording;
+    if (data.transcript) updateObject.transcript = data.transcript;
+    if (data.callDuration !== undefined) updateObject.call_duration = data.callDuration;
+    if (data.creditsConsumed !== undefined) updateObject.credits_consumed = data.creditsConsumed;
+    
+    // Only update if we have actual data
+    if (Object.keys(updateObject).length > 0) {
+      // Update the call_log table with processed data
+      const { error: logError } = await supabase
+        .from('call_log')
+        .update(updateObject)
+        .eq('call_detail_id', callId);
+        
+      if (logError) throw logError;
       
-    if (callError) throw callError;
+      // Update the call_details table with the same data
+      const { error: callError } = await supabase
+        .from('call_details')
+        .update(updateObject)
+        .eq('id', callId);
+        
+      if (callError) throw callError;
+    }
     
     // Record call completion activity
     await supabase.from('user_activity').insert({
