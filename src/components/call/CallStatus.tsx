@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,17 +115,16 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     Connection Issue
                   </span>
                 )}
-                {onClose && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-                    onClick={onClose}
-                  >
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">Close</span>
-                  </Button>
-                )}
+                {/* Add close button at top-right */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                  onClick={onClose}
+                >
+                  <X className="h-5 w-5" />
+                  <span className="sr-only">Close</span>
+                </Button>
               </div>
 
               {callLogId && (
