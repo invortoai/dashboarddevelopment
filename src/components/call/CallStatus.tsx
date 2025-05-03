@@ -41,7 +41,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
             
             {status === 'in-progress' && (
               <p>
-                Call in progress to <span className="font-bold">{developer}</span> on{' '}
+                Call connected to <span className="font-bold">{developer}</span> on{' '}
                 <span className="font-bold">{number}</span>
               </p>
             )}
