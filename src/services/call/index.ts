@@ -1,11 +1,11 @@
 
-// Re-export all functions from the individual files
-export * from './callInitiation';
-export * from './callStatusUpdate';
-export * from './callFeedback';
-export { getCallHistory as getCallHistoryFromCallDetails } from './callHistory';
+// Re-export all functions from the call folder
 export * from './callDetails';
-export * from './analytics';
-export * from './syncData';
+export * from './callFeedback';
+export * from './callHistory';
+export * from './callInitiation';
 export * from './callLog';
 export * from './callStatus';
+export * from './callStatusUpdate';
+export * from './syncData';
+export * from './analytics';

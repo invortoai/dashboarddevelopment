@@ -42,14 +42,14 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
     let timer: NodeJS.Timeout;
     
     if (disabled && !showRefreshButton) {
-      // If call is in progress, start a timer to show the refresh button after 1 minute
+      // If call is in progress, start a timer to show the refresh button after 30 seconds (changed from 60)
       if (!callStartTime) {
         setCallStartTime(new Date());
       }
       
       timer = setTimeout(() => {
         setShowRefreshButton(true);
-      }, 60000); // 1 minute
+      }, 30000); // 30 seconds (changed from 60000)
     } else if (!disabled) {
       // If call is not in progress, reset the states
       setCallStartTime(null);
@@ -94,6 +94,11 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
         project: project.trim(),
       });
       setCallStartTime(new Date());
+      
+      // Clear the form fields after submission
+      setNumber('');
+      setDeveloper('');
+      setProject('');
     }
   };
   
@@ -124,6 +129,11 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
     }
   };
 
+  // Only render the form when not disabled (no call in progress)
+  if (disabled) {
+    return null;
+  }
+
   return (
     <Card className="w-full shadow-md mb-6 bg-background">
       <CardHeader className="bg-muted/50 dark:bg-gray-800">
@@ -136,30 +146,6 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
         </CardDescription>
       </CardHeader>
       
-      {showRefreshButton && disabled && (
-        <div className="px-6 pt-4">
-          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-600">Call may have completed</AlertTitle>
-            <AlertDescription className="text-yellow-700">
-              It's been over a minute since your call was initiated. Please wait for at least 1 minute after 
-              the call has finished and then check if the call has completed.
-              <div className="mt-2">
-                <strong>Warning:</strong> Checking status while a call is still in progress may result in an error response.
-              </div>
-              <Button 
-                onClick={handleRefreshCheck} 
-                variant="outline" 
-                className="mt-2 bg-white border-yellow-300 hover:bg-yellow-50"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Check Status
-              </Button>
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-      
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4 pt-6 bg-background">
           <div className="space-y-2">
@@ -170,7 +156,6 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
               value={number}
               onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
               maxLength={10}
-              disabled={disabled}
               className={errors.number ? 'border-red-500' : ''}
             />
             {errors.number && (
@@ -185,7 +170,6 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
               placeholder="Enter developer name"
               value={developer}
               onChange={(e) => setDeveloper(e.target.value)}
-              disabled={disabled}
               className={errors.developer ? 'border-red-500' : ''}
             />
             {errors.developer && (
@@ -200,7 +184,6 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
               placeholder="Enter project name"
               value={project}
               onChange={(e) => setProject(e.target.value)}
-              disabled={disabled}
               className={errors.project ? 'border-red-500' : ''}
             />
             {errors.project && (
@@ -213,9 +196,8 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
           <Button 
             type="submit" 
             className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
-            disabled={disabled}
           >
-            {disabled ? 'Call in Progress...' : 'Start Call'}
+            Start Call
           </Button>
         </CardFooter>
       </form>

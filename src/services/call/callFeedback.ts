@@ -1,55 +1,36 @@
-
 import { supabase } from '../supabaseClient';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 
 export const submitFeedback = async (
-  userId: string, 
-  callId: string, 
+  userId: string,
+  callDetailId: string,
   feedback: string
 ): Promise<{ success: boolean; message: string }> => {
   try {
-    const currentTime = getCurrentISTDateTime();
-    
-    // Check if feedback already exists in call_details
-    const { data: existingCall } = await supabase
+    // Update both tables for consistency
+    const { error: callDetailsError } = await supabase
       .from('call_details')
-      .select('feedback')
-      .eq('id', callId)
-      .single();
-    
-    let activityType = 'feedback_added';
-    let updatedFeedback = feedback;
-    
-    // If feedback exists, append the new feedback
-    if (existingCall && existingCall.feedback) {
-      updatedFeedback = `${existingCall.feedback}\n\n${currentTime}: ${feedback}`;
-      activityType = 'feedback_edited';
-    } else {
-      updatedFeedback = `${currentTime}: ${feedback}`;
-    }
-    
-    // Update the feedback in call_details
-    const { error: feedbackDetailError } = await supabase
-      .from('call_details')
-      .update({ feedback: updatedFeedback })
-      .eq('id', callId);
+      .update({ feedback })
+      .eq('id', callDetailId)
+      .eq('user_id', userId);
       
-    if (feedbackDetailError) throw feedbackDetailError;
+    if (callDetailsError) throw callDetailsError;
     
-    // Update the feedback in call_log
-    const { error: feedbackLogError } = await supabase
+    // Also update the call_log table to keep them in sync
+    const { error: callLogError } = await supabase
       .from('call_log')
-      .update({ feedback: updatedFeedback })
-      .eq('call_detail_id', callId);
+      .update({ feedback })
+      .eq('call_detail_id', callDetailId)
+      .eq('user_id', userId);
       
-    if (feedbackLogError) throw feedbackLogError;
+    if (callLogError) throw callLogError;
     
     // Record feedback activity
     await supabase.from('user_activity').insert({
       user_id: userId,
-      activity_type: activityType,
-      timestamp: currentTime,
-      call_detail_id: callId
+      activity_type: 'submit_feedback',
+      timestamp: getCurrentISTDateTime(),
+      call_detail_id: callDetailId
     });
     
     return { success: true, message: 'Feedback submitted successfully' };

@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
-import CallResult from '@/components/call/CallResult';
-import { initiateCall, getCallLogData, syncCallLogToCallDetails } from '@/services/callService';
+import { initiateCall, getCallLogData, syncCallLogToCallDetails, submitFeedback } from '@/services/callService';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [callData, setCallData] = useState<{
     number: string;
     developer: string;
@@ -139,12 +140,57 @@ const Dashboard: React.FC = () => {
     setLastPolled(null);
     setRawStatus(null);
   };
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = async (feedback: string) => {
+    if (!user || !callData?.callId) return;
+    
+    try {
+      const result = await submitFeedback(user.id, callData.callId, feedback);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Feedback submitted successfully.",
+        });
+        
+        // Refresh call details to show the updated feedback
+        if (callData.callId) {
+          const updatedResult = await getCallLogData(callData.callId);
+          if (updatedResult.success && updatedResult.callData) {
+            setCallResult(updatedResult.callData);
+          }
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle view details navigation
+  const handleViewDetails = () => {
+    if (callData?.callId) {
+      navigate(`/history/${callData.callId}`);
+    }
+  };
   
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Call Dashboard</h1>
         
+        {/* Only show the call form when no call is in progress */}
         <CallForm 
           onCallInitiated={handleCallInitiate} 
           disabled={callStatus !== null && callStatus !== 'completed'} 
@@ -158,13 +204,9 @@ const Dashboard: React.FC = () => {
             callLogId={callData.callLogId}
             lastPolled={lastPolled}
             rawStatus={rawStatus || undefined}
-          />
-        )}
-        
-        {callResult && (
-          <CallResult 
-            callDetails={callResult} 
-            onReset={resetCallState}
+            callResult={callResult || undefined}
+            onFeedbackSubmit={handleFeedbackSubmit}
+            onViewDetails={handleViewDetails}
           />
         )}
       </div>
