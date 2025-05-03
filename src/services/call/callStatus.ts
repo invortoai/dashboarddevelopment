@@ -7,6 +7,7 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
   message: string;
   callStatus?: string;
   callData?: Partial<CallDetails>;
+  isComplete?: boolean;
 }> => {
   try {
     console.log('Fetching call status from call_details for ID:', callDetailId);
@@ -29,10 +30,19 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     
     console.log('Retrieved call status data from call_details:', data);
     
+    // Determine if call is complete based on data
+    const isComplete = 
+      (data.call_duration !== null) || 
+      (data.transcript !== null) || 
+      (data.call_recording !== null) ||
+      (data.summary !== null) ||
+      (data.call_status === 'completed');
+    
     return { 
       success: true, 
       message: 'Call status retrieved successfully', 
       callStatus: data.call_status,
+      isComplete,
       callData: {
         callStatus: data.call_status,
         callDuration: data.call_duration,

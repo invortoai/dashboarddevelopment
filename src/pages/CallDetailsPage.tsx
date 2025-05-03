@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
+import CallStatus from '@/components/call/CallStatus';
 import { Button } from '@/components/ui/button';
 import { getCallLogData, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
@@ -18,13 +18,19 @@ const CallDetailsPage: React.FC = () => {
   const [callDetails, setCallDetails] = useState<CallDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [submittingFeedback, setSubmittingFeedback] = useState<boolean>(false);
+  const [lastPolled, setLastPolled] = useState<Date | null>(null);
+  const [isComplete, setIsComplete] = useState<boolean>(false);
   
   useEffect(() => {
     const fetchCallDetails = async () => {
       if (!user || !id) return;
       
       try {
-        setLoading(true);
+        // We don't set loading to true here when polling to avoid UI flicker
+        if (!callDetails) {
+          setLoading(true);
+        }
+        
         console.log('Fetching call details for ID:', id);
         
         // Get status directly from call_details table
@@ -45,6 +51,11 @@ const CallDetailsPage: React.FC = () => {
           
           console.log('Combined call details:', combinedData);
           setCallDetails(combinedData);
+          
+          // Mark as complete if we have completion indicators
+          if (statusResult.isComplete) {
+            setIsComplete(true);
+          }
         } else {
           console.error('Failed to fetch call log data:', result.message);
           toast({
@@ -69,16 +80,16 @@ const CallDetailsPage: React.FC = () => {
     
     fetchCallDetails();
     
-    // Set up a polling interval to check for updates
+    // Set up a polling interval only when the call is not yet complete
     const intervalId = setInterval(() => {
-      if (id && user) {
+      if (id && user && !isComplete) {
         console.log('Polling for call details updates');
         fetchCallDetails();
       }
-    }, 30000); // Poll every 30 seconds
+    }, 10000); // Poll every 10 seconds
     
     return () => clearInterval(intervalId);
-  }, [id, user, navigate, toast]);
+  }, [id, user, navigate, toast, isComplete]);
   
   const handleFeedbackSubmit = async (feedback: string) => {
     if (!user || !id || !feedback.trim()) return;
@@ -140,6 +151,18 @@ const CallDetailsPage: React.FC = () => {
     }
   };
   
+  const getCallStatusForDisplay = (): 'initiating' | 'in-progress' | 'completed' | null => {
+    if (!callDetails) return null;
+    
+    if (isComplete) return 'completed';
+    
+    if (callDetails.callStatus?.includes('in-progress')) return 'in-progress';
+    
+    if (callDetails.callAttempted) return 'initiating';
+    
+    return null;
+  };
+  
   if (loading) {
     return (
       <DashboardLayout>
@@ -169,22 +192,9 @@ const CallDetailsPage: React.FC = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Call Details</h1>
           <div className="flex gap-2">
-            {id && (
-              <Button variant="secondary" onClick={async () => {
-                if (id) {
-                  setLoading(true);
-                  const result = await getCallLogData(id);
-                  if (result.success && result.callData) {
-                    setCallDetails(result.callData);
-                    toast({
-                      title: "Success",
-                      description: "Call data refreshed successfully.",
-                    });
-                  }
-                  setLoading(false);
-                }
-              }}>
-                Refresh Data
+            {id && !isComplete && (
+              <Button variant="secondary" onClick={fetchCallDetails}>
+                Check Status
               </Button>
             )}
             <Button variant="outline" onClick={() => navigate('/history')}>
@@ -193,13 +203,25 @@ const CallDetailsPage: React.FC = () => {
           </div>
         </div>
         
-        <CallDetailsComponent
-          callDetails={callDetails}
-          onFeedbackSubmit={handleFeedbackSubmit}
-          onRecordingView={handleRecordingView}
-          onTranscriptView={handleTranscriptView}
-          isSubmittingFeedback={submittingFeedback}
+        {/* Display current call status */}
+        <CallStatus
+          number={callDetails.number}
+          developer={callDetails.developer}
+          status={getCallStatusForDisplay()}
+          callLogId={callDetails.callLogId}
+          lastPolled={lastPolled}
+          rawStatus={callDetails.callStatus}
         />
+        
+        <div className="mt-6">
+          <CallDetailsComponent
+            callDetails={callDetails}
+            onFeedbackSubmit={handleFeedbackSubmit}
+            onRecordingView={handleRecordingView}
+            onTranscriptView={handleTranscriptView}
+            isSubmittingFeedback={submittingFeedback}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );

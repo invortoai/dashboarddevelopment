@@ -47,26 +47,14 @@ const CallHistory: React.FC = () => {
                 console.log(`Updated status for call ${call.id}:`, statusResult.callData);
                 return {
                   ...call,
-                  ...statusResult.callData
+                  ...statusResult.callData,
+                  isComplete: statusResult.isComplete
                 };
               }
             }
             return call;
           })
         );
-        
-        // Debug logging for status troubleshooting
-        updatedCalls.forEach(call => {
-          console.log(`Call ${call.id} final status details:`, {
-            callDuration: call.callDuration,
-            callStatus: call.callStatus,
-            hasTranscript: !!call.transcript, 
-            hasRecording: !!call.callRecording,
-            hasSummary: !!call.summary,
-            callAttempted: call.callAttempted,
-            callLogId: call.callLogId
-          });
-        });
         
         setCalls(updatedCalls);
       } else {

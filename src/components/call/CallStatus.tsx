@@ -9,6 +9,7 @@ interface CallStatusProps {
   status: 'initiating' | 'in-progress' | 'completed' | null;
   callLogId?: string;
   lastPolled?: Date | null;
+  rawStatus?: string;
 }
 
 const CallStatus: React.FC<CallStatusProps> = ({ 
@@ -16,20 +17,29 @@ const CallStatus: React.FC<CallStatusProps> = ({
   developer,
   status,
   callLogId,
-  lastPolled
+  lastPolled,
+  rawStatus
 }) => {
   if (!status) return null;
 
+  const hasError = rawStatus?.includes('error');
+  
   return (
     <Card className="mt-4 bg-card border-2 border-purple">
       <CardContent className="p-6">
         <div className="flex flex-col space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Call Status</h3>
-            {status === 'in-progress' && (
+            {status === 'in-progress' && !hasError && (
               <span className="inline-flex items-center">
                 <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
                 Live
+              </span>
+            )}
+            {hasError && (
+              <span className="inline-flex items-center text-amber-500">
+                <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                Connection Issue
               </span>
             )}
           </div>
@@ -42,7 +52,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
               </div>
             )}
             
-            {status === 'in-progress' && (
+            {status === 'in-progress' && !hasError && (
               <div>
                 <p>
                   Call in progress with <span className="font-bold">{developer}</span> on{' '}
@@ -58,6 +68,26 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     Last checked: {formatTimeAgo(lastPolled)}
                   </p>
                 )}
+              </div>
+            )}
+            
+            {status === 'in-progress' && hasError && (
+              <div>
+                <p className="text-amber-500 font-medium mb-2">
+                  Call connection issue detected
+                </p>
+                <p>
+                  There was a problem connecting the call to <span className="font-bold">{developer}</span> on{' '}
+                  <span className="font-bold">{number}</span>.
+                </p>
+                {rawStatus && (
+                  <p className="text-xs text-muted-foreground mt-2 break-all">
+                    Error: {rawStatus}
+                  </p>
+                )}
+                <p className="text-sm mt-2">
+                  Please try again in a few minutes or contact support if the issue persists.
+                </p>
               </div>
             )}
             
