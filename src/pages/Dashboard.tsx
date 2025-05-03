@@ -84,7 +84,8 @@ const Dashboard: React.FC = () => {
           }
           
           // Update the status based on the call details
-          if (callDetails.callDuration || callDetails.summary) {
+          // Check for callStatus first, then other indicators
+          if (callDetails.callStatus === 'completed' || callDetails.callDuration || callDetails.summary) {
             console.log('Call completed, stopping polling');
             setCallStatus('completed');
             setCallResult(callDetails);
