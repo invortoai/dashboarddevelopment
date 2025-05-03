@@ -72,6 +72,17 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({ calls, isLoading }) =
 };
 
 const getCallStatus = (call: CallDetails): 'completed' | 'in-progress' | 'initiated' | 'failed' => {
+  // Debug logging to help troubleshoot status issues
+  console.log('Call status check:', call.id, {
+    callDuration: call.callDuration,
+    callStatus: call.callStatus,
+    hasTranscript: !!call.transcript, 
+    hasRecording: !!call.callRecording,
+    hasSummary: !!call.summary,
+    callAttempted: call.callAttempted,
+    callLogId: call.callLogId
+  });
+  
   // First check for the most reliable indicators of completion
   if (call.callDuration && call.callDuration > 0) return 'completed';
   if (call.callStatus === 'completed') return 'completed';

@@ -48,6 +48,11 @@ const CallStatus: React.FC<CallStatusProps> = ({
                   Call in progress with <span className="font-bold">{developer}</span> on{' '}
                   <span className="font-bold">{number}</span>. The status will be updated once the call is finished.
                 </p>
+                {callLogId && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Call Log ID: {callLogId}
+                  </p>
+                )}
                 {lastPolled && (
                   <p className="text-xs text-muted-foreground mt-2">
                     Last checked: {formatTimeAgo(lastPolled)}

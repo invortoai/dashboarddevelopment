@@ -24,18 +24,32 @@ const CallHistory: React.FC = () => {
       setLoading(true);
       console.log('Fetching call history for user:', user.id);
       
-      // First sync all call data from call_log to call_details
+      // First sync all call data from call_log to call_details for consistency
       const syncResult = await autoSyncCallLogToDetails(user.id);
       if (syncResult.success) {
         setSyncStatus(`Synced ${syncResult.synced} call records`);
         console.log('Sync result:', syncResult);
       }
       
-      // Then get the call history from call_details
+      // Get the call history with fresh data
       const result = await getCallHistory(user.id);
       
       if (result.success && result.callHistory) {
         console.log(`Retrieved ${result.callHistory.length} calls from history`);
+        
+        // Debug logging for status troubleshooting
+        result.callHistory.forEach(call => {
+          console.log(`Call ${call.id} status details:`, {
+            callDuration: call.callDuration,
+            callStatus: call.callStatus,
+            hasTranscript: !!call.transcript, 
+            hasRecording: !!call.callRecording,
+            hasSummary: !!call.summary,
+            callAttempted: call.callAttempted,
+            callLogId: call.callLogId
+          });
+        });
+        
         setCalls(result.callHistory);
       } else {
         console.error('Failed to fetch call history:', result.message);
