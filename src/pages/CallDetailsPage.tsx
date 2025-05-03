@@ -21,6 +21,7 @@ const CallDetailsPage: React.FC = () => {
   const [submittingFeedback, setSubmittingFeedback] = useState<boolean>(false);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [isComplete, setIsComplete] = useState<boolean>(false);
+  const [syncAttempts, setSyncAttempts] = useState<number>(0);
   
   // Define fetchCallDetails as a useCallback to avoid recreating it on each render
   const fetchCallDetails = useCallback(async () => {
@@ -34,9 +35,21 @@ const CallDetailsPage: React.FC = () => {
       
       console.log('Fetching call details for ID:', id);
       
-      // Force sync from call_log to call_details
-      const syncResult = await syncCallLogToCallDetails(id);
-      console.log('Sync result before getting status:', syncResult);
+      // Force sync from call_log to call_details with retries for persistent errors
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const syncResult = await syncCallLogToCallDetails(id);
+        console.log(`Sync attempt ${attempt + 1} result:`, syncResult);
+        
+        if (syncResult.success) {
+          setSyncAttempts(0); // Reset counter on success
+          break;
+        }
+        
+        if (attempt === 2) {
+          console.warn('Sync failed after multiple attempts');
+          setSyncAttempts(prev => prev + 1);
+        }
+      }
       
       // Get status directly from call_details table
       const statusResult = await getCallStatusFromDetails(id);
@@ -64,6 +77,15 @@ const CallDetailsPage: React.FC = () => {
 
         // Update lastPolled timestamp
         setLastPolled(new Date());
+        
+        if (syncAttempts > 3 && result.callData.callStatus) {
+          // If sync keeps failing but we have call status from call_log, use that directly
+          toast({
+            title: "Sync Warning",
+            description: "Using data directly from call logs due to sync issues.",
+            variant: "warning",
+          });
+        }
       } else {
         console.error('Failed to fetch call log data:', result.message);
         toast({
@@ -84,7 +106,7 @@ const CallDetailsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, user, navigate, toast, callDetails]);
+  }, [id, user, navigate, toast, callDetails, syncAttempts]);
   
   useEffect(() => {
     fetchCallDetails();

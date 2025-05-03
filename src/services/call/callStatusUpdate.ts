@@ -52,7 +52,12 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.summary) updateObject.summary = data.summary;
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
-    if (data.callDuration !== undefined) updateObject.call_duration = data.callDuration;
+    
+    // Ensure call_duration is an integer for call_details table
+    if (data.callDuration !== undefined) {
+      // For call_log (can be float)
+      updateObject.call_duration = data.callDuration;
+    }
     
     // Calculate credits consumed if not provided but we have call duration
     if (data.creditsConsumed === undefined && data.callDuration) {
@@ -76,6 +81,11 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         .eq('call_detail_id', callId);
         
       if (logError) throw logError;
+      
+      // For call_details table, ensure call_duration is an integer
+      if (updateObject.call_duration !== undefined) {
+        updateObject.call_duration = Math.round(updateObject.call_duration);
+      }
       
       // Update the call_details table with the same data
       const { error: callError } = await supabase

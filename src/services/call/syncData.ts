@@ -35,11 +35,12 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
     });
     
     // Update the call_details table with the data from call_log
+    // Handle type conversion for call_duration (convert float to integer)
     const updateData = {
       call_log_id: callLogData.id,
       call_status: callLogData.call_status,
       call_attempted: callLogData.call_attempted,
-      call_duration: callLogData.call_duration,
+      call_duration: callLogData.call_duration ? Math.round(callLogData.call_duration) : null, // Convert float to integer
       call_time: callLogData.call_time,
       credits_consumed: callLogData.credits_consumed,
       summary: callLogData.summary,
@@ -47,6 +48,8 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       transcript: callLogData.transcript,
       feedback: callLogData.feedback
     };
+    
+    console.log('Updating call_details with data:', updateData);
     
     const { error: updateError } = await supabase
       .from('call_details')
