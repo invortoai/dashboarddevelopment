@@ -22,6 +22,16 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
     
     console.log('Found call log data to sync:', callLogData);
     
+    // Calculate credits consumed if needed
+    let creditsConsumed = callLogData.credits_consumed;
+    if (creditsConsumed === null && callLogData.call_duration && callLogData.call_duration > 0) {
+      // Calculate credits based on duration (10 credits per minute)
+      const CREDITS_PER_MINUTE = 10;
+      const durationMinutes = parseFloat(String(callLogData.call_duration)) / 60;
+      creditsConsumed = Math.max(CREDITS_PER_MINUTE, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
+      console.log(`Calculated missing credits consumed: ${creditsConsumed} for ${callLogData.call_duration} seconds`);
+    }
+    
     // Update the call_details table with the data from call_log
     const { error: updateError } = await supabase
       .from('call_details')
@@ -34,7 +44,7 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
         call_recording: callLogData.call_recording,
         transcript: callLogData.transcript,
         summary: callLogData.summary,
-        credits_consumed: callLogData.credits_consumed,
+        credits_consumed: creditsConsumed,
         feedback: callLogData.feedback
       })
       .eq('id', callDetailId);

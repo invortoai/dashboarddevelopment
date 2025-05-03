@@ -53,10 +53,22 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
     if (data.callDuration !== undefined) updateObject.call_duration = data.callDuration;
-    if (data.creditsConsumed !== undefined) updateObject.credits_consumed = data.creditsConsumed;
+    
+    // Calculate credits consumed if not provided but we have call duration
+    if (data.creditsConsumed === undefined && data.callDuration) {
+      // Calculate credits based on duration (10 credits per minute)
+      const CREDITS_PER_MINUTE = 10;
+      const durationMinutes = data.callDuration / 60;
+      updateObject.credits_consumed = Math.max(CREDITS_PER_MINUTE, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
+      console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds`);
+    } else if (data.creditsConsumed !== undefined) {
+      updateObject.credits_consumed = data.creditsConsumed;
+    }
     
     // Only update if we have actual data
     if (Object.keys(updateObject).length > 0) {
+      console.log('Updating call_log with completion data:', updateObject);
+      
       // Update the call_log table with processed data
       const { error: logError } = await supabase
         .from('call_log')
@@ -83,13 +95,17 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     });
     
     // Deduct credits from the user's balance if we know how many to deduct
-    if (data.creditsConsumed) {
+    if (updateObject.credits_consumed) {
+      console.log(`Deducting ${updateObject.credits_consumed} credits from user ${userId}`);
       const { error: creditError } = await supabase.rpc('update_user_credits', {
         user_id_param: userId,
-        credits_to_deduct: data.creditsConsumed
+        credits_to_deduct: updateObject.credits_consumed
       });
       
-      if (creditError) throw creditError;
+      if (creditError) {
+        console.error('Error updating user credits:', creditError);
+        throw creditError;
+      }
     }
     
     return { success: true, message: 'Call completion data updated successfully' };
