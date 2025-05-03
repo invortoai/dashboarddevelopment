@@ -5,7 +5,6 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import Logo from '../Logo';
 import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 
 const Navbar: React.FC = () => {
@@ -30,17 +29,12 @@ const Navbar: React.FC = () => {
   }) => {
     const active = isActive(to);
     
-    const handleClick = () => {
-      if (isMobile) {
-        setMobileOpen(false);
-      }
-    };
-    
     return (
-      <Link to={to} className="block w-full" onClick={handleClick}>
+      <Link to={to} className="block w-full" onClick={() => isMobile && setMobileOpen(false)}>
         <Button
           variant={active ? "secondary" : "ghost"}
           className="flex items-center gap-2 w-full justify-start transition-none"
+          type="button"
         >
           {icon}
           <span className={isMobile || collapsed ? 'md:inline' : 'inline'}>{label}</span>
@@ -152,6 +146,7 @@ const Navbar: React.FC = () => {
           variant="outline" 
           className={`w-full ${collapsed ? 'p-2' : ''}`}
           onClick={logout}
+          type="button"
         >
           {collapsed ? 'Out' : 'Logout'}
         </Button>
@@ -164,6 +159,7 @@ const Navbar: React.FC = () => {
           size="icon"
           onClick={toggleSidebar}
           className="h-8 w-8"
+          type="button"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
