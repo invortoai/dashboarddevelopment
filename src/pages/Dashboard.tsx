@@ -5,6 +5,7 @@ import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
 import CallResult from '@/components/call/CallResult';
 import { initiateCall, getCallLogData, syncCallLogToCallDetails } from '@/services/callService';
+import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -78,33 +79,43 @@ const Dashboard: React.FC = () => {
         const syncResult = await syncCallLogToCallDetails(callId);
         console.log('Sync result:', syncResult);
         
-        // Get data directly from call_log
-        const callLogResult = await getCallLogData(callId);
+        // Get status directly from call_details table
+        const statusResult = await getCallStatusFromDetails(callId);
         
-        if (callLogResult.success && callLogResult.callData) {
-          const callDetails = callLogResult.callData;
-          console.log('Updated call log data:', callDetails);
+        if (statusResult.success) {
+          console.log('Updated status information:', statusResult);
           
-          // Update callData with callLogId if available
-          if (callDetails.callLogId && callData) {
-            setCallData(prev => prev ? { ...prev, callLogId: callDetails.callLogId } : null);
-          }
+          // Get full call data from call_log 
+          const callLogResult = await getCallLogData(callId);
           
-          // Get status directly from call_log's call_status field
-          if (callDetails.callStatus === 'completed' || callDetails.callDuration) {
-            console.log('Call completed, stopping polling');
-            setCallStatus('completed');
-            setCallResult(callDetails);
-            clearInterval(intervalId); // Stop polling once completed
-          } else if (callDetails.callStatus === 'in-progress' || callDetails.callStatus === 'yes' || callDetails.callAttempted) {
-            setCallStatus('in-progress');
-            console.log('Call in progress');
+          if (callLogResult.success && callLogResult.callData) {
+            const callDetails = {
+              ...callLogResult.callData,
+              ...statusResult.callData
+            };
+            console.log('Combined call data:', callDetails);
+            
+            // Update callData with callLogId if available
+            if (callDetails.callLogId && callData) {
+              setCallData(prev => prev ? { ...prev, callLogId: callDetails.callLogId } : null);
+            }
+            
+            // Get status directly from call_details's call_status field
+            if (callDetails.callStatus === 'completed' || callDetails.callDuration) {
+              console.log('Call completed, stopping polling');
+              setCallStatus('completed');
+              setCallResult(callDetails);
+              clearInterval(intervalId); // Stop polling once completed
+            } else if (callDetails.callStatus === 'in-progress' || callDetails.callStatus === 'yes' || callDetails.callAttempted) {
+              setCallStatus('in-progress');
+              console.log('Call in progress');
+            }
           }
         }
       } catch (error) {
         console.error('Error during polling:', error);
       }
-    }, 3000); // Poll every 3 seconds (reduced from 5 seconds for faster updates)
+    }, 3000); // Poll every 3 seconds
     
     // Return cleanup function
     return () => clearInterval(intervalId);

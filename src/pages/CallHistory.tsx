@@ -4,6 +4,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
 import { getCallHistory } from '@/services/call/callLog';
 import { autoSyncCallLogToDetails } from '@/services/call/syncData';
+import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,15 +32,32 @@ const CallHistory: React.FC = () => {
         console.log('Sync result:', syncResult);
       }
       
-      // Get the call history with fresh data
+      // Get the call history with fresh data from call_details
       const result = await getCallHistory(user.id);
       
       if (result.success && result.callHistory) {
         console.log(`Retrieved ${result.callHistory.length} calls from history`);
         
+        // For each call, get the updated status directly from call_details table
+        const updatedCalls = await Promise.all(
+          result.callHistory.map(async (call) => {
+            if (call.id) {
+              const statusResult = await getCallStatusFromDetails(call.id);
+              if (statusResult.success && statusResult.callData) {
+                console.log(`Updated status for call ${call.id}:`, statusResult.callData);
+                return {
+                  ...call,
+                  ...statusResult.callData
+                };
+              }
+            }
+            return call;
+          })
+        );
+        
         // Debug logging for status troubleshooting
-        result.callHistory.forEach(call => {
-          console.log(`Call ${call.id} status details:`, {
+        updatedCalls.forEach(call => {
+          console.log(`Call ${call.id} final status details:`, {
             callDuration: call.callDuration,
             callStatus: call.callStatus,
             hasTranscript: !!call.transcript, 
@@ -50,7 +68,7 @@ const CallHistory: React.FC = () => {
           });
         });
         
-        setCalls(result.callHistory);
+        setCalls(updatedCalls);
       } else {
         console.error('Failed to fetch call history:', result.message);
         toast({

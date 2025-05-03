@@ -8,3 +8,4 @@ export * from './callDetails';
 export * from './analytics';
 export * from './syncData';
 export * from './callLog';
+export * from './callStatus';

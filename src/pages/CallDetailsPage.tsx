@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
 import { Button } from '@/components/ui/button';
 import { getCallLogData, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
+import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -23,14 +25,26 @@ const CallDetailsPage: React.FC = () => {
       
       try {
         setLoading(true);
-        console.log('Fetching call log data for ID:', id);
+        console.log('Fetching call details for ID:', id);
         
-        // Get data directly from call_log
+        // Get status directly from call_details table
+        const statusResult = await getCallStatusFromDetails(id);
+        console.log('Status result from call_details:', statusResult);
+        
+        // Get data from call_log
         const result = await getCallLogData(id);
         
         if (result.success && result.callData) {
           console.log('Call log data fetched:', result.callData);
-          setCallDetails(result.callData);
+          
+          // Combine data, with call_details status data taking precedence
+          const combinedData = {
+            ...result.callData,
+            ...(statusResult.success && statusResult.callData ? statusResult.callData : {})
+          };
+          
+          console.log('Combined call details:', combinedData);
+          setCallDetails(combinedData);
         } else {
           console.error('Failed to fetch call log data:', result.message);
           toast({
@@ -55,10 +69,10 @@ const CallDetailsPage: React.FC = () => {
     
     fetchCallDetails();
     
-    // Set up a polling interval to check for updates directly from call_log
+    // Set up a polling interval to check for updates
     const intervalId = setInterval(() => {
       if (id && user) {
-        console.log('Polling for call log updates');
+        console.log('Polling for call details updates');
         fetchCallDetails();
       }
     }, 30000); // Poll every 30 seconds
