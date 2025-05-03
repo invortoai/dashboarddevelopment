@@ -164,7 +164,11 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
           <TableBody>
             {calls.map((call) => (
               <TableRow key={call.id} className="hover:bg-muted/50">
-                <TableCell>{call.createdAt ? formatToIST(call.createdAt) : '-'}</TableCell>
+                <TableCell>
+                  {/* Use call.createdAt as the primary timestamp, with fallback to call.callTime */}
+                  {call.createdAt ? formatToIST(call.createdAt) : 
+                   call.callTime ? formatToIST(call.callTime) : '-'}
+                </TableCell>
                 <TableCell>{call.developer}</TableCell>
                 <TableCell>{formatPhoneNumber(call.number)}</TableCell>
                 <TableCell>

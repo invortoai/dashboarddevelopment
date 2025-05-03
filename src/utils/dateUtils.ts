@@ -3,7 +3,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
 /**
- * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm A
+ * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm a
  */
 export const formatToIST = (date: Date | string): string => {
   if (!date) return '';
@@ -11,11 +11,17 @@ export const formatToIST = (date: Date | string): string => {
   // Convert the input date to a Date object
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  // Convert directly to IST without adding 5:30 hours (the toZonedTime function handles this)
-  const istDate = toZonedTime(dateObj, 'Asia/Kolkata');
-  
-  // Format using date-fns for better reliability
-  return format(istDate, 'dd-MMM-yyyy hh:mm a');
+  try {
+    // Convert to IST timezone using date-fns-tz
+    const istDate = toZonedTime(dateObj, 'Asia/Kolkata');
+    
+    // Format using date-fns with correct format string
+    // Use 'dd-MMM-yyyy hh:mm a' for proper formatting (MMM for month abbreviation, a for AM/PM)
+    return format(istDate, 'dd-MMM-yyyy hh:mm a');
+  } catch (error) {
+    console.error('Error formatting date to IST:', error);
+    return 'Invalid Date';
+  }
 };
 
 export const getCurrentISTDateTime = (): string => {
