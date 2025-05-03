@@ -23,24 +23,28 @@ const Navbar: React.FC = () => {
     to, 
     icon, 
     label 
-  }) => (
-    <Link to={to} className="block w-full">
-      <Button
-        variant={isActive(to) ? "secondary" : "ghost"}
-        className="flex items-center gap-2 w-full justify-start"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {icon}
-        <span className={`${collapsed ? 'hidden' : 'hidden md:inline'}`}>{label}</span>
-      </Button>
-    </Link>
-  );
+  }) => {
+    const active = isActive(to);
+    
+    return (
+      <Link to={to} className="block w-full">
+        <Button
+          variant={active ? "secondary" : "ghost"}
+          className={`flex items-center gap-2 w-full justify-start transition-none`}
+        >
+          {icon}
+          <span className={`${collapsed ? 'hidden' : 'hidden md:inline'}`}>{label}</span>
+        </Button>
+      </Link>
+    );
+  };
 
   return (
     <div 
-      className={`bg-card border-r border-border h-screen flex flex-col transition-all duration-200 ${
+      className={`bg-sidebar text-sidebar-foreground border-r border-border h-screen flex flex-col transition-width duration-200 ease-in-out ${
         collapsed ? 'w-16' : 'w-full md:w-64'
       }`}
+      style={{ willChange: 'width' }}
     >
       <div className="flex items-center justify-between mb-8 p-4">
         <Link to="/analytics" className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
@@ -51,10 +55,7 @@ const Navbar: React.FC = () => {
           variant="ghost" 
           size="icon"
           className="flex md:hidden"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSidebar();
-          }}
+          onClick={toggleSidebar}
         >
           {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </Button>
@@ -84,10 +85,7 @@ const Navbar: React.FC = () => {
         <Button 
           variant="outline" 
           className={`w-full ${collapsed ? 'p-2' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            logout();
-          }}
+          onClick={logout}
         >
           {collapsed ? 'Out' : 'Logout'}
         </Button>
@@ -98,10 +96,7 @@ const Navbar: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSidebar();
-          }}
+          onClick={toggleSidebar}
           className="h-8 w-8"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
