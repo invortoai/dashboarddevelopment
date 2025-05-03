@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
-import CallStatus from '@/components/call/CallStatus';
 import { Button } from '@/components/ui/button';
 import { getCallLogData, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
@@ -179,26 +178,6 @@ const CallDetailsPage: React.FC = () => {
     }
   };
   
-  const getCallStatusForDisplay = (): 'initiating' | 'in-progress' | 'completed' | null => {
-    if (!callDetails) return null;
-    
-    if (isComplete) return 'completed';
-    
-    const statusLower = callDetails.callStatus?.toLowerCase() || '';
-    
-    if (statusLower.includes('error') || 
-        statusLower.includes('busy') || 
-        statusLower.includes('failed')) {
-      return 'completed'; // Show as completed for error states
-    }
-    
-    if (statusLower.includes('in-progress')) return 'in-progress';
-    
-    if (callDetails.callAttempted) return 'initiating';
-    
-    return null;
-  };
-  
   const handleClose = () => {
     navigate('/history');
   };
@@ -242,19 +221,6 @@ const CallDetailsPage: React.FC = () => {
             </Button>
           </div>
         </div>
-        
-        {/* Display current call status as a regular component, not a popup */}
-        <CallStatus
-          number={callDetails?.number || ''}
-          developer={callDetails?.developer || ''}
-          status={getCallStatusForDisplay()}
-          callLogId={callDetails?.callLogId}
-          lastPolled={lastPolled}
-          rawStatus={callDetails?.callStatus}
-          callResult={callDetails}
-          isPopup={false} // Set to false for call details page
-          onClose={handleClose}
-        />
         
         <div className="mt-6">
           {callDetails && (

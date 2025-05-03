@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -66,12 +67,14 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
               <p className="font-medium">{callDetails.project}</p>
             </div>
             
-            {callDetails.callTime && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Call Initiated At</p>
-                <p className="font-medium">{formatToIST(callDetails.callTime)}</p>
-              </div>
-            )}
+            {/* Always display Call Date & Time, with fallback logic */}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Call Date & Time</p>
+              <p className="font-medium">
+                {callDetails.createdAt ? formatToIST(callDetails.createdAt) :
+                 callDetails.callTime ? formatToIST(callDetails.callTime) : '-'}
+              </p>
+            </div>
             
             {callDetails.callStatus && (
               <div className="space-y-2">
@@ -87,13 +90,11 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
               </div>
             )}
             
-            {/* Ensure credits are displayed even if they're 0 */}
-            {callDetails.creditsConsumed !== undefined && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Credits Used</p>
-                <p className="font-medium">{callDetails.creditsConsumed}</p>
-              </div>
-            )}
+            {/* Always display Credits Used, even if 0 */}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Credits Used</p>
+              <p className="font-medium">{callDetails.creditsConsumed ?? 0}</p>
+            </div>
             
             {callDetails.callLogId && (
               <div className="space-y-2">

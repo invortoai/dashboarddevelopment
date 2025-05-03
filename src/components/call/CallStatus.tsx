@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatTimeAgo } from '@/utils/dateUtils';
-import { formatToIST } from '@/utils/dateUtils';
-import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { formatTimeAgo, formatToIST } from '@/utils/dateUtils';
+import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface CallStatusProps {
   number: string;
@@ -19,6 +20,7 @@ interface CallStatusProps {
     callTime?: string;
     summary?: string;
     transcript?: string;
+    createdAt?: string;
   };
   onFeedbackSubmit?: (feedback: string) => Promise<void>;
   onViewDetails?: () => void;
@@ -43,6 +45,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
   const [feedback, setFeedback] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showRefreshButton, setShowRefreshButton] = useState<boolean>(false);
+  const [showCloseButton, setShowCloseButton] = useState<boolean>(false);
+  const { toast } = useToast();
   
   // Add timer for in-progress calls
   useEffect(() => {
@@ -70,6 +74,24 @@ const CallStatus: React.FC<CallStatusProps> = ({
       if (refreshTimer) clearTimeout(refreshTimer);
     };
   }, [status, rawStatus]);
+
+  // Show feedback toast when call is successful
+  useEffect(() => {
+    const isSuccessful = status === 'completed' && !hasError && 
+                       (rawStatus?.toLowerCase().includes('answered') || 
+                        rawStatus?.toLowerCase().includes('complete'));
+    
+    if (isSuccessful && isPopup) {
+      toast({
+        title: "Call Completed Successfully",
+        description: "Please share your feedback about the call. Your input helps us improve!",
+        variant: "default",
+      });
+      
+      // Also show close button for successful calls when feedback form appears
+      setShowCloseButton(true);
+    }
+  }, [status, rawStatus, isPopup, toast]);
   
   // Format the timer as mm:ss
   const formatTime = (seconds: number): string => {
@@ -86,6 +108,11 @@ const CallStatus: React.FC<CallStatusProps> = ({
     try {
       await onFeedbackSubmit(feedback);
       setFeedback('');
+      toast({
+        title: "Thank you!",
+        description: "Your feedback has been submitted successfully.",
+        variant: "default",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -108,6 +135,16 @@ const CallStatus: React.FC<CallStatusProps> = ({
       <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
         <div className="w-full max-w-2xl">
           <Card className="bg-card border-2 border-purple relative">
+            {/* Only show close button for error states, completed states with feedback form, or when feedback form is active */}
+            {(hasError || showCloseButton) && onClose && (
+              <button 
+                onClick={onClose} 
+                className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
             <CardContent className="p-6">
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center justify-between">
@@ -132,7 +169,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                   )}
                 </div>
 
-                {/* Rest of popup content */}
+                {/* Call Log ID */}
                 {callLogId && (
                   <div className="text-center p-2 bg-muted/50 rounded-md border border-border">
                     <p className="text-sm font-medium">Call Log ID: {callLogId}</p>
@@ -255,12 +292,14 @@ const CallStatus: React.FC<CallStatusProps> = ({
                           <p className="font-medium">{number}</p>
                         </div>
                         
-                        {callResult?.callTime && (
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">Call Initiated At</p>
-                            <p className="font-medium">{formatToIST(callResult.callTime)}</p>
-                          </div>
-                        )}
+                        {/* Date and Time section - prioritize createdAt, then fallback to callTime */}
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">Call Date & Time</p>
+                          <p className="font-medium">
+                            {callResult?.createdAt ? formatToIST(callResult.createdAt) :
+                             callResult?.callTime ? formatToIST(callResult.callTime) : '-'}
+                          </p>
+                        </div>
                         
                         {callResult?.callDuration !== undefined && (
                           <div className="space-y-1">
@@ -269,12 +308,11 @@ const CallStatus: React.FC<CallStatusProps> = ({
                           </div>
                         )}
 
-                        {callResult?.creditsConsumed !== undefined && (
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">Credits Used</p>
-                            <p className="font-medium">{callResult.creditsConsumed}</p>
-                          </div>
-                        )}
+                        {/* Always show Credits Used section, even if 0 */}
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">Credits Used</p>
+                          <p className="font-medium">{callResult?.creditsConsumed ?? 0}</p>
+                        </div>
                       </div>
 
                       {callResult?.summary && (
@@ -292,7 +330,10 @@ const CallStatus: React.FC<CallStatusProps> = ({
                 {status === 'completed' && (
                   <form onSubmit={handleFeedbackSubmit} className="mt-4">
                     <div className="space-y-3">
-                      <h4 className="font-medium">Feedback</h4>
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="h-5 w-5 text-purple" />
+                        <h4 className="font-medium">Share Your Feedback</h4>
+                      </div>
                       <Textarea
                         placeholder="Add your feedback here (max 1000 characters)"
                         value={feedback}
@@ -332,69 +373,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
       </div>
     );
   } else {
-    // When not in popup mode, render as a regular component
-    return (
-      <Card className="bg-card border border-purple mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold">Call Status</h3>
-              {status === 'in-progress' && !hasError && (
-                <span className="inline-flex items-center">
-                  <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
-                  Live {elapsedSeconds > 0 && `- ${formatTime(elapsedSeconds)}`}
-                </span>
-              )}
-              {hasError && (
-                <span className="inline-flex items-center text-amber-500">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
-                  Connection Issue
-                </span>
-              )}
-              {isSuccessful && (
-                <span className="inline-flex items-center text-green-600">
-                  <span className="w-2 h-2 rounded-full bg-green-600 mr-2 animate-pulse"></span>
-                  Connection Successful
-                </span>
-              )}
-            </div>
-
-            {/* Basic details section */}
-            <div className="p-4 border border-border rounded-md bg-muted">
-              {status === 'completed' && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <CallStatusBadge status={rawStatus || 'Completed'} />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Developer</p>
-                      <p className="font-medium">{developer}</p>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Phone Number</p>
-                      <p className="font-medium">{number}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {(status === 'initiating' || status === 'in-progress') && (
-                <div>
-                  <p>Call status: <span className="font-medium">{status}</span></p>
-                  <p>
-                    Call with <span className="font-bold">{developer}</span> on{' '}
-                    <span className="font-bold">{number}</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    // When not in popup mode, render as a regular component (empty as requested)
+    return null;
   }
 };
 
