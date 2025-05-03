@@ -23,6 +23,7 @@ interface CallStatusProps {
   };
   onFeedbackSubmit?: (feedback: string) => Promise<void>;
   onViewDetails?: () => void;
+  onClose?: () => void;
 }
 
 const CallStatus: React.FC<CallStatusProps> = ({ 
@@ -34,7 +35,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
   rawStatus,
   callResult,
   onFeedbackSubmit,
-  onViewDetails
+  onViewDetails,
+  onClose
 }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>('');
@@ -113,6 +115,17 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
                     Connection Issue
                   </span>
+                )}
+                {onClose && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                    onClick={onClose}
+                  >
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close</span>
+                  </Button>
                 )}
               </div>
 

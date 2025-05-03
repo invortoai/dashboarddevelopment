@@ -207,6 +207,7 @@ const Dashboard: React.FC = () => {
             callResult={callResult || undefined}
             onFeedbackSubmit={handleFeedbackSubmit}
             onViewDetails={handleViewDetails}
+            onClose={resetCallState}
           />
         )}
       </div>
