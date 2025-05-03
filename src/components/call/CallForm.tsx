@@ -75,10 +75,10 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
       <CardHeader className="bg-muted/50 dark:bg-gray-800">
         <CardTitle className="text-xl flex items-center gap-2">
           <Phone className="h-5 w-5" />
-          Initiate Call
+          Initiate New Call
         </CardTitle>
         <CardDescription>
-          Enter the details below to initiate a new call
+          Complete the form below to start a new call
         </CardDescription>
       </CardHeader>
       
@@ -137,7 +137,7 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
             className="w-full bg-purple-600 hover:bg-purple-700 text-white" 
             disabled={disabled}
           >
-            {disabled ? 'Call in Progress...' : 'Trigger Call'}
+            {disabled ? 'Call in Progress...' : 'Start Call'}
           </Button>
         </CardFooter>
       </form>
