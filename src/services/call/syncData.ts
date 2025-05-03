@@ -23,26 +23,52 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       return { success: false, message: 'No call log data found to sync' };
     }
     
+    // Log the data we're about to sync
+    console.log('Found call log data to sync:', {
+      id: callLogData.id,
+      call_status: callLogData.call_status,
+      call_duration: callLogData.call_duration,
+      call_time: callLogData.call_time,
+      summary: callLogData.summary ? 'yes' : 'no',
+      transcript: callLogData.transcript ? 'yes' : 'no',
+      call_recording: callLogData.call_recording ? 'yes' : 'no'
+    });
+    
     // Update the call_details table with the data from call_log
+    const updateData = {
+      call_log_id: callLogData.id,
+      call_status: callLogData.call_status,
+      call_attempted: callLogData.call_attempted,
+      call_duration: callLogData.call_duration,
+      call_time: callLogData.call_time,
+      credits_consumed: callLogData.credits_consumed,
+      summary: callLogData.summary,
+      call_recording: callLogData.call_recording,
+      transcript: callLogData.transcript,
+      feedback: callLogData.feedback
+    };
+    
     const { error: updateError } = await supabase
       .from('call_details')
-      .update({
-        call_log_id: callLogData.id,
-        call_status: callLogData.call_status,
-        call_attempted: callLogData.call_attempted,
-        call_duration: callLogData.call_duration,
-        call_time: callLogData.call_time,
-        credits_consumed: callLogData.credits_consumed,
-        summary: callLogData.summary,
-        call_recording: callLogData.call_recording,
-        transcript: callLogData.transcript,
-        feedback: callLogData.feedback
-      })
+      .update(updateData)
       .eq('id', callDetailId);
       
     if (updateError) {
       console.error('Error syncing data to call_details:', updateError);
       return { success: false, message: 'Failed to sync data to call details' };
+    }
+    
+    // Verify the update actually happened by reading the call_details record
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('call_details')
+      .select('call_status, call_duration, summary, transcript, call_recording')
+      .eq('id', callDetailId)
+      .single();
+      
+    if (verifyError) {
+      console.error('Error verifying call details update:', verifyError);
+    } else {
+      console.log('Verification of call_details after sync:', verifyData);
     }
     
     return { success: true, message: 'Successfully synced call log data to call details' };
@@ -76,11 +102,28 @@ export const autoSyncCallLogToDetails = async (userId: string): Promise<{
     
     // For each call detail, sync from call_log
     let syncCount = 0;
+    const syncPromises = [];
+    
     for (const detail of callDetails) {
       if (detail.id) {
-        const result = await syncCallLogToCallDetails(detail.id);
-        if (result.success) syncCount++;
+        syncPromises.push(
+          syncCallLogToCallDetails(detail.id)
+            .then(result => {
+              if (result.success) syncCount++;
+              return result;
+            })
+        );
       }
+    }
+    
+    // Wait for all sync operations to complete
+    const results = await Promise.all(syncPromises);
+    console.log(`Completed ${syncCount}/${callDetails.length} sync operations`);
+    
+    // Check if any operations failed
+    const failedSyncs = results.filter(r => !r.success);
+    if (failedSyncs.length > 0) {
+      console.warn(`${failedSyncs.length} sync operations failed`);
     }
     
     return { 

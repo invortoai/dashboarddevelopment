@@ -6,8 +6,8 @@ export const validatePhoneNumber = (number: string): boolean => {
 };
 
 export const formatPhoneNumber = (number: string): string => {
-  // Return the raw number format without dashes
-  return number;
+  // Return the raw number with no formatting
+  return number.replace(/\D/g, '');
 };
 
 // Add an alias for backward compatibility

@@ -15,18 +15,65 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     
     // First attempt to sync data from call_log to call_details to ensure we have latest data
     const syncResult = await syncCallLogToCallDetails(callDetailId);
-    console.log('Sync result:', syncResult);
+    console.log('Sync result before status check:', syncResult);
     
     // Now query the call_details table for status information
     const { data, error } = await supabase
       .from('call_details')
-      .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed')
+      .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, call_log_id')
       .eq('id', callDetailId)
       .single();
       
     if (error) {
       console.error('Error fetching call status from details:', error);
-      return { success: false, message: 'Could not retrieve call status' };
+      
+      // If we can't get it from call_details, try from call_log directly
+      console.log('Attempting to fetch directly from call_log');
+      const { data: logData, error: logError } = await supabase
+        .from('call_log')
+        .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, id')
+        .eq('call_detail_id', callDetailId)
+        .single();
+        
+      if (logError || !logData) {
+        console.error('Error fetching from call_log as fallback:', logError);
+        return { success: false, message: 'Could not retrieve call status from either table' };
+      }
+      
+      console.log('Successfully retrieved data from call_log instead:', logData);
+      
+      // Use the data from call_log
+      const isError = logData.call_status?.toLowerCase().includes('error') || 
+                      logData.call_status?.toLowerCase().includes('busy') ||
+                      logData.call_status?.toLowerCase().includes('failed');
+                      
+      const isComplete = 
+        (logData.call_duration !== null && logData.call_duration > 0) || 
+        (logData.transcript !== null) || 
+        (logData.call_recording !== null) ||
+        (logData.summary !== null) ||
+        (logData.call_status === 'completed') ||
+        (logData.call_status?.toLowerCase().includes('complete')) ||
+        isError;
+        
+      // Try to force sync one more time
+      await syncCallLogToCallDetails(callDetailId);
+      
+      return { 
+        success: true, 
+        message: 'Call status retrieved from call_log', 
+        callStatus: logData.call_status,
+        isComplete,
+        callData: {
+          callStatus: logData.call_status,
+          callDuration: logData.call_duration,
+          transcript: logData.transcript,
+          callRecording: logData.call_recording,
+          summary: logData.summary,
+          creditsConsumed: logData.credits_consumed,
+          callLogId: logData.id
+        }
+      };
     }
     
     if (!data) {
@@ -61,7 +108,8 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
         transcript: data.transcript,
         callRecording: data.call_recording,
         summary: data.summary,
-        creditsConsumed: data.credits_consumed
+        creditsConsumed: data.credits_consumed,
+        callLogId: data.call_log_id
       }
     };
   } catch (error) {
