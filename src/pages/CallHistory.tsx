@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
-import { getCallHistory } from '@/services/callService';
+import { getCallHistory } from '@/services/call/callLog';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';

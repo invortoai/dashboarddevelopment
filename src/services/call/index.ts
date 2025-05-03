@@ -3,9 +3,8 @@
 export * from './callInitiation';
 export * from './callStatusUpdate';
 export * from './callFeedback';
-export * from './callHistory';
+export { getCallHistory as getCallHistoryFromCallDetails } from './callHistory';
 export * from './callDetails';
 export * from './analytics';
 export * from './syncData';
 export * from './callLog';
-
