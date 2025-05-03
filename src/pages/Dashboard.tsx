@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
 import CallResult from '@/components/call/CallResult';
-import { initiateCall, syncCallLogToCallDetails } from '@/services/callService';
+import { initiateCall, getCallLogData } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -65,56 +64,34 @@ const Dashboard: React.FC = () => {
     }
   };
   
-  // Function to poll for updates from call_log
+  // Function to poll for updates directly from call_log
   const startPollingForUpdates = (callId: string) => {
     // Setup polling interval to check for updates (every 10 seconds)
     const intervalId = setInterval(async () => {
       try {
         console.log('Polling for updates for call ID:', callId);
-        // Sync data from call_log to call_details
-        const syncResult = await syncCallLogToCallDetails(callId);
-        console.log('Sync result:', syncResult);
         
-        if (syncResult.success) {
-          // Check the call status after sync
-          const { data, error } = await supabase
-            .from('call_details')
-            .select('*')
-            .eq('id', callId)
-            .single();
-            
-          if (data && !error) {
-            console.log('Updated call details:', data);
-            // Process the updated data
-            const callDetails: CallDetails = {
-              id: data.id,
-              userId: data.user_id,
-              number: data.number,
-              developer: data.developer,
-              project: data.project,
-              callAttempted: data.call_attempted,
-              callLogId: data.call_log_id,
-              callStatus: data.call_status,
-              summary: data.summary,
-              callRecording: data.call_recording,
-              transcript: data.transcript,
-              callDuration: data.call_duration,
-              callTime: data.call_time,
-              creditsConsumed: data.credits_consumed,
-              feedback: data.feedback,
-              createdAt: data.created_at
-            };
-            
-            // Update the status based on the call details
-            if (data.call_duration) {
-              setCallStatus('completed');
-              setCallResult(callDetails);
-              clearInterval(intervalId); // Stop polling once completed
-              console.log('Call completed, stopping polling');
-            } else if (data.call_status === 'yes') {
-              setCallStatus('in-progress');
-              console.log('Call in progress');
-            }
+        // Get data directly from call_log
+        const callLogResult = await getCallLogData(callId);
+        
+        if (callLogResult.success && callLogResult.callData) {
+          const callDetails = callLogResult.callData;
+          console.log('Updated call log data:', callDetails);
+          
+          // Update callData with callLogId if available
+          if (callDetails.callLogId && callData) {
+            setCallData(prev => prev ? { ...prev, callLogId: callDetails.callLogId } : null);
+          }
+          
+          // Update the status based on the call details
+          if (callDetails.callDuration) {
+            setCallStatus('completed');
+            setCallResult(callDetails);
+            clearInterval(intervalId); // Stop polling once completed
+            console.log('Call completed, stopping polling');
+          } else if (callDetails.callStatus === 'yes') {
+            setCallStatus('in-progress');
+            console.log('Call in progress');
           }
         }
       } catch (error) {

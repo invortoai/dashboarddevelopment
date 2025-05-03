@@ -1,12 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
-import { getCallHistory, syncCallLogToCallDetails } from '@/services/callService';
+import { getCallHistory } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
 import { Button } from '@/components/ui/button';
 
 const CallHistory: React.FC = () => {
@@ -23,28 +21,7 @@ const CallHistory: React.FC = () => {
       setLoading(true);
       console.log('Fetching call history for user:', user.id);
       
-      // Get all call IDs first
-      const { data: callIdsData, error: callIdsError } = await supabase
-        .from('call_details')
-        .select('id')
-        .eq('user_id', user.id);
-        
-      if (callIdsError) {
-        console.error('Error fetching call IDs:', callIdsError);
-      }
-        
-      if (callIdsData && callIdsData.length > 0) {
-        console.log(`Found ${callIdsData.length} calls to sync`);
-        // Sync each call's data from call_log to call_details
-        await Promise.all(
-          callIdsData.map(call => {
-            console.log('Syncing call data for ID:', call.id);
-            return syncCallLogToCallDetails(call.id);
-          })
-        );
-      }
-      
-      // Now get the updated call history
+      // Get the call history directly from call_log
       const result = await getCallHistory(user.id);
       
       if (result.success && result.callHistory) {

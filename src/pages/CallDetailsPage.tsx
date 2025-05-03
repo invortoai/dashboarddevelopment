@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallDetailsComponent from '@/components/call/CallDetails';
 import { Button } from '@/components/ui/button';
-import { getCallDetails, submitFeedback, viewRecording, viewTranscript, syncCallLogToCallDetails } from '@/services/callService';
+import { getCallLogData, submitFeedback, viewRecording, viewTranscript } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -23,19 +23,16 @@ const CallDetailsPage: React.FC = () => {
       
       try {
         setLoading(true);
-        console.log('Fetching call details and syncing for ID:', id);
+        console.log('Fetching call log data for ID:', id);
         
-        // Sync data from call_log to call_details before fetching
-        const syncResult = await syncCallLogToCallDetails(id);
-        console.log('Sync result:', syncResult);
+        // Get data directly from call_log
+        const result = await getCallLogData(id);
         
-        const result = await getCallDetails(id, user.id);
-        
-        if (result.success && result.callDetails) {
-          console.log('Call details fetched:', result.callDetails);
-          setCallDetails(result.callDetails);
+        if (result.success && result.callData) {
+          console.log('Call log data fetched:', result.callData);
+          setCallDetails(result.callData);
         } else {
-          console.error('Failed to fetch call details:', result.message);
+          console.error('Failed to fetch call log data:', result.message);
           toast({
             title: "Error",
             description: result.message,
@@ -58,10 +55,10 @@ const CallDetailsPage: React.FC = () => {
     
     fetchCallDetails();
     
-    // Set up a polling interval to check for updates
+    // Set up a polling interval to check for updates directly from call_log
     const intervalId = setInterval(() => {
       if (id && user) {
-        console.log('Polling for call details updates');
+        console.log('Polling for call log updates');
         fetchCallDetails();
       }
     }, 30000); // Poll every 30 seconds
@@ -83,9 +80,9 @@ const CallDetailsPage: React.FC = () => {
         });
         
         // Refresh call details to get the updated feedback
-        const updatedResult = await getCallDetails(id, user.id);
-        if (updatedResult.success && updatedResult.callDetails) {
-          setCallDetails(updatedResult.callDetails);
+        const updatedResult = await getCallLogData(id);
+        if (updatedResult.success && updatedResult.callData) {
+          setCallDetails(updatedResult.callData);
         }
       } else {
         toast({
@@ -162,10 +159,9 @@ const CallDetailsPage: React.FC = () => {
               <Button variant="secondary" onClick={async () => {
                 if (id) {
                   setLoading(true);
-                  await syncCallLogToCallDetails(id);
-                  const result = await getCallDetails(id, user?.id || '');
-                  if (result.success && result.callDetails) {
-                    setCallDetails(result.callDetails);
+                  const result = await getCallLogData(id);
+                  if (result.success && result.callData) {
+                    setCallDetails(result.callData);
                     toast({
                       title: "Success",
                       description: "Call data refreshed successfully.",
