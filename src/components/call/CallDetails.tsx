@@ -70,6 +70,13 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
               <p className="font-medium">{formatToIST(callDetails.createdAt)}</p>
             </div>
             
+            {callDetails.callStatus && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Call Status</p>
+                <p className="font-medium">{callDetails.callStatus}</p>
+              </div>
+            )}
+            
             {callDetails.callTime && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Call Time</p>
