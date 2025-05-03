@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,11 +116,11 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     Connection Issue
                   </span>
                 )}
-                {/* Add close button at top-right */}
+                {/* Close button in the top right corner */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2 top-2 text-red-500 hover:text-red-700"
                   onClick={onClose}
                 >
                   <X className="h-5 w-5" />
