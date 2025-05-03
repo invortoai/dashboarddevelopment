@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -44,7 +43,8 @@ const Navbar: React.FC = () => {
           type="button"
         >
           {icon}
-          <span className={isMobile || collapsed ? 'md:inline' : 'inline'}>{label}</span>
+          {/* Only show label when not collapsed or on mobile */}
+          {(!collapsed || isMobile) && <span>{label}</span>}
         </Button>
       </Link>
     );
@@ -151,7 +151,7 @@ const Navbar: React.FC = () => {
       <div className="p-4">
         <Button 
           variant="outline" 
-          className={`w-full ${collapsed ? 'p-2' : ''}`}
+          className={`w-full ${collapsed ? 'justify-center' : ''}`}
           onClick={logout}
           type="button"
         >
