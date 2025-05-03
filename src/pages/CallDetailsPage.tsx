@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -153,9 +152,6 @@ const CallDetailsPage: React.FC = () => {
     
     try {
       await viewTranscript(user.id, id);
-      
-      // Show the transcript view
-      document.querySelector('.transcript-view')?.classList.remove('hidden');
     } catch (error) {
       console.error('Error recording transcript view activity:', error);
     }

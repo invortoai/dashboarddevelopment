@@ -23,6 +23,7 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
   isSubmittingFeedback
 }) => {
   const [feedback, setFeedback] = useState('');
+  const [showTranscript, setShowTranscript] = useState(false);
   
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +42,7 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
   
   const handleTranscriptClick = async () => {
     await onTranscriptView();
+    setShowTranscript(true);
   };
   
   return (
@@ -133,14 +135,13 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
         </Card>
       )}
       
-      {callDetails.transcript && (
-        <Card className="hidden transcript-view">
+      {/* Transcript display with in-window behavior */}
+      {showTranscript && callDetails.transcript && (
+        <Card>
           <CardContent className="p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">Transcript</h3>
-              <Button variant="ghost" size="sm" onClick={() => {
-                document.querySelector('.transcript-view')?.classList.add('hidden');
-              }}>
+              <Button variant="ghost" size="sm" onClick={() => setShowTranscript(false)}>
                 Close
               </Button>
             </div>

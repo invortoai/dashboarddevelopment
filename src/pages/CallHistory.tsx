@@ -34,7 +34,7 @@ const CallHistory: React.FC = () => {
       // First sync all call data from call_log to call_details for consistency
       const syncResult = await autoSyncCallLogToDetails(user.id);
       if (syncResult.success) {
-        setSyncStatus(`Synced ${syncResult.synced} call records`);
+        setSyncStatus(`Synced all records`);
         console.log('Sync result:', syncResult);
       }
       

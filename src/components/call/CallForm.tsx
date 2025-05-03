@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,8 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Phone } from 'lucide-react';
+import { Phone, RefreshCw, AlertCircle } from 'lucide-react';
 import { validatePhoneNumber } from '@/utils/phoneUtils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 export interface CallFormProps {
   onCallInitiated: (data: {
@@ -32,6 +34,30 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
     developer?: string;
     project?: string;
   }>({});
+  const [callStartTime, setCallStartTime] = useState<Date | null>(null);
+  const [showRefreshButton, setShowRefreshButton] = useState<boolean>(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (disabled && !showRefreshButton) {
+      // If call is in progress, start a timer to show the refresh button after 1 minute
+      if (!callStartTime) {
+        setCallStartTime(new Date());
+      }
+      
+      timer = setTimeout(() => {
+        setShowRefreshButton(true);
+      }, 60000); // 1 minute
+    } else if (!disabled) {
+      // If call is not in progress, reset the states
+      setCallStartTime(null);
+      setShowRefreshButton(false);
+    }
+    
+    return () => clearTimeout(timer);
+  }, [disabled, callStartTime, showRefreshButton]);
 
   const validateForm = (): boolean => {
     const newErrors: {
@@ -67,6 +93,34 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
         developer: developer.trim(),
         project: project.trim(),
       });
+      setCallStartTime(new Date());
+    }
+  };
+  
+  const handleRefreshCheck = async () => {
+    try {
+      const response = await fetch('https://n8n.srv743759.hstgr.cloud/webhook/4069d9c5-cbeb-43d8-a08b-3935ffd91f58', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callId: 'check-status',
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      
+      toast({
+        title: "Status Check Initiated",
+        description: "Checking if your call has completed. Please refresh the page.",
+      });
+    } catch (error) {
+      console.error('Error triggering refresh webhook:', error);
+      toast({
+        title: "Error",
+        description: "Failed to check call status. Please try manually refreshing the page.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -81,6 +135,30 @@ const CallForm: React.FC<CallFormProps> = ({ onCallInitiated, disabled = false }
           Complete the form below to start a new call
         </CardDescription>
       </CardHeader>
+      
+      {showRefreshButton && disabled && (
+        <div className="px-6 pt-4">
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-600">Call may have completed</AlertTitle>
+            <AlertDescription className="text-yellow-700">
+              It's been over a minute since your call was initiated. Please wait for at least 1 minute after 
+              the call has finished and then check if the call has completed.
+              <div className="mt-2">
+                <strong>Warning:</strong> Checking status while a call is still in progress may result in an error response.
+              </div>
+              <Button 
+                onClick={handleRefreshCheck} 
+                variant="outline" 
+                className="mt-2 bg-white border-yellow-300 hover:bg-yellow-50"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Check Status
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4 pt-6 bg-background">

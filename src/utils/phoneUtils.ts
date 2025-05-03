@@ -6,10 +6,8 @@ export const validatePhoneNumber = (number: string): boolean => {
 };
 
 export const formatPhoneNumber = (number: string): string => {
-  if (!number || number.length !== 10) return number;
-  
-  // Format as XXX-XXX-XXXX
-  return number.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  // Return the number as-is without formatting
+  return number;
 };
 
 // Add an alias for backward compatibility
