@@ -36,6 +36,7 @@ const Navbar: React.FC = () => {
         <Link to="/analytics">
           <Logo />
         </Link>
+        <span className="ml-3 text-xl font-bold">INVORTO AI</span>
       </div>
       
       <div className="flex flex-col space-y-2">

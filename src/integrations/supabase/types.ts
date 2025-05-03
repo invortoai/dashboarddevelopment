@@ -74,6 +74,78 @@ export type Database = {
           },
         ]
       }
+      call_log: {
+        Row: {
+          call_attempted: boolean | null
+          call_detail_id: string
+          call_duration: number | null
+          call_recording: string | null
+          call_status: string | null
+          call_time: string | null
+          created_at: string
+          credits_consumed: number | null
+          developer: string
+          feedback: string | null
+          id: string
+          number: string
+          project: string
+          summary: string | null
+          transcript: string | null
+          user_id: string
+        }
+        Insert: {
+          call_attempted?: boolean | null
+          call_detail_id: string
+          call_duration?: number | null
+          call_recording?: string | null
+          call_status?: string | null
+          call_time?: string | null
+          created_at?: string
+          credits_consumed?: number | null
+          developer: string
+          feedback?: string | null
+          id?: string
+          number: string
+          project: string
+          summary?: string | null
+          transcript?: string | null
+          user_id: string
+        }
+        Update: {
+          call_attempted?: boolean | null
+          call_detail_id?: string
+          call_duration?: number | null
+          call_recording?: string | null
+          call_status?: string | null
+          call_time?: string | null
+          created_at?: string
+          credits_consumed?: number | null
+          developer?: string
+          feedback?: string | null
+          id?: string
+          number?: string
+          project?: string
+          summary?: string | null
+          transcript?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_log_call_detail_id_fkey"
+            columns: ["call_detail_id"]
+            isOneToOne: false
+            referencedRelation: "call_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity: {
         Row: {
           activity_type: string

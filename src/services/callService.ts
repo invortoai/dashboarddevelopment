@@ -58,6 +58,22 @@ export const initiateCall = async (userId: string, number: string, developer: st
       
     if (activityError) throw activityError;
     
+    // Create a call_log entry
+    const { data: callLog, error: callLogError } = await supabase
+      .from('call_log')
+      .insert({
+        call_detail_id: newCall.id,
+        user_id: userId,
+        number,
+        developer,
+        project,
+        created_at: currentTime
+      })
+      .select()
+      .single();
+      
+    if (callLogError) throw callLogError;
+    
     // Send the webhook request to trigger the call
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
@@ -65,6 +81,8 @@ export const initiateCall = async (userId: string, number: string, developer: st
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        id: newCall.id,
+        user_id: userId,
         number,
         developer,
         project
@@ -99,6 +117,26 @@ export const updateCallStatus = async (callId: string, data: {
   callTime?: string;
 }): Promise<{ success: boolean; message: string }> => {
   try {
+    // First get the call details to find call_log_id
+    const { data: callDetails, error: detailsError } = await supabase
+      .from('call_details')
+      .select('id')
+      .eq('id', callId)
+      .single();
+    
+    if (detailsError) throw detailsError;
+    
+    // Update the call_log table
+    await supabase
+      .from('call_log')
+      .update({
+        call_attempted: data.callAttempted,
+        call_status: data.callStatus,
+        call_time: data.callTime,
+      })
+      .eq('call_detail_id', callId);
+    
+    // Update the call_details table
     await supabase
       .from('call_details')
       .update({
@@ -126,7 +164,21 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
   try {
     const currentTime = getCurrentISTDateTime();
     
-    // First, update the call details
+    // Update the call_log table
+    const { error: logError } = await supabase
+      .from('call_log')
+      .update({
+        summary: data.summary,
+        call_recording: data.callRecording,
+        transcript: data.transcript,
+        call_duration: data.callDuration,
+        credits_consumed: data.creditsConsumed,
+      })
+      .eq('call_detail_id', callId);
+      
+    if (logError) throw logError;
+    
+    // Update the call_details table
     const { error: callError } = await supabase
       .from('call_details')
       .update({
@@ -173,7 +225,7 @@ export const submitFeedback = async (
   try {
     const currentTime = getCurrentISTDateTime();
     
-    // Check if feedback already exists
+    // Check if feedback already exists in call_details
     const { data: existingCall } = await supabase
       .from('call_details')
       .select('feedback')
@@ -191,13 +243,21 @@ export const submitFeedback = async (
       updatedFeedback = `${currentTime}: ${feedback}`;
     }
     
-    // Update the feedback
-    const { error: feedbackError } = await supabase
+    // Update the feedback in call_details
+    const { error: feedbackDetailError } = await supabase
       .from('call_details')
       .update({ feedback: updatedFeedback })
       .eq('id', callId);
       
-    if (feedbackError) throw feedbackError;
+    if (feedbackDetailError) throw feedbackDetailError;
+    
+    // Update the feedback in call_log
+    const { error: feedbackLogError } = await supabase
+      .from('call_log')
+      .update({ feedback: updatedFeedback })
+      .eq('call_detail_id', callId);
+      
+    if (feedbackLogError) throw feedbackLogError;
     
     // Record feedback activity
     await supabase.from('user_activity').insert({
