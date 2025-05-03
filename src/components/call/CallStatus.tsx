@@ -22,7 +22,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
 }) => {
   if (!status) return null;
 
-  const hasError = rawStatus?.includes('error');
+  const hasError = rawStatus?.toLowerCase().includes('error');
   
   return (
     <Card className="mt-4 bg-card border-2 border-purple">

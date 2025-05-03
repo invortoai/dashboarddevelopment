@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
@@ -23,6 +23,7 @@ const Dashboard: React.FC = () => {
   const [callStatus, setCallStatus] = useState<'initiating' | 'in-progress' | 'completed' | null>(null);
   const [callResult, setCallResult] = useState<CallDetails | null>(null);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
+  const [rawStatus, setRawStatus] = useState<string | null>(null);
   
   // Function to handle call initiation
   const handleCallInitiate = async (data: { number: string; developer: string; project: string }) => {
@@ -67,7 +68,7 @@ const Dashboard: React.FC = () => {
   };
   
   // Function to poll for updates and sync data between call_log and call_details
-  const startPollingForUpdates = (callId: string) => {
+  const startPollingForUpdates = useCallback((callId: string) => {
     // Setup polling interval to check for updates (every 3 seconds)
     const intervalId = setInterval(async () => {
       try {
@@ -85,6 +86,11 @@ const Dashboard: React.FC = () => {
         if (statusResult.success) {
           console.log('Updated status information:', statusResult);
           
+          // Store raw status for display purposes
+          if (statusResult.callStatus) {
+            setRawStatus(statusResult.callStatus);
+          }
+          
           // Get full call data from call_log 
           const callLogResult = await getCallLogData(callId);
           
@@ -100,13 +106,17 @@ const Dashboard: React.FC = () => {
               setCallData(prev => prev ? { ...prev, callLogId: callDetails.callLogId } : null);
             }
             
-            // Get status directly from call_details's call_status field
-            if (callDetails.callStatus === 'completed' || callDetails.callDuration) {
+            // Determine call status based on various fields
+            if (statusResult.isComplete || 
+                callDetails.callStatus === 'completed' || 
+                callDetails.callDuration) {
               console.log('Call completed, stopping polling');
               setCallStatus('completed');
               setCallResult(callDetails);
               clearInterval(intervalId); // Stop polling once completed
-            } else if (callDetails.callStatus === 'in-progress' || callDetails.callStatus === 'yes' || callDetails.callAttempted) {
+            } else if (callDetails.callStatus === 'in-progress' || 
+                      callDetails.callStatus === 'yes' || 
+                      callDetails.callAttempted) {
               setCallStatus('in-progress');
               console.log('Call in progress');
             }
@@ -119,7 +129,7 @@ const Dashboard: React.FC = () => {
     
     // Return cleanup function
     return () => clearInterval(intervalId);
-  };
+  }, [callData]);
   
   // Reset the call state
   const resetCallState = () => {
@@ -127,6 +137,7 @@ const Dashboard: React.FC = () => {
     setCallStatus(null);
     setCallResult(null);
     setLastPolled(null);
+    setRawStatus(null);
   };
   
   return (
@@ -146,6 +157,7 @@ const Dashboard: React.FC = () => {
             status={callStatus}
             callLogId={callData.callLogId}
             lastPolled={lastPolled}
+            rawStatus={rawStatus || undefined}
           />
         )}
         

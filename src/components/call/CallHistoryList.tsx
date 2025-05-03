@@ -203,7 +203,9 @@ const CallStatusBadge: React.FC<{ call: CallDetails }> = ({ call }) => {
     !!call.callRecording || 
     !!call.summary;
   
-  const hasError = call.callStatus?.includes('error');
+  const hasError = call.callStatus?.toLowerCase().includes('error');
+  const isInProgress = call.callStatus?.toLowerCase().includes('in-progress');
+  const isInitiated = call.callAttempted && call.callLogId;
   
   let status: string;
   let bgColor: string = '';
@@ -217,23 +219,28 @@ const CallStatusBadge: React.FC<{ call: CallDetails }> = ({ call }) => {
     status = 'failed';
     bgColor = 'bg-red-500/20';
     textColor = 'text-red-500';
-  } else if (call.callStatus?.includes('in-progress')) {
+  } else if (isInProgress) {
     status = 'in-progress';
     bgColor = 'bg-blue-500/20';
     textColor = 'text-blue-500';
-  } else if (call.callAttempted && call.callLogId) {
+  } else if (isInitiated) {
     status = 'initiated';
     bgColor = 'bg-yellow-500/20';
     textColor = 'text-yellow-500';
+  } else if (call.callStatus) {
+    // If there's a callStatus but none of the above conditions are met
+    status = call.callStatus.toLowerCase();
+    bgColor = 'bg-purple-500/20';
+    textColor = 'text-purple-500';
   } else {
-    status = 'unknown';
+    status = 'pending';
     bgColor = 'bg-gray-500/20';
     textColor = 'text-gray-500';
   }
 
   return (
     <span className={`inline-block px-2 py-1 rounded text-xs ${bgColor} ${textColor}`}>
-      {hasError ? 'Failed' : status.charAt(0).toUpperCase() + status.slice(1)}
+      {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
 };

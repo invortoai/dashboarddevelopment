@@ -32,11 +32,12 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     
     // Determine if call is complete based on data
     const isComplete = 
-      (data.call_duration !== null) || 
+      (data.call_duration !== null && data.call_duration > 0) || 
       (data.transcript !== null) || 
       (data.call_recording !== null) ||
       (data.summary !== null) ||
-      (data.call_status === 'completed');
+      (data.call_status === 'completed') ||
+      (data.call_status?.toLowerCase().includes('complete'));
     
     return { 
       success: true, 
