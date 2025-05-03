@@ -23,12 +23,16 @@ const Navbar: React.FC = () => {
     setCollapsed(!collapsed);
   };
 
-  // Use the Logo component
-  const NavIcon: React.FC = () => (
-    <div className="flex justify-center items-center">
-      <Logo />
-    </div>
-  );
+  // Conditionally render logo based on sidebar state
+  const NavIcon: React.FC = () => {
+    if (collapsed) return null; // Don't show anything when collapsed
+    
+    return (
+      <div className="flex justify-center items-center">
+        <Logo text={true} />
+      </div>
+    );
+  };
 
   const NavLink: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ 
     to, 
