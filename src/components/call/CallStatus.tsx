@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo } from '@/utils/dateUtils';
 import { formatToIST } from '@/utils/dateUtils';
-import { Check, PhoneOff, PhoneMissed, X } from 'lucide-react';
+import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface CallStatusProps {

@@ -2,7 +2,11 @@
 // Re-export all functions from the call folder
 export * from './callDetails';
 export * from './callFeedback';
-export * from './callHistory';
+// Fix the ambiguous export by using more specific exports
+export { 
+  getUserCallHistory,
+  getPaginatedUserCallHistory 
+} from './callHistory';
 export * from './callInitiation';
 export * from './callLog';
 export * from './callStatus';
