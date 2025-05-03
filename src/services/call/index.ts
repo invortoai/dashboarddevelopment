@@ -4,8 +4,7 @@ export * from './callDetails';
 export * from './callFeedback';
 // Fix the ambiguous export by using more specific exports
 export { 
-  getUserCallHistory,
-  getPaginatedUserCallHistory 
+  getCallHistory
 } from './callHistory';
 export * from './callInitiation';
 export * from './callLog';
