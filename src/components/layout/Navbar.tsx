@@ -69,11 +69,8 @@ const Navbar: React.FC = () => {
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw]">
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <div className="flex items-center">
-                  <Logo className="h-8" />
-                  <span className="ml-3 text-xl font-bold text-sidebar-foreground">INVORTO AI</span>
-                </div>
+              <div className="flex items-center justify-center p-4 border-b border-border">
+                <span className="text-xl font-bold text-sidebar-foreground">INVORTO AI</span>
               </div>
               
               <div className="flex-1 flex flex-col space-y-2 p-4">
@@ -126,11 +123,8 @@ const Navbar: React.FC = () => {
       }`}
       style={{ willChange: 'width' }}
     >
-      <div className="flex items-center justify-between mb-8 p-4">
-        <Link to="/analytics" className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
-          <Logo className={collapsed ? 'h-8 w-8' : 'h-8'} />
-          {!collapsed && <span className="ml-3 text-xl font-bold">INVORTO AI</span>}
-        </Link>
+      <div className="flex items-center justify-center mb-8 p-4">
+        <span className={`text-xl font-bold ${collapsed ? 'hidden' : 'block'}`}>INVORTO AI</span>
       </div>
       
       <div className="flex-1 flex flex-col space-y-2 px-2">
