@@ -1,7 +1,7 @@
 
 import { DateFormatOptions } from '../types';
 import { format, formatDistanceToNow } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 /**
  * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm A
@@ -13,7 +13,7 @@ export const formatToIST = (date: Date | string): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
   // Convert UTC time to IST
-  const istDate = utcToZonedTime(dateObj, 'Asia/Kolkata');
+  const istDate = toZonedTime(dateObj, 'Asia/Kolkata');
   
   // Format using date-fns for better reliability
   return format(istDate, 'dd-MMM-yyyy hh:mm a');
