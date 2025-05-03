@@ -4,7 +4,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
 import CallResult from '@/components/call/CallResult';
-import { initiateCall, getCallLogData } from '@/services/callService';
+import { initiateCall, getCallLogData, syncCallLogToCallDetails } from '@/services/callService';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -64,12 +64,16 @@ const Dashboard: React.FC = () => {
     }
   };
   
-  // Function to poll for updates directly from call_log
+  // Function to poll for updates and sync data between call_log and call_details
   const startPollingForUpdates = (callId: string) => {
     // Setup polling interval to check for updates (every 5 seconds)
     const intervalId = setInterval(async () => {
       try {
         console.log('Polling for updates for call ID:', callId);
+        
+        // First sync data from call_log to call_details to ensure consistency
+        const syncResult = await syncCallLogToCallDetails(callId);
+        console.log('Sync result:', syncResult);
         
         // Get data directly from call_log
         const callLogResult = await getCallLogData(callId);

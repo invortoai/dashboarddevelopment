@@ -50,3 +50,45 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
     return { success: false, message: 'Failed to sync call log data to call details' };
   }
 };
+
+export const autoSyncCallLogToDetails = async (userId: string): Promise<{
+  success: boolean;
+  message: string;
+  synced?: number;
+}> => {
+  try {
+    // Find all call_log records that might have newer data than call_details
+    const { data: callLogs, error: callLogsError } = await supabase
+      .from('call_log')
+      .select('call_detail_id')
+      .eq('user_id', userId);
+      
+    if (callLogsError || !callLogs || callLogs.length === 0) {
+      return { success: true, message: 'No call logs found to sync', synced: 0 };
+    }
+    
+    // Extract the call detail IDs
+    const callDetailIds = callLogs.map(log => log.call_detail_id);
+    console.log('Found call logs to sync for IDs:', callDetailIds);
+    
+    // Sync each call log with its call detail
+    let syncedCount = 0;
+    for (const callDetailId of callDetailIds) {
+      if (!callDetailId) continue;
+      
+      const result = await syncCallLogToCallDetails(callDetailId);
+      if (result.success) {
+        syncedCount++;
+      }
+    }
+    
+    return { 
+      success: true, 
+      message: `Successfully synced ${syncedCount} call records from call_log to call_details`, 
+      synced: syncedCount 
+    };
+  } catch (error) {
+    console.error('Auto sync call logs error:', error);
+    return { success: false, message: 'Failed to auto-sync call logs to call details' };
+  }
+};

@@ -73,7 +73,8 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({ calls, isLoading }) =
 
 const getCallStatus = (call: CallDetails): 'completed' | 'in-progress' | 'initiated' | 'failed' => {
   if (call.callDuration) return 'completed';
-  if (call.callStatus === 'yes') return 'in-progress';
+  if (call.callStatus === 'completed') return 'completed';
+  if (call.callStatus === 'in-progress' || call.callStatus === 'yes') return 'in-progress';
   if (call.callAttempted) return call.callLogId ? 'initiated' : 'failed';
   return 'initiated';
 };
