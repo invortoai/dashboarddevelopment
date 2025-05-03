@@ -1,63 +1,35 @@
-import { DateFormatOptions } from '../types';
 
+import { DateFormatOptions } from '../types';
+import { format, formatDistanceToNow } from 'date-fns';
+import { utcToZonedTime } from 'date-fns-tz';
+
+/**
+ * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm A
+ */
 export const formatToIST = (date: Date | string): string => {
+  if (!date) return '';
+  
+  // Convert the input date to a Date object
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  const options: DateFormatOptions = {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Kolkata'
-  };
+  // Convert UTC time to IST
+  const istDate = utcToZonedTime(dateObj, 'Asia/Kolkata');
   
-  // Format: dd-MMM-yyyy hh:mm A
-  const formatted = dateObj.toLocaleString('en-IN', options);
-  
-  // Convert to required format (dd-MMM-yyyy hh:mm A)
-  const parts = formatted.split(', ');
-  if (parts.length !== 2) return formatted;
-  
-  const datePart = parts[0].split(' ');
-  if (datePart.length !== 2) return formatted;
-  
-  // Convert '15 Apr' to '15-Apr'
-  const formattedDate = `${datePart[0]}-${datePart[1]}-${parts[0].split(' ')[2]} ${parts[1]}`;
-  
-  return formattedDate;
+  // Format using date-fns for better reliability
+  return format(istDate, 'dd-MMM-yyyy hh:mm a');
 };
 
 export const getCurrentISTDateTime = (): string => {
-  return formatToIST(new Date());
+  const now = new Date();
+  return formatToIST(now);
 };
 
 /**
  * Format a date as a relative time string (e.g., "2 minutes ago")
  */
 export const formatTimeAgo = (date: Date): string => {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (!date) return '';
   
-  if (diffInSeconds < 5) {
-    return 'just now';
-  }
-  
-  if (diffInSeconds < 60) {
-    return `${diffInSeconds} seconds ago`;
-  }
-  
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
-  }
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
-  }
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+  // Use date-fns for consistent and reliable relative time formatting
+  return formatDistanceToNow(date, { addSuffix: true });
 };
