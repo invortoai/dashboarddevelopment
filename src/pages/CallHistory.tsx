@@ -21,17 +21,26 @@ const CallHistory: React.FC = () => {
     
     try {
       setLoading(true);
+      console.log('Fetching call history for user:', user.id);
       
       // Get all call IDs first
-      const { data: callIdsData } = await supabase
+      const { data: callIdsData, error: callIdsError } = await supabase
         .from('call_details')
         .select('id')
         .eq('user_id', user.id);
         
+      if (callIdsError) {
+        console.error('Error fetching call IDs:', callIdsError);
+      }
+        
       if (callIdsData && callIdsData.length > 0) {
+        console.log(`Found ${callIdsData.length} calls to sync`);
         // Sync each call's data from call_log to call_details
         await Promise.all(
-          callIdsData.map(call => syncCallLogToCallDetails(call.id))
+          callIdsData.map(call => {
+            console.log('Syncing call data for ID:', call.id);
+            return syncCallLogToCallDetails(call.id);
+          })
         );
       }
       
@@ -39,8 +48,10 @@ const CallHistory: React.FC = () => {
       const result = await getCallHistory(user.id);
       
       if (result.success && result.callHistory) {
+        console.log(`Retrieved ${result.callHistory.length} calls from history`);
         setCalls(result.callHistory);
       } else {
+        console.error('Failed to fetch call history:', result.message);
         toast({
           title: "Error",
           description: result.message,

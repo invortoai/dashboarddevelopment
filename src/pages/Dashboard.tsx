@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
@@ -69,8 +70,10 @@ const Dashboard: React.FC = () => {
     // Setup polling interval to check for updates (every 10 seconds)
     const intervalId = setInterval(async () => {
       try {
+        console.log('Polling for updates for call ID:', callId);
         // Sync data from call_log to call_details
         const syncResult = await syncCallLogToCallDetails(callId);
+        console.log('Sync result:', syncResult);
         
         if (syncResult.success) {
           // Check the call status after sync
@@ -81,6 +84,7 @@ const Dashboard: React.FC = () => {
             .single();
             
           if (data && !error) {
+            console.log('Updated call details:', data);
             // Process the updated data
             const callDetails: CallDetails = {
               id: data.id,
@@ -106,8 +110,10 @@ const Dashboard: React.FC = () => {
               setCallStatus('completed');
               setCallResult(callDetails);
               clearInterval(intervalId); // Stop polling once completed
+              console.log('Call completed, stopping polling');
             } else if (data.call_status === 'yes') {
               setCallStatus('in-progress');
+              console.log('Call in progress');
             }
           }
         }

@@ -23,15 +23,19 @@ const CallDetailsPage: React.FC = () => {
       
       try {
         setLoading(true);
+        console.log('Fetching call details and syncing for ID:', id);
         
         // Sync data from call_log to call_details before fetching
-        await syncCallLogToCallDetails(id);
+        const syncResult = await syncCallLogToCallDetails(id);
+        console.log('Sync result:', syncResult);
         
         const result = await getCallDetails(id, user.id);
         
         if (result.success && result.callDetails) {
+          console.log('Call details fetched:', result.callDetails);
           setCallDetails(result.callDetails);
         } else {
+          console.error('Failed to fetch call details:', result.message);
           toast({
             title: "Error",
             description: result.message,
@@ -57,6 +61,7 @@ const CallDetailsPage: React.FC = () => {
     // Set up a polling interval to check for updates
     const intervalId = setInterval(() => {
       if (id && user) {
+        console.log('Polling for call details updates');
         fetchCallDetails();
       }
     }, 30000); // Poll every 30 seconds

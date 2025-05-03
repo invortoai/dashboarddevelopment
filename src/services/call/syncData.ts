@@ -6,6 +6,8 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
   message: string;
 }> => {
   try {
+    console.log('Syncing call log data to call details for ID:', callDetailId);
+    
     // Get the call log data for this call detail ID
     const { data: callLogData, error: callLogError } = await supabase
       .from('call_log')
@@ -17,6 +19,8 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       console.error('Error fetching call log data:', callLogError);
       return { success: false, message: 'Could not find call log data to sync' };
     }
+    
+    console.log('Found call log data to sync:', callLogData);
     
     // Update the call_details table with the data from call_log
     const { error: updateError } = await supabase
@@ -39,6 +43,7 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       return { success: false, message: 'Failed to sync call log data to call details' };
     }
     
+    console.log('Successfully synced call log data to call details for ID:', callDetailId);
     return { success: true, message: 'Call log data synced to call details successfully' };
   } catch (error) {
     console.error('Sync call log to details error:', error);
