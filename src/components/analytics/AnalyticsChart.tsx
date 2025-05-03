@@ -10,12 +10,20 @@ interface AnalyticsChartProps {
   color?: string;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, dataKey }: any) => {
   if (active && payload && payload.length) {
+    // Determine the proper label for the tooltip based on dataKey
+    let displayLabel = "Calls";
+    if (dataKey === "duration") {
+      displayLabel = "Minutes";
+    } else if (dataKey === "credits") {
+      displayLabel = "Credits";
+    }
+    
     return (
       <div className="bg-card p-3 border border-border rounded shadow-md">
         <p className="font-semibold text-sm">{`Date: ${label}`}</p>
-        <p className="text-purple text-sm">{`Calls: ${payload[0].value}`}</p>
+        <p className="text-purple text-sm">{`${displayLabel}: ${payload[0].value}`}</p>
       </div>
     );
   }
@@ -67,7 +75,7 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
                 textAnchor="end"
               />
               <YAxis tick={{ fill: '#999' }} />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} dataKey={dataKey} />} />
               <Bar 
                 dataKey={dataKey}
                 name="Calls" 
