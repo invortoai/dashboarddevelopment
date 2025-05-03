@@ -1,5 +1,4 @@
 
-import { DateFormatOptions } from '../types';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -12,7 +11,7 @@ export const formatToIST = (date: Date | string): string => {
   // Convert the input date to a Date object
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  // Convert UTC time to IST
+  // Convert directly to IST without adding 5:30 hours (the toZonedTime function handles this)
   const istDate = toZonedTime(dateObj, 'Asia/Kolkata');
   
   // Format using date-fns for better reliability

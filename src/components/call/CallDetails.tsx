@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -88,6 +87,7 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
               </div>
             )}
             
+            {/* Ensure credits are displayed even if they're 0 */}
             {callDetails.creditsConsumed !== undefined && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Credits Used</p>

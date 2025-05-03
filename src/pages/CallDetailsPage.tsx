@@ -10,7 +10,6 @@ import { syncCallLogToCallDetails } from '@/services/call/syncData';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { X } from 'lucide-react';
 
 const CallDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -230,16 +229,6 @@ const CallDetailsPage: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-0 top-0 text-red-500 hover:text-red-700 z-10"
-          onClick={handleClose}
-        >
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </Button>
-        
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Call Details</h1>
           <div className="flex gap-2">
@@ -262,6 +251,7 @@ const CallDetailsPage: React.FC = () => {
           callLogId={callDetails?.callLogId}
           lastPolled={lastPolled}
           rawStatus={callDetails?.callStatus}
+          callResult={callDetails}
           isPopup={false} // Set to false for call details page
           onClose={handleClose}
         />
