@@ -154,9 +154,23 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         });
         
         // Try an alternative direct update as a fallback
+        // First fetch the current credit balance
+        const { data: userData, error: fetchError } = await supabase
+          .from('user_details')
+          .select('credit')
+          .eq('id', userId)
+          .single();
+          
+        if (fetchError || !userData) {
+          console.error('Error fetching current credit balance:', fetchError);
+          throw fetchError || new Error('Failed to fetch user data');
+        }
+        
+        // Then update with the new balance
+        const newCreditBalance = userData.credit - creditsToDeduct;
         const { error: updateError } = await supabase
           .from('user_details')
-          .update({ credit: supabase.rpc('credit') - creditsToDeduct }) // This is the problematic line
+          .update({ credit: newCreditBalance })
           .eq('id', userId);
           
         if (updateError) {
