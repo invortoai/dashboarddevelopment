@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -49,15 +48,10 @@ const SignUpForm: React.FC = () => {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       
-      // Generate a fake email using the phone number
-      // This is required because Supabase auth requires an email format
-      const phoneAsEmail = `${cleanPhone}@phone.user`;
+      // Empty email since we're not using email authentication
+      const dummyEmail = '';
       
-      await signUp(cleanPhone, data.password, phoneAsEmail, data.name);
-      toast({
-        title: "Account created!",
-        description: "Your account has been created successfully."
-      });
+      await signUp(cleanPhone, data.password, dummyEmail, data.name);
     } catch (error: any) {
       console.error('Sign up error:', error);
       toast({

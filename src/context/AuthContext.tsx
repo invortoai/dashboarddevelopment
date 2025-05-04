@@ -1,8 +1,9 @@
 
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '@/services/supabaseClient';
 import { User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
+import { signUp as serviceSignUp, login as serviceLogin, logout as serviceLogout, getUserDetails } from '@/services/authService';
+import { supabase } from '@/services/supabaseClient';
 
 interface AuthContextProps {
   user: User | null;
@@ -22,71 +23,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const loadSession = async () => {
-      try {
-        setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session) {
+    // Check if there's a user ID stored in local storage
+    const storedUserId = localStorage.getItem('userId');
+    
+    if (storedUserId) {
+      // If there's a stored user ID, fetch user details
+      refreshUserData(storedUserId)
+        .then(() => {
           setIsAuthenticated(true);
-          await refreshUserData();
-        }
-      } catch (error) {
-        console.error("Error loading session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSession();
-
-    // Listen for changes on auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        setIsAuthenticated(true);
-        refreshUserData();
-      } else if (event === 'SIGNED_OUT') {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+        })
+        .catch(error => {
+          console.error("Error refreshing user data:", error);
+          // Clear invalid stored user ID
+          localStorage.removeItem('userId');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
+    }
   }, []);
-
-  const formatPhoneAsEmail = (phoneNumber: string): string => {
-    // Ensure the phone number has no spaces or special characters
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    return `${cleanPhone}@phone.user`;
-  };
 
   const signUp = async (phoneNumber: string, password: string, email: string, name: string): Promise<void> => {
     try {
       console.log("Signing up with phone number:", phoneNumber);
-      // Convert phone to email format for Supabase auth
-      const phoneAsEmail = formatPhoneAsEmail(phoneNumber);
       
-      const { data, error } = await supabase.auth.signUp({
-        email: phoneAsEmail,
-        password: password,
-        options: {
-          data: {
-            phone_number: phoneNumber,
-            name: name,
-          }
-        }
-      });
+      const { success, message, user: newUser } = await serviceSignUp(name, phoneNumber, password);
 
-      if (error) throw error;
-
-      console.log("Sign up response:", data);
-      
-      // Optionally, sign in the user immediately after signing up
-      if (data.user) {
-        await signIn(phoneNumber, password);
+      if (!success || !newUser) {
+        throw new Error(message);
       }
+
+      console.log("Sign up response:", newUser);
+      
+      // Store the user ID for future sessions
+      localStorage.setItem('userId', newUser.id);
+      
+      // Set the user in state
+      setUser(newUser);
+      setIsAuthenticated(true);
+      
+      toast({
+        title: "Account created!",
+        description: "Your account has been created successfully."
+      });
     } catch (error: any) {
       console.error("Sign up failed:", error.message);
       toast({
@@ -101,46 +82,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (phoneNumber: string, password: string): Promise<void> => {
     try {
       console.log("Signing in with phone number:", phoneNumber);
-      // Convert phone to email format for Supabase auth
-      const phoneAsEmail = formatPhoneAsEmail(phoneNumber);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: phoneAsEmail,
-        password: password,
+      const { success, message, user: userData } = await serviceLogin(phoneNumber, password);
+
+      if (!success || !userData) {
+        throw new Error(message || "Invalid credentials");
+      }
+
+      console.log("Sign in response:", userData);
+
+      // Store the user ID for future sessions
+      localStorage.setItem('userId', userData.id);
+      
+      // Set the user in state
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully signed in."
       });
-
-      if (error) {
-        console.error("Sign-in error:", error.message);
-        toast({
-          variant: "destructive",
-          title: "Sign In Failed",
-          description: error.message || "Invalid credentials"
-        });
-        throw error;
-      }
-
-      console.log("Sign in response:", data);
-
-      if (data.user) {
-        setIsAuthenticated(true);
-        await refreshUserData();
-        toast({
-          title: "Welcome back!",
-          description: "You've successfully signed in."
-        });
-      }
     } catch (error: any) {
       console.error("Sign-in failed:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Sign In Failed",
+        description: error.message || "Invalid credentials"
+      });
       throw error;
     }
   };
 
   const signOut = async (): Promise<void> => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (user) {
+        const { success, message } = await serviceLogout(user.id);
+        if (!success) {
+          throw new Error(message);
+        }
+      }
+      
+      // Clear stored user ID
+      localStorage.removeItem('userId');
+      
       setIsAuthenticated(false);
       setUser(null);
+      
       toast({
         title: "Signed out",
         description: "You've been successfully signed out."
@@ -155,48 +142,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const refreshUserData = async (): Promise<void> => {
+  const refreshUserData = async (userId?: string): Promise<void> => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const id = userId || user?.id || localStorage.getItem('userId');
+      
+      if (!id) {
+        setIsAuthenticated(false);
+        setUser(null);
+        return;
+      }
 
-      if (authUser) {
-        console.log("Auth user found:", authUser);
-        // Extract phone number from email or metadata
-        const phoneNumber = authUser.user_metadata?.phone_number || 
-                          authUser.email?.replace('@phone.user', '');
-                          
-        const { data: userDetails, error } = await supabase
-          .from('user_details')
-          .select('*')
-          .eq('id', authUser.id)
-          .single();
+      const { success, user: userData } = await getUserDetails(id);
 
-        if (error) {
-          console.error("Error fetching user details:", error.message);
-          throw error;
-        }
-
-        if (userDetails) {
-          console.log("User details found:", userDetails);
-          const userObject: User = {
-            id: userDetails.id,
-            name: userDetails.name,
-            phoneNumber: userDetails.phone_number,
-            credit: userDetails.credit,
-            signupTime: userDetails.signup_time,
-            lastLogin: userDetails.last_login,
-          };
-          setUser(userObject);
-          setIsAuthenticated(true);
-        } else {
-          console.error("No user details found for ID:", authUser.id);
-        }
+      if (success && userData) {
+        setUser(userData);
+        setIsAuthenticated(true);
       } else {
+        // If we couldn't get the user, clear authentication state
+        localStorage.removeItem('userId');
         setIsAuthenticated(false);
         setUser(null);
       }
     } catch (error: any) {
       console.error("Error refreshing user data:", error.message);
+      // On error, clear authentication state
+      localStorage.removeItem('userId');
+      setIsAuthenticated(false);
+      setUser(null);
     }
   };
 
@@ -207,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
-    refreshUserData,
+    refreshUserData: () => refreshUserData(),
   };
 
   return (
