@@ -18,9 +18,14 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (user) {
       console.log('Profile page: Refreshing user data to get latest credit balance');
-      refreshUserData();
+      // Using a reference to count renders to prevent multiple refresh calls
+      const refreshTimeout = setTimeout(() => {
+        refreshUserData();
+      }, 0);
+      
+      return () => clearTimeout(refreshTimeout);
     }
-  }, [user, refreshUserData]);
+  }, [user?.id]); // Only refresh when user ID changes, not on every user object change
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {

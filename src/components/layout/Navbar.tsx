@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -42,6 +42,7 @@ const Navbar: React.FC = () => {
     );
   };
 
+  // Custom NavLink component that uses navigate for programmatic navigation
   const NavLink: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ 
     to, 
     icon, 
@@ -49,12 +50,17 @@ const Navbar: React.FC = () => {
   }) => {
     const active = isActive(to);
     
-    // Use navigate instead of redirect to handle click events
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault(); // Prevent default behavior
+      
       if (isMobile) {
         setMobileOpen(false);
       }
-      navigate(to);
+      
+      // Use setTimeout to ensure state updates complete before navigation
+      setTimeout(() => {
+        navigate(to);
+      }, 0);
     };
     
     return (
