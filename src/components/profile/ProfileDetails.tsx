@@ -129,7 +129,20 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Available Credits</label>
-              <p className="p-2 border border-border rounded bg-muted">{user.credit}</p>
+              <p className="p-2 border border-border rounded bg-muted flex justify-between items-center">
+                <span>{user.credit}</span>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    window.location.reload();
+                  }}
+                >
+                  Refresh
+                </Button>
+              </p>
             </div>
 
             <div className="space-y-2">

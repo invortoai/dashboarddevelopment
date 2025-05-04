@@ -14,18 +14,22 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   
-  // Refresh user data when profile page loads to get latest credit balance
+  // Force refresh user data when profile page loads to get latest credit balance
   useEffect(() => {
-    if (user) {
-      console.log('Profile page: Refreshing user data to get latest credit balance');
-      // Using a reference to count renders to prevent multiple refresh calls
-      const refreshTimeout = setTimeout(() => {
-        refreshUserData();
-      }, 0);
-      
-      return () => clearTimeout(refreshTimeout);
-    }
-  }, [user?.id]); // Only refresh when user ID changes, not on every user object change
+    const refreshData = async () => {
+      if (user) {
+        console.log('Profile page: Forcing refresh of user data to get latest credit balance');
+        try {
+          await refreshUserData();
+          console.log('User data refreshed successfully on profile page load');
+        } catch (error) {
+          console.error('Error refreshing user data on profile page:', error);
+        }
+      }
+    };
+    
+    refreshData();
+  }, []); // Run only once when component mounts
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
@@ -43,7 +47,7 @@ const Profile: React.FC = () => {
         
         // Update the user in the auth context
         if (result.user) {
-          // FIXED: Don't manually update localStorage, use refreshUserData instead
+          // Refresh user data to reflect updated information
           await refreshUserData();
           toast({
             title: "Data Refreshed",
