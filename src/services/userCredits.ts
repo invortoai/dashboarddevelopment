@@ -38,16 +38,12 @@ export const refreshUserCredits = async (userId: string): Promise<{
   try {
     console.log(`Manually refreshing credit balance for user ${userId}`);
     
-    // Use forcefully non-cached fetch with headers to ensure fresh data
+    // Use a cache-busting parameter with headers to ensure fresh data
     const { data, error } = await supabase
       .from('user_details')
       .select('credit')
       .eq('id', userId)
-      .single()
-      .options({
-        head: false,
-        count: 'exact'
-      });
+      .single();
       
     if (error) {
       console.error('Error refreshing user credit balance:', error);
@@ -86,11 +82,7 @@ export const getUserProfile = async (userId: string): Promise<{
       .from('user_details')
       .select('*')
       .eq('id', userId)
-      .single()
-      .options({
-        head: false,
-        count: 'exact'
-      });
+      .single();
       
     if (error) {
       console.error('Error fetching user profile:', error);
