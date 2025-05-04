@@ -17,6 +17,8 @@ const Profile: React.FC = () => {
   // Refresh user data when profile page loads to get latest credit balance
   useEffect(() => {
     if (user) {
+      // FIXED: Added console log for debugging
+      console.log('Profile page: Refreshing user data to get latest credit balance');
       refreshUserData();
     }
   }, [user, refreshUserData]);
@@ -38,7 +40,13 @@ const Profile: React.FC = () => {
         // Update the user in the auth context
         if (result.user) {
           localStorage.setItem('user', JSON.stringify(result.user));
-          window.location.reload(); // Reload to update user data in auth context
+          
+          // FIXED: Use refreshUserData instead of reload
+          await refreshUserData();
+          toast({
+            title: "Data Refreshed",
+            description: "Your profile data has been refreshed with the latest information.",
+          });
         }
       } else {
         toast({

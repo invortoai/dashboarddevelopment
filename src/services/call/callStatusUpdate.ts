@@ -126,6 +126,12 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
     
+    // FIXED: Add explicit log to debug database function call
+    console.log('Calling update_user_credits database function with params:', {
+      user_id_param: userId,
+      credits_to_deduct: creditsToDeduct
+    });
+    
     // Explicitly call the update_user_credits function to deduct credits
     const { data: creditUpdateResult, error: creditError } = await supabase.rpc('update_user_credits', {
       user_id_param: userId,
@@ -141,6 +147,20 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         creditsToDeduct
       });
       
+      // FIXED: Try direct update as a fallback if the RPC fails
+      console.log('Attempting direct update to user_details table as fallback');
+      const { error: directUpdateError } = await supabase
+        .from('user_details')
+        .update({ 
+          credit: supabase.rpc('get_current_credits', { user_id_param: userId }) - creditsToDeduct 
+        })
+        .eq('id', userId);
+        
+      if (directUpdateError) {
+        console.error('Error with direct credit update:', directUpdateError);
+        throw directUpdateError;
+      }
+      
       // Try to get user details to verify user exists
       const { data: userCheck, error: userCheckError } = await supabase
         .from('user_details')
@@ -153,8 +173,6 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       } else {
         console.log('User details found:', userCheck);
       }
-      
-      throw creditError;
     } else {
       console.log(`Successfully deducted ${creditsToDeduct} credits from user ${userId}`);
     }

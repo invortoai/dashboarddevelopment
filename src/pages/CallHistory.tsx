@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 const CallHistory: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
   const [calls, setCalls] = useState<CallDetails[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -37,6 +37,9 @@ const CallHistory: React.FC = () => {
         setSyncStatus(`Synced all records`);
         console.log('Sync result:', syncResult);
       }
+      
+      // FIXED: Make sure we have up-to-date user data with the latest credit balance
+      await refreshUserData();
       
       // Get the call history with fresh data from call_details
       const result = await getCallHistory(user.id, page, pageSize);
