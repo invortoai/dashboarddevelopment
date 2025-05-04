@@ -143,23 +143,32 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
 
     if (userQueryError) {
       console.error('Error checking user credit balance:', userQueryError);
+      throw userQueryError;
     } else {
       console.log(`Current user credit balance before deduction: ${userData.credit}`);
     }
     
-    // Use the update_user_credits database function instead of direct update
-    const { data: rpcData, error: rpcError } = await supabase.rpc(
-      'update_user_credits', 
-      { 
-        user_id_param: userId, 
-        credits_to_deduct: creditsToDeduct 
-      }
-    );
+    // Directly update the user's credits in the user_details table
+    // Instead of calling the database function
+    const newCreditBalance = Math.max(0, userData.credit - creditsToDeduct);
     
-    if (rpcError) {
-      console.error('Error calling update_user_credits:', rpcError);
-      throw rpcError;
+    const { error: updateError } = await supabase
+      .from('user_details')
+      .update({ credit: newCreditBalance })
+      .eq('id', userId);
+      
+    if (updateError) {
+      console.error('Error updating user credits:', updateError);
+      throw updateError;
     }
+    
+    // Log the credit deduction to system_logs
+    await supabase.from('system_logs').insert({
+      user_id: userId,
+      action_type: 'credit_deduction_complete',
+      message: `Deducted ${creditsToDeduct} credits from user ${userId}`,
+      response: `New credit balance: ${newCreditBalance}`
+    });
     
     // Verify the deduction was successful by checking the updated balance
     const { data: updatedUserData, error: updatedUserError } = await supabase
@@ -172,7 +181,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       console.error('Error verifying credit update:', updatedUserError);
     } else {
       console.log(`Updated user credit balance after deduction: ${updatedUserData.credit}`);
-      console.log(`Credits deducted: ${userData?.credit - updatedUserData.credit}`);
+      console.log(`Credits deducted: ${userData.credit - updatedUserData.credit}`);
     }
     
     return { 
