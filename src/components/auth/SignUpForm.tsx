@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -8,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -30,6 +33,7 @@ type FormData = z.infer<typeof formSchema>;
 const SignUpForm: React.FC = () => {
   const { signUp } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -43,6 +47,7 @@ const SignUpForm: React.FC = () => {
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
+    setSignupError(null);
     try {
       console.log("Attempting signup with phone:", data.phoneNumber);
       // Clean phone number of any spaces or special characters
@@ -54,6 +59,7 @@ const SignUpForm: React.FC = () => {
       await signUp(cleanPhone, data.password, dummyEmail, data.name);
     } catch (error: any) {
       console.error('Sign up error:', error);
+      setSignupError(error.message || "Could not create account");
       toast({
         variant: "destructive",
         title: "Sign Up Failed",
@@ -72,6 +78,19 @@ const SignUpForm: React.FC = () => {
           <h2 className="text-2xl font-bold text-white">Create an account</h2>
           <p className="text-sm text-muted-foreground">
             Enter your information to get started
+          </p>
+        </div>
+        
+        {signupError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{signupError}</AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="p-3 bg-muted rounded-md mb-4">
+          <p className="text-sm">
+            <strong>Note:</strong> If you already have an account, please <Link to="/login" className="text-purple underline">login here</Link> instead.
           </p>
         </div>
         
