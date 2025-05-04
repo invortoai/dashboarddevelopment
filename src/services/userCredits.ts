@@ -38,12 +38,16 @@ export const refreshUserCredits = async (userId: string): Promise<{
   try {
     console.log(`Manually refreshing credit balance for user ${userId}`);
     
-    // Use explicitly non-cached fetch to ensure fresh data
+    // Use forcefully non-cached fetch with headers to ensure fresh data
     const { data, error } = await supabase
       .from('user_details')
       .select('credit')
       .eq('id', userId)
-      .single();
+      .single()
+      .options({
+        head: false,
+        count: 'exact'
+      });
       
     if (error) {
       console.error('Error refreshing user credit balance:', error);
@@ -82,7 +86,11 @@ export const getUserProfile = async (userId: string): Promise<{
       .from('user_details')
       .select('*')
       .eq('id', userId)
-      .single();
+      .single()
+      .options({
+        head: false,
+        count: 'exact'
+      });
       
     if (error) {
       console.error('Error fetching user profile:', error);
@@ -160,6 +168,71 @@ export const setUserCredits = async (userId: string, creditAmount: number): Prom
     return { 
       success: false, 
       message: 'Error setting credit balance' 
+    };
+  }
+};
+
+/**
+ * Directly deduct credits from a user's balance
+ * This is a more direct approach that bypasses the RPC function
+ */
+export const deductUserCredits = async (userId: string, creditsToDeduct: number): Promise<{
+  success: boolean;
+  credits?: number;
+  message: string;
+}> => {
+  try {
+    console.log(`Directly deducting ${creditsToDeduct} credits from user ${userId}`);
+    
+    // First fetch the current credit balance to ensure accurate deductions
+    const { data: userData, error: fetchError } = await supabase
+      .from('user_details')
+      .select('credit')
+      .eq('id', userId)
+      .single();
+      
+    if (fetchError || !userData) {
+      console.error('Error fetching current credit balance:', fetchError);
+      return { 
+        success: false, 
+        message: 'Failed to fetch current credit balance' 
+      };
+    }
+    
+    const currentCredit = userData.credit;
+    console.log(`Current credit balance for user ${userId}: ${currentCredit}`);
+    
+    // Calculate new balance
+    const newCreditBalance = currentCredit - creditsToDeduct;
+    console.log(`New credit balance will be: ${newCreditBalance}`);
+    
+    // Update the balance
+    const { data, error: updateError } = await supabase
+      .from('user_details')
+      .update({ credit: newCreditBalance })
+      .eq('id', userId)
+      .select('credit')
+      .single();
+      
+    if (updateError) {
+      console.error('Error deducting user credits:', updateError);
+      return { 
+        success: false, 
+        message: 'Failed to deduct credits' 
+      };
+    }
+    
+    console.log(`Successfully deducted ${creditsToDeduct} credits. New balance: ${data.credit}`);
+    return { 
+      success: true, 
+      credits: data.credit,
+      message: 'Credits deducted successfully' 
+    };
+  } catch (error) {
+    console.error('Error in deductUserCredits:', error);
+    return { 
+      success: false, 
+      message: 'Error deducting credits' 
     };
   }
 };
