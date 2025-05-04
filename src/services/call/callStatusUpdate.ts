@@ -66,10 +66,14 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       const durationMinutes = data.callDuration / 60;
       
       // Always use minimum of 10 credits for any successful call
-      updateObject.credits_consumed = Math.max(CREDITS_PER_MINUTE, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
+      const calculatedCredits = Math.max(10, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
+      updateObject.credits_consumed = calculatedCredits;
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds`);
     } else if (data.creditsConsumed !== undefined) {
       updateObject.credits_consumed = data.creditsConsumed;
+    } else {
+      // Ensure we always set some credit consumption (minimum 10) even if duration is missing
+      updateObject.credits_consumed = 10;
     }
     
     // Only update if we have actual data

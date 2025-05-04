@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -219,6 +218,9 @@ const CallStatus: React.FC<CallStatusProps> = ({
                       <p>
                         Call in progress with <span className="font-bold">{developer}</span> on{' '}
                         <span className="font-bold">{number}</span>. The status will be updated once the call is finished.
+                      </p>
+                      <p className="mt-2 font-medium text-purple-700">
+                        Within 30 seconds, system will let you refresh the status to get the call response, use it properly.
                       </p>
 
                       {showRefreshButton && (

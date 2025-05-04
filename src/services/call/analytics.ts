@@ -1,6 +1,5 @@
 
 import { supabase } from '../supabaseClient';
-import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { format, parseISO } from 'date-fns';
 
 export const getDailyCallStats = async (userId: string): Promise<{ 
@@ -67,7 +66,7 @@ export const getDailyCallStats = async (userId: string): Promise<{
     await supabase.from('user_activity').insert({
       user_id: userId,
       activity_type: 'view_analytics',
-      timestamp: getCurrentISTDateTime(),
+      timestamp: new Date().toISOString(),
     });
     
     return { success: true, message: 'Daily call stats retrieved successfully', stats };

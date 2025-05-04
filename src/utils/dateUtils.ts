@@ -1,9 +1,9 @@
 
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 /**
- * Format a date to IST (Indian Standard Time) with the format: dd-MMM-yyyy hh:mm a
- * This function displays the date as stored in the database, without timezone manipulation
+ * Format a date to display in the format: dd-MMM-yyyy hh:mm a
+ * This function displays the date as stored (UTC), without timezone manipulation
  */
 export const formatToIST = (date: Date | string): string => {
   if (!date) return '';
@@ -21,8 +21,9 @@ export const formatToIST = (date: Date | string): string => {
 };
 
 export const getCurrentISTDateTime = (): string => {
+  // Get the current time in UTC
   const now = new Date();
-  return formatToIST(now);
+  return now.toISOString();
 };
 
 /**
