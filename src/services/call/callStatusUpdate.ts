@@ -61,20 +61,24 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     // Calculate credits consumed based on call duration
     // Minimum 10 credits for ANY call with duration > 0
     // 10 credits for every 60 seconds (or part thereof) of call duration
+    let creditsToDeduct = 0;
+    
     if (data.callDuration !== undefined && data.callDuration > 0) {
       // Calculate how many 60-second blocks (or part thereof) the call lasted
       const CREDITS_PER_MINUTE = 10;
       const sixtySecondBlocks = Math.max(1, Math.ceil(data.callDuration / 60));
       
       // Multiply by credits per minute to get total credits
-      const calculatedCredits = sixtySecondBlocks * CREDITS_PER_MINUTE;
+      creditsToDeduct = sixtySecondBlocks * CREDITS_PER_MINUTE;
       
-      updateObject.credits_consumed = calculatedCredits;
+      updateObject.credits_consumed = creditsToDeduct;
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
+      creditsToDeduct = data.creditsConsumed;
       updateObject.credits_consumed = data.creditsConsumed;
     } else if (data.callDuration === 0 || data.callDuration === undefined) {
       // For failed or empty calls, charge minimum of 10 credits
+      creditsToDeduct = 10;
       updateObject.credits_consumed = 10;
       console.log('No call duration recorded, charging minimum 10 credits');
     }
@@ -121,76 +125,43 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       call_detail_id: callId
     });
     
-    // Make sure we have a creditsToDeduct value
-    const creditsToDeduct = updateObject.credits_consumed || 10;
+    // Ensure we have a valid creditsToDeduct value before proceeding
+    if (creditsToDeduct <= 0) {
+      creditsToDeduct = 10; // Minimum credits to deduct
+    }
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
     
-    // FIXED: Add explicit log to debug database function call
-    console.log('Calling update_user_credits database function with params:', {
-      user_id_param: userId,
-      credits_to_deduct: creditsToDeduct
-    });
+    // Direct update to user_details table to deduct credits
+    const { data: userData, error: userError } = await supabase
+      .from('user_details')
+      .select('credit')
+      .eq('id', userId)
+      .single();
     
-    // Explicitly call the update_user_credits function to deduct credits
-    const { data: creditUpdateResult, error: creditError } = await supabase.rpc('update_user_credits', {
-      user_id_param: userId,
-      credits_to_deduct: creditsToDeduct
-    });
-    
-    if (creditError) {
-      console.error('Error updating user credits:', creditError);
-      
-      // Additional debugging information
-      console.error('Credit update parameters:', {
-        userId,
-        creditsToDeduct
-      });
-      
-      // FIXED: Try direct update as a fallback if the RPC fails
-      console.log('Attempting direct update to user_details table as fallback');
-      
-      // First get the current credit value
-      const { data: userData, error: userError } = await supabase
-        .from('user_details')
-        .select('credit')
-        .eq('id', userId)
-        .single();
-        
-      if (userError) {
-        console.error('Error fetching current user credits:', userError);
-      } else if (userData) {
-        // Now update with the new credit value
-        const currentCredits = userData.credit;
-        const newCredits = Math.max(0, currentCredits - creditsToDeduct);
-        
-        const { error: directUpdateError } = await supabase
-          .from('user_details')
-          .update({ credit: newCredits })
-          .eq('id', userId);
-          
-        if (directUpdateError) {
-          console.error('Error with direct credit update:', directUpdateError);
-        } else {
-          console.log(`Successfully updated credits directly: ${currentCredits} -> ${newCredits}`);
-        }
-      }
-      
-      // Try to get user details to verify user exists
-      const { data: userCheck, error: userCheckError } = await supabase
-        .from('user_details')
-        .select('id, credit')
-        .eq('id', userId)
-        .single();
-        
-      if (userCheckError) {
-        console.error('Error checking user details:', userCheckError);
-      } else {
-        console.log('User details found:', userCheck);
-      }
-    } else {
-      console.log(`Successfully deducted ${creditsToDeduct} credits from user ${userId}`);
+    if (userError) {
+      console.error('Error fetching user credits:', userError);
+      throw userError;
     }
+    
+    // Calculate new credit balance and ensure it doesn't go below 0
+    const currentCredits = userData.credit;
+    const newCredits = Math.max(0, currentCredits - creditsToDeduct);
+    
+    console.log(`Updating user credits: ${currentCredits} - ${creditsToDeduct} = ${newCredits}`);
+    
+    // Update the user_details table with the new credit balance
+    const { error: creditUpdateError } = await supabase
+      .from('user_details')
+      .update({ credit: newCredits })
+      .eq('id', userId);
+    
+    if (creditUpdateError) {
+      console.error('Error updating user credits:', creditUpdateError);
+      throw creditUpdateError;
+    }
+    
+    console.log(`Successfully updated user credits: ${currentCredits} -> ${newCredits}`);
     
     return { success: true, message: 'Call completion data updated successfully' };
   } catch (error) {

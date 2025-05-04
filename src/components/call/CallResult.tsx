@@ -62,10 +62,11 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
               
               <div className="text-sm text-muted-foreground">Credits Used:</div>
               <div className="text-sm font-medium">
-                {/* FIXED: Ensure that credits consumed is displayed properly, showing at least 10 for any call with duration */}
                 {callDetails.creditsConsumed !== undefined ? 
                   callDetails.creditsConsumed : 
-                  (callDetails.callDuration && callDetails.callDuration > 0 ? 10 : 'Not available')}
+                  (callDetails.callDuration && callDetails.callDuration > 0 ? 
+                    Math.max(10, Math.ceil(callDetails.callDuration / 60) * 10) : 
+                    'Not available')}
               </div>
             </div>
           </div>
