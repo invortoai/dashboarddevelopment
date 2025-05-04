@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileDetails from '@/components/profile/ProfileDetails';
@@ -14,18 +15,15 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
-  const [hasRefreshed, setHasRefreshed] = useState<boolean>(false);
   
-  // Only refresh user data once when profile page loads
+  // Refresh user data when the profile page is loaded or when the tab becomes visible
   useEffect(() => {
     const refreshData = async () => {
-      if (user && !hasRefreshed) {
-        console.log('Profile page: Forcing refresh of user data to get latest credit balance');
+      if (user) {
         try {
           setIsRefreshingCredit(true);
+          console.log('Profile page: Refreshing user data to get latest credit balance');
           await refreshUserData();
-          console.log('User data refreshed successfully on profile page load');
-          setHasRefreshed(true); // Mark as refreshed to prevent infinite loop
         } catch (error) {
           console.error('Error refreshing user data on profile page:', error);
         } finally {
@@ -34,8 +32,24 @@ const Profile: React.FC = () => {
       }
     };
     
+    // Initial refresh when component mounts
     refreshData();
-  }, [refreshUserData, user, hasRefreshed]); // Added hasRefreshed to dependencies
+    
+    // Set up visibility change listener to refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Tab became visible, refreshing user data');
+        refreshData();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Clean up
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshUserData, user]);
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
