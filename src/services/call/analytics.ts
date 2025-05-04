@@ -10,7 +10,7 @@ export const getDailyCallStats = async (userId: string): Promise<{
   try {
     // Get call details with duration and credits information
     const { data, error } = await supabase
-      .from('call_details')
+      .from('call_log')  // Get from call_log directly for accurate credit information
       .select('created_at, call_duration, credits_consumed')
       .eq('user_id', userId);
       

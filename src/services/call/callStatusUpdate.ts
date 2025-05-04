@@ -59,7 +59,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     }
     
     // Calculate credits consumed based on call duration
-    // NEW LOGIC: 10 credits for every 60 seconds (or part thereof) of call duration
+    // LOGIC: 10 credits for every 60 seconds (or part thereof) of call duration
     // IMPORTANT: Only calculate credits if call duration > 0
     if (data.callDuration !== undefined && data.callDuration > 0) {
       // Calculate how many 60-second blocks (or part thereof) the call lasted
@@ -67,14 +67,12 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       const sixtySecondBlocks = Math.ceil(data.callDuration / 60);
       
       // Multiply by credits per minute to get total credits
-      const calculatedCredits = sixtySecondBlocks * CREDITS_PER_MINUTE;
+      updateObject.credits_consumed = sixtySecondBlocks * CREDITS_PER_MINUTE;
       
-      updateObject.credits_consumed = calculatedCredits;
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
       updateObject.credits_consumed = data.creditsConsumed;
     }
-    // No else clause for minimum credits - if duration is 0, don't set any credits_consumed
     
     // Only update if we have actual data
     if (Object.keys(updateObject).length > 0) {
@@ -91,6 +89,21 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         throw logError;
       }
       
+      // Now also update call_details table with the same credit info to ensure it's displayed in UI
+      console.log('Also updating call_details with same credit info');
+      const { error: detailsError } = await supabase
+        .from('call_details')
+        .update({
+          credits_consumed: updateObject.credits_consumed,
+          call_duration: updateObject.call_duration
+        })
+        .eq('id', callId);
+        
+      if (detailsError) {
+        console.error('Error updating call_details with credits:', detailsError);
+        throw detailsError;
+      }
+      
       // Record call completion activity
       await supabase.from('user_activity').insert({
         user_id: userId,
@@ -100,7 +113,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       });
       
       // Only deduct credits from the user's balance if call had duration > 0 and we calculated credits
-      if (updateObject.credits_consumed) {
+      if (updateObject.credits_consumed && updateObject.credits_consumed > 0) {
         console.log(`Deducting ${updateObject.credits_consumed} credits from user ${userId}`);
         const { error: creditError } = await supabase.rpc('update_user_credits', {
           user_id_param: userId,
