@@ -7,10 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { changePassword, updateUserProfile } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
 import { refreshUserCredits } from '@/services/userCredits';
+import { useLogger } from '@/utils/logger';
 
 const Profile: React.FC = () => {
   const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
+  const logger = useLogger();
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
@@ -21,6 +23,7 @@ const Profile: React.FC = () => {
   useEffect(() => {
     if (user) {
       setLastCreditRefresh(new Date());
+      logger.activity('profile', 'view', { userId: user.id });
     }
   }, [user]);
   
@@ -29,6 +32,7 @@ const Profile: React.FC = () => {
     if (!user) return;
     
     try {
+      logger.activity('profile', 'update_attempt', data);
       setIsUpdating(true);
       const result = await updateUserProfile(user.id, data);
       
@@ -37,6 +41,8 @@ const Profile: React.FC = () => {
           title: "Profile Updated",
           description: "Your profile has been updated successfully.",
         });
+        
+        logger.activity('profile', 'update_success', { userId: user.id });
         
         // Update the user in the auth context
         if (result.user) {
@@ -53,6 +59,7 @@ const Profile: React.FC = () => {
           description: result.message,
           variant: "destructive",
         });
+        logger.error('profile_update_failed', { error: result.message });
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -61,6 +68,7 @@ const Profile: React.FC = () => {
         description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       });
+      logger.error('profile_update_exception', error);
     } finally {
       setIsUpdating(false);
     }
@@ -72,6 +80,7 @@ const Profile: React.FC = () => {
     
     try {
       setIsRefreshingCredit(true);
+      logger.activity('credits', 'refresh_attempt', { userId: user.id });
       console.log('Manually refreshing credit balance for user:', user.id);
       
       // Use the dedicated service function for credit refresh
@@ -88,12 +97,18 @@ const Profile: React.FC = () => {
           title: "Credit Balance Refreshed",
           description: `Your current credit balance is ${result.credits}`,
         });
+        
+        logger.activity('credits', 'refresh_success', { 
+          userId: user.id, 
+          credits: result.credits 
+        });
       } else {
         toast({
           title: "Refresh Failed",
           description: result.message || "Could not refresh your credit balance. Please try again.",
           variant: "destructive",
         });
+        logger.error('credits_refresh_failed', { error: result.message });
       }
     } catch (error) {
       console.error('Error refreshing credit balance:', error);
@@ -102,6 +117,7 @@ const Profile: React.FC = () => {
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+      logger.error('credits_refresh_exception', error);
     } finally {
       setIsRefreshingCredit(false);
     }
@@ -112,6 +128,7 @@ const Profile: React.FC = () => {
     if (!user) return;
     
     try {
+      logger.activity('password', 'change_attempt', { userId: user.id });
       setIsSubmittingPassword(true);
       const result = await changePassword(user.id, data.currentPassword, data.newPassword);
       
@@ -121,12 +138,14 @@ const Profile: React.FC = () => {
           description: "Your password has been changed successfully.",
         });
         setIsChangingPassword(false);
+        logger.activity('password', 'change_success', { userId: user.id });
       } else {
         toast({
           title: "Password Change Failed",
           description: result.message,
           variant: "destructive",
         });
+        logger.error('password_change_failed', { error: result.message });
       }
     } catch (error) {
       console.error('Error changing password:', error);
@@ -135,6 +154,7 @@ const Profile: React.FC = () => {
         description: "An unexpected error occurred. Please try again later.",
         variant: "destructive",
       });
+      logger.error('password_change_exception', error);
     } finally {
       setIsSubmittingPassword(false);
     }
