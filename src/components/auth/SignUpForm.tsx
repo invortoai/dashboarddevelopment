@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -7,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -43,9 +45,23 @@ const SignUpForm: React.FC = () => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      await signUp(data.phoneNumber, data.password, data.phoneNumber, data.name);
-    } catch (error) {
+      console.log("Attempting signup with phone:", data.phoneNumber);
+      // Generate a fake email using the phone number
+      // This is required because Supabase auth requires an email format
+      const phoneAsEmail = `${data.phoneNumber}@phone.user`;
+      
+      await signUp(data.phoneNumber, data.password, phoneAsEmail, data.name);
+      toast({
+        title: "Account created!",
+        description: "Your account has been created successfully."
+      });
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      toast({
+        variant: "destructive",
+        title: "Sign Up Failed",
+        description: error.message || "Could not create account"
+      });
     } finally {
       setIsSubmitting(false);
     }

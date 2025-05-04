@@ -8,8 +8,8 @@ interface AuthContextProps {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signUp: (email: string, password: string, phone_number: string, name: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (phoneNumber: string, password: string, email: string, name: string) => Promise<void>;
+  signIn: (phoneNumber: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -52,14 +52,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const signUp = async (email: string, password: string, phone_number: string, name: string): Promise<void> => {
+  const signUp = async (phoneNumber: string, password: string, email: string, name: string): Promise<void> => {
     try {
+      console.log("Signing up with phone number:", phoneNumber);
+      // For phone-based auth, we'll use the phone as the email by appending a domain
+      // This is a workaround since Supabase requires an email format
+      const phoneAsEmail = `${phoneNumber}@phone.user`;
+      
       const { data, error } = await supabase.auth.signUp({
-        email: email,
+        email: phoneAsEmail,
         password: password,
         options: {
           data: {
-            phone_number: phone_number,
+            phone_number: phoneNumber,
             name: name,
           }
         }
@@ -67,9 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
+      console.log("Sign up response:", data);
+      
       // Optionally, sign in the user immediately after signing up
       if (data.user) {
-        await signIn(email, password);
+        await signIn(phoneNumber, password);
       }
     } catch (error: any) {
       console.error("Sign up failed:", error.message);
@@ -82,10 +89,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const signIn = async (phoneNumber: string, password: string): Promise<void> => {
     try {
+      console.log("Signing in with phone number:", phoneNumber);
+      // Convert phone number to email format for Supabase auth
+      const phoneAsEmail = `${phoneNumber}@phone.user`;
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: phoneAsEmail,
         password: password,
       });
 
@@ -98,6 +109,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         throw error;
       }
+
+      console.log("Sign in response:", data);
 
       if (data.user) {
         setIsAuthenticated(true);
@@ -138,6 +151,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (authUser) {
+        console.log("Auth user found:", authUser);
+        // Extract phone number from email or metadata
+        const phoneNumber = authUser.user_metadata?.phone_number || 
+                          authUser.email?.replace('@phone.user', '');
+                          
         const { data: userDetails, error } = await supabase
           .from('user_details')
           .select('*')
@@ -150,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (userDetails) {
+          console.log("User details found:", userDetails);
           const userObject: User = {
             id: userDetails.id,
             name: userDetails.name,
@@ -160,6 +179,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           setUser(userObject);
           setIsAuthenticated(true);
+        } else {
+          console.error("No user details found for ID:", authUser.id);
         }
       } else {
         setIsAuthenticated(false);

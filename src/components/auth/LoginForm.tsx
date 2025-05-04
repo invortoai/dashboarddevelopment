@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/components/ui/use-toast';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -36,9 +37,15 @@ const LoginForm = () => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
+      console.log("Attempting login with phone:", data.phoneNumber);
       await signIn(data.phoneNumber, data.password);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Could not log in with these credentials"
+      });
     } finally {
       setIsSubmitting(false);
     }
