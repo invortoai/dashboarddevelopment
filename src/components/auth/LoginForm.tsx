@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,19 +25,9 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { signIn, isAuthenticated } = useAuth();
+  const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const navigate = useNavigate();
-
-  // Add useEffect to redirect authenticated users
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log("LoginForm useEffect: User is authenticated, redirecting to analytics");
-      // Use window.location for a hard redirect if router navigation isn't working
-      window.location.href = '/analytics';
-    }
-  }, [isAuthenticated, navigate]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -55,16 +45,6 @@ const LoginForm = () => {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       await signIn(cleanPhone, data.password);
-      
-      // If successful, navigate to analytics (the app's default page)
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      
-      // Force navigation using window.location for a hard redirect
-      console.log("Login successful, forcing navigation to analytics page");
-      window.location.href = '/analytics';
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");
