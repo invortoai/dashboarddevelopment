@@ -59,19 +59,21 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     }
     
     // Calculate credits consumed based on call duration
+    // NEW LOGIC: 10 credits for every 60 seconds (or part thereof) of call duration
     if (data.callDuration !== undefined && data.callDuration > 0) {
-      // Calculate credits based on duration (10 credits per minute)
+      // Calculate how many 60-second blocks (or part thereof) the call lasted
       const CREDITS_PER_MINUTE = 10;
-      const durationMinutes = data.callDuration / 60;
+      const sixtySecondBlocks = Math.ceil(data.callDuration / 60);
       
-      // Always use minimum of 10 credits for any successful call
-      const calculatedCredits = Math.max(10, Math.ceil(durationMinutes * CREDITS_PER_MINUTE));
+      // Multiply by credits per minute to get total credits
+      const calculatedCredits = sixtySecondBlocks * CREDITS_PER_MINUTE;
+      
       updateObject.credits_consumed = calculatedCredits;
-      console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds`);
+      console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
       updateObject.credits_consumed = data.creditsConsumed;
     } else {
-      // Ensure we always set some credit consumption (minimum 10) even if duration is missing
+      // For failed or empty calls, charge minimum of 10 credits
       updateObject.credits_consumed = 10;
     }
     
