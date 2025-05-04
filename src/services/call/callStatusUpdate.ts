@@ -132,36 +132,21 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
     
-    // Direct update to user_details table to deduct credits
-    const { data: userData, error: userError } = await supabase
-      .from('user_details')
-      .select('credit')
-      .eq('id', userId)
-      .single();
+    // Use the update_user_credits database function instead of direct update
+    const { error: rpcError } = await supabase.rpc(
+      'update_user_credits', 
+      { 
+        user_id_param: userId, 
+        credits_to_deduct: creditsToDeduct 
+      }
+    );
     
-    if (userError) {
-      console.error('Error fetching user credits:', userError);
-      throw userError;
+    if (rpcError) {
+      console.error('Error calling update_user_credits:', rpcError);
+      throw rpcError;
     }
     
-    // Calculate new credit balance and ensure it doesn't go below 0
-    const currentCredits = userData.credit;
-    const newCredits = Math.max(0, currentCredits - creditsToDeduct);
-    
-    console.log(`Updating user credits: ${currentCredits} - ${creditsToDeduct} = ${newCredits}`);
-    
-    // Update the user_details table with the new credit balance
-    const { error: creditUpdateError } = await supabase
-      .from('user_details')
-      .update({ credit: newCredits })
-      .eq('id', userId);
-    
-    if (creditUpdateError) {
-      console.error('Error updating user credits:', creditUpdateError);
-      throw creditUpdateError;
-    }
-    
-    console.log(`Successfully updated user credits: ${currentCredits} -> ${newCredits}`);
+    console.log(`Successfully updated user credits by deducting ${creditsToDeduct} credits`);
     
     return { success: true, message: 'Call completion data updated successfully' };
   } catch (error) {
