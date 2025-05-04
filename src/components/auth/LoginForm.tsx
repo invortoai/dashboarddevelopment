@@ -76,12 +76,6 @@ const LoginForm = () => {
           </Alert>
         )}
         
-        <div className="p-3 bg-muted rounded-md mb-4">
-          <p className="text-sm">
-            <strong>Note:</strong> If you haven't signed up yet, please <Link to="/signup" className="text-purple underline">create an account</Link> first.
-          </p>
-        </div>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

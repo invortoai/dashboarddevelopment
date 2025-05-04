@@ -88,12 +88,6 @@ const SignUpForm: React.FC = () => {
           </Alert>
         )}
         
-        <div className="p-3 bg-muted rounded-md mb-4">
-          <p className="text-sm">
-            <strong>Note:</strong> If you already have an account, please <Link to="/login" className="text-purple underline">login here</Link> instead.
-          </p>
-        </div>
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
