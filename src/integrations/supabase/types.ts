@@ -258,19 +258,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      simulate_call: {
-        Args: {
-          user_id_param: string
-          number_param: string
-          developer_param: string
-          project_param: string
-        }
-        Returns: Json
-      }
-      simulate_refresh_call_status: {
-        Args: { call_id_param: string }
-        Returns: Json
-      }
       update_user_credits: {
         Args: { user_id_param: string; credits_to_deduct: number }
         Returns: undefined

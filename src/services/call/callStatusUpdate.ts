@@ -156,7 +156,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         // Try an alternative direct update as a fallback
         const { error: updateError } = await supabase
           .from('user_details')
-          .update({ credit: supabase.rpc('credit') - creditsToDeduct }) // Using a direct calculation
+          .update({ credit: supabase.rpc('credit') - creditsToDeduct }) // This is the problematic line
           .eq('id', userId);
           
         if (updateError) {
