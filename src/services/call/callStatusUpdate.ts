@@ -1,6 +1,7 @@
 
 import { supabase } from '../supabaseClient';
 import { deductUserCredits } from '../userCredits';
+import { recalculateUserCredits } from '../userCredits';
 
 export const updateCallStatus = async (callId: string, data: {
   callAttempted?: boolean;
@@ -149,6 +150,27 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         message: `Successfully deducted ${creditsToDeduct} credits via direct method for user ${userId}`,
         response: `New balance: ${deductionResult.credits}`
       });
+      
+      // After successful deduction, perform a full recalculation to ensure accuracy
+      // This helps ensure the credit balance is always accurate
+      try {
+        console.log('Performing automatic credit recalculation after call completion');
+        const recalcResult = await recalculateUserCredits(userId);
+        
+        if (recalcResult.success) {
+          console.log(`Credit balance automatically recalculated to ${recalcResult.newBalance} after call completion`);
+          
+          // Log the recalculation
+          await supabase.from('system_logs').insert({
+            user_id: userId,
+            action_type: 'credit_recalculation_auto',
+            message: `Automatic credit recalculation after call completion`,
+            response: `Previous: ${recalcResult.previousBalance}, New: ${recalcResult.newBalance}`
+          });
+        }
+      } catch (error) {
+        console.error('Error during automatic credit recalculation:', error);
+      }
     } else {
       console.error('Direct credit deduction failed:', deductionResult.message);
       
