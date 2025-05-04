@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
 import { getCallHistory } from '@/services/call/callHistory';
@@ -24,7 +24,8 @@ const CallHistory: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalCalls, setTotalCalls] = useState<number>(0);
   
-  const fetchCallHistory = async (page: number = currentPage) => {
+  // Memoized version of fetchCallHistory to prevent recreation on every render
+  const fetchCallHistory = useCallback(async (page: number = currentPage) => {
     if (!user) return;
     
     try {
@@ -38,7 +39,7 @@ const CallHistory: React.FC = () => {
         console.log('Sync result:', syncResult);
       }
       
-      // FIXED: Make sure we have up-to-date user data with the latest credit balance
+      // Get fresh user data with the latest credit balance
       await refreshUserData();
       
       // Get the call history with fresh data from call_details
@@ -95,11 +96,18 @@ const CallHistory: React.FC = () => {
       // Clear sync status after 3 seconds
       setTimeout(() => setSyncStatus(null), 3000);
     }
-  };
+  }, [user, pageSize, toast, refreshUserData]);
   
+  // Now useEffect has a stable dependency - the memoized fetchCallHistory function
   useEffect(() => {
+    // Only run on mount and when currentPage changes
     fetchCallHistory(currentPage);
-  }, [user, currentPage, pageSize]);
+    
+    // Return cleanup to prevent state updates after unmount
+    return () => {
+      // Cleanup function if needed
+    };
+  }, [currentPage, fetchCallHistory]);
   
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

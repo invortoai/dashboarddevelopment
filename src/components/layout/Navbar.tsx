@@ -15,6 +15,7 @@ const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -53,14 +54,24 @@ const Navbar: React.FC = () => {
     const handleClick = (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent default behavior
       
+      // Prevent multiple navigation attempts
+      if (isNavigating) return;
+      
+      setIsNavigating(true);
+      
       if (isMobile) {
         setMobileOpen(false);
       }
       
-      // Use setTimeout to ensure state updates complete before navigation
-      setTimeout(() => {
+      // Navigate only if we're not already on this route
+      if (!active) {
         navigate(to);
-      }, 0);
+      }
+      
+      // Reset navigation state after a short delay
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 500);
     };
     
     return (
