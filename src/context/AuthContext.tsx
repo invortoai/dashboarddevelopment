@@ -4,16 +4,17 @@ import { supabase } from '@/services/supabaseClient';
 import { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User } from '@/types';
 import { getUserProfile } from '@/services/userCredits';
-// Import the logging service directly instead of using require
+import { login as customLogin, logout as customLogout } from '@/services/authService';
+// Import the logging service directly
 import { initLoggingService } from '../services/loggingService';
 
 interface AuthContextProps {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  isAuthenticated: boolean; // Add this property
+  isAuthenticated: boolean;
   signUp: (email: string, password: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (phoneNumber: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -106,18 +107,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
   
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const signIn = async (phoneNumber: string, password: string): Promise<void> => {
     setIsLoading(true);
+    console.info("Attempting login with phone:", phoneNumber);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      setSession(data.session);
-      await fetchUser(data.user?.id);
+      // Use custom login service for phone authentication
+      const { success, message, user: loggedInUser } = await customLogin(phoneNumber, password);
+      
+      if (!success || !loggedInUser) {
+        throw new Error(message || "Invalid login credentials");
+      }
+      
+      // Set user directly from custom auth service
+      setUser(loggedInUser);
+      
+      // Create a mock session since we're using custom auth
+      const mockSession = {
+        access_token: "custom_auth_token",
+        user: { id: loggedInUser.id }
+      } as unknown as Session;
+      
+      setSession(mockSession);
+      initLoggingService(loggedInUser.id);
+      
     } catch (error: any) {
       console.error("Error signing in:", error.message);
+      throw error; // Rethrow to allow form to handle the error
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +141,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     setIsLoading(true);
     try {
+      if (user) {
+        await customLogout(user.id);
+      }
       await supabase.auth.signOut();
       setSession(null);
       setUser(null);
@@ -137,8 +155,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
   
   const refreshUserData = async (): Promise<void> => {
-    if (session?.user?.id) {
-      await fetchUser(session.user.id);
+    if (user?.id) {
+      const { success, user: refreshedUser } = await getUserProfile(user.id);
+      if (success && refreshedUser) {
+        setUser(refreshedUser);
+      }
     }
   };
   
@@ -147,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user, 
       session, 
       isLoading, 
-      isAuthenticated: !!session, // Add this property
+      isAuthenticated: !!user, // Use user presence instead of session for custom auth
       signUp, 
       signIn, 
       signOut, 
