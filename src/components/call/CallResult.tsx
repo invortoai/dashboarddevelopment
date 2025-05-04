@@ -28,6 +28,13 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
 
   if (!callDetails.callDuration) return null;
 
+  // Calculate credits consumed if not explicitly provided
+  const creditsUsed = callDetails.creditsConsumed !== undefined && callDetails.creditsConsumed !== null 
+    ? callDetails.creditsConsumed 
+    : (callDetails.callDuration && callDetails.callDuration > 0 
+        ? Math.max(10, Math.ceil(callDetails.callDuration / 60) * 10) 
+        : 10);
+
   return (
     <Card className="mt-4 bg-card border-2 border-purple">
       <CardContent className="p-6">
@@ -61,13 +68,7 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
               </div>
               
               <div className="text-sm text-muted-foreground">Credits Used:</div>
-              <div className="text-sm font-medium">
-                {callDetails.creditsConsumed !== undefined ? 
-                  callDetails.creditsConsumed : 
-                  (callDetails.callDuration && callDetails.callDuration > 0 ? 
-                    Math.max(10, Math.ceil(callDetails.callDuration / 60) * 10) : 
-                    'Not available')}
-              </div>
+              <div className="text-sm font-medium">{creditsUsed}</div>
             </div>
           </div>
 

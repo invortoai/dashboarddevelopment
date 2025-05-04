@@ -73,6 +73,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       // Multiply by credits per minute to get total credits
       creditsToDeduct = sixtySecondBlocks * CREDITS_PER_MINUTE;
       
+      // Make sure to include credits_consumed in the update object
       updateObject.credits_consumed = creditsToDeduct;
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
@@ -132,20 +133,24 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       creditsToDeduct = 10; // Minimum credits to deduct
     }
     
-    console.log(`Attempting to deduct ${creditsToDeduct} credits from user ${userId}`);
+    console.log(`Deducting ${creditsToDeduct} credits from user ${userId} using database function only`);
     
-    // PRIMARY METHOD: Use the database function for credit deduction
-    try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
-        user_id_param: userId, 
-        credits_to_deduct: creditsToDeduct 
+    // ONLY use the database function for credit deduction - removed direct database method
+    const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
+      user_id_param: userId, 
+      credits_to_deduct: creditsToDeduct 
+    });
+    
+    if (rpcError) {
+      console.error('Error calling update_user_credits RPC function:', rpcError);
+      // Log the error but don't throw it to prevent call completion from failing
+      await supabase.from('system_logs').insert({
+        user_id: userId,
+        action_type: 'credit_deduction_error',
+        message: `Failed to deduct ${creditsToDeduct} credits via RPC function from user ${userId}`,
+        response: rpcError.message
       });
-      
-      if (rpcError) {
-        console.error('Error calling update_user_credits RPC function:', rpcError);
-        throw rpcError; // This will trigger the backup method
-      }
-      
+    } else {
       console.log(`Successfully used database function to deduct ${creditsToDeduct} credits`);
       
       // Log the successful credit deduction using the database function
@@ -153,49 +158,6 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         user_id: userId,
         action_type: 'credit_deduction_rpc',
         message: `Successfully deducted ${creditsToDeduct} credits via RPC function from user ${userId}`,
-      });
-      
-    } catch (rpcError) {
-      console.error('RPC function call failed, falling back to direct update:', rpcError);
-      
-      // BACKUP METHOD: Direct update if the RPC fails
-      // CRITICAL BACKUP: Fetch current user data first
-      const { data: userData, error: userQueryError } = await supabase
-        .from('user_details')
-        .select('credit')
-        .eq('id', userId)
-        .single();
-
-      if (userQueryError) {
-        console.error('Error checking user credit balance:', userQueryError);
-        throw userQueryError;
-      } else {
-        console.log(`Current user credit balance before direct deduction: ${userData.credit}`);
-      }
-      
-      // Calculate new balance
-      const newCreditBalance = Math.max(0, userData.credit - creditsToDeduct);
-      console.log(`Calculating new balance: ${userData.credit} - ${creditsToDeduct} = ${newCreditBalance}`);
-      
-      // CRITICAL BACKUP: Use a direct update operation to ensure the new balance is set correctly
-      const { error: updateError } = await supabase
-        .from('user_details')
-        .update({ credit: newCreditBalance })
-        .eq('id', userId);
-        
-      if (updateError) {
-        console.error('Error updating user credits directly:', updateError);
-        throw updateError;
-      } else {
-        console.log(`Successfully updated user credits directly to: ${newCreditBalance}`);
-      }
-      
-      // Log the direct credit deduction as backup method
-      await supabase.from('system_logs').insert({
-        user_id: userId,
-        action_type: 'credit_deduction_direct',
-        message: `Deducted ${creditsToDeduct} credits directly from user ${userId} (RPC failed)`,
-        response: `New credit balance: ${newCreditBalance}`
       });
     }
     
