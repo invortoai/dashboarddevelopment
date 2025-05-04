@@ -5,7 +5,7 @@ import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
 import { useAuth } from '@/context/AuthContext';
 import { changePassword, updateUserProfile } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
-import { refreshUserCredits, recalculateUserCredits } from '@/services/userCredits';
+import { recalculateUserCredits } from '@/services/userCredits';
 import { fixAllUserCredits } from '@/services/call/creditFix';
 
 const Profile: React.FC = () => {
@@ -20,18 +20,6 @@ const Profile: React.FC = () => {
   const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   
   // Auto-refresh credits when component mounts
-  useEffect(() => {
-    if (user) {
-      const refreshOnMount = async () => {
-        console.log('Auto-refreshing credit balance on profile page load');
-        await handleRefreshCredit();
-      };
-      
-      refreshOnMount();
-    }
-  }, []);
-  
-  // Update last credit refresh time when component mounts
   useEffect(() => {
     if (user) {
       setLastCreditRefresh(new Date());
@@ -80,45 +68,10 @@ const Profile: React.FC = () => {
     }
   };
   
-  // Direct function to refresh credit balance
+  // Keeping this function as a no-op for backward compatibility
   const handleRefreshCredit = async () => {
-    if (!user) return;
-    
-    try {
-      setIsRefreshingCredit(true);
-      console.log('Manually refreshing credit balance for user:', user.id);
-      
-      // Use the dedicated service function for credit refresh
-      const result = await refreshUserCredits(user.id);
-      
-      if (result.success) {
-        // Use the Auth context's refresh function to update the user object
-        await refreshUserData();
-        
-        // Update last refresh timestamp
-        setLastCreditRefresh(new Date());
-        
-        toast({
-          title: "Credit Balance Refreshed",
-          description: `Your current credit balance is ${result.credits}`,
-        });
-      } else {
-        toast({
-          title: "Refresh Failed",
-          description: result.message || "Could not refresh your credit balance. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error refreshing credit balance:', error);
-      toast({
-        title: "Refresh Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshingCredit(false);
-    }
+    // No longer used, just update the timestamp
+    setLastCreditRefresh(new Date());
   };
   
   // Function to recalculate a user's credits based on call history

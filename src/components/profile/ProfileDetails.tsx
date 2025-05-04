@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User } from '@/types';
-import { RefreshCw, Calculator } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { formatTimeAgo } from '@/utils/dateUtils';
 
 interface ProfileDetailsProps {
@@ -78,23 +78,11 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={onRefreshCredit}
-                        disabled={isRefreshingCredit}
+                        onClick={onRecalculateCredit}
+                        disabled={isRecalculatingCredit}
                         className="h-7 px-2 w-full"
                       >
-                        <RefreshCw size={14} className={`mr-1 ${isRefreshingCredit ? 'animate-spin' : ''}`} />
-                        {isRefreshingCredit ? 'Refreshing...' : 'Refresh Balance'}
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={onRecalculateCredit}
-                        disabled={isRecalculatingCredit || isRefreshingCredit}
-                        className="h-7 px-2 w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                        title="Recalculate credits based on your call history"
-                      >
-                        <Calculator size={14} className="mr-1" />
+                        <RefreshCw size={14} className={`mr-1 ${isRecalculatingCredit ? 'animate-spin' : ''}`} />
                         {isRecalculatingCredit ? 'Recalculating...' : 'Recalculate Credits'}
                       </Button>
                     </div>
