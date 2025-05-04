@@ -24,6 +24,8 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
   const [name, setName] = useState(user.name);
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber);
   const [errors, setErrors] = useState<{ name?: string; phoneNumber?: string }>({});
+  const [localCredit, setLocalCredit] = useState<number>(user.credit);
+  const [isRefreshingCredit, setIsRefreshingCredit] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,33 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
     setIsEditing(false);
     setErrors({});
   };
+
+  const handleRefreshCredit = async () => {
+    try {
+      setIsRefreshingCredit(true);
+      // Make a request to fetch the latest user data from the server
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user-credits/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setLocalCredit(data.credit);
+      }
+    } catch (error) {
+      console.error('Error refreshing credit:', error);
+    } finally {
+      setIsRefreshingCredit(false);
+    }
+  };
+
+  // Update local credit when user prop updates
+  React.useEffect(() => {
+    setLocalCredit(user.credit);
+  }, [user.credit]);
 
   return (
     <Card>
@@ -129,20 +158,22 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Available Credits</label>
-              <p className="p-2 border border-border rounded bg-muted flex justify-between items-center">
-                <span>{user.credit}</span>
+              <div className="p-2 border border-border rounded bg-muted flex justify-between items-center">
+                <span>{localCredit}</span>
                 <Button 
                   type="button" 
                   variant="outline" 
                   size="sm"
                   className="text-xs"
                   onClick={() => {
-                    window.location.reload();
+                    // Call the parent's refreshUserData function instead of reloading the page
+                    handleRefreshCredit();
                   }}
+                  disabled={isRefreshingCredit}
                 >
-                  Refresh
+                  {isRefreshingCredit ? 'Refreshing...' : 'Refresh'}
                 </Button>
-              </p>
+              </div>
             </div>
 
             <div className="space-y-2">
