@@ -17,6 +17,7 @@ const CallHistory: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [refreshedUserData, setRefreshedUserData] = useState<boolean>(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -39,8 +40,11 @@ const CallHistory: React.FC = () => {
         console.log('Sync result:', syncResult);
       }
       
-      // Get fresh user data with the latest credit balance
-      await refreshUserData();
+      // Get fresh user data with the latest credit balance - but only once per component mount
+      if (!refreshedUserData) {
+        await refreshUserData();
+        setRefreshedUserData(true);
+      }
       
       // Get the call history with fresh data from call_details
       const result = await getCallHistory(user.id, page, pageSize);
@@ -96,7 +100,7 @@ const CallHistory: React.FC = () => {
       // Clear sync status after 3 seconds
       setTimeout(() => setSyncStatus(null), 3000);
     }
-  }, [user, pageSize, toast, refreshUserData]);
+  }, [user, pageSize, toast]);
   
   // Now useEffect has a stable dependency - the memoized fetchCallHistory function
   useEffect(() => {
@@ -116,6 +120,7 @@ const CallHistory: React.FC = () => {
   
   const handleRefresh = () => {
     setRefreshing(true);
+    setRefreshedUserData(false); // Allow refreshUserData to be called again on manual refresh
     fetchCallHistory(currentPage);
   };
   
