@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadSession();
 
     // Listen for changes on auth state
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
         setIsAuthenticated(true);
         refreshUserData();
@@ -50,14 +50,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
       }
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const formatPhoneAsEmail = (phoneNumber: string): string => {
+    // Ensure the phone number has no spaces or special characters
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    return `${cleanPhone}@phone.user`;
+  };
 
   const signUp = async (phoneNumber: string, password: string, email: string, name: string): Promise<void> => {
     try {
       console.log("Signing up with phone number:", phoneNumber);
-      // For phone-based auth, we'll use the phone as the email by appending a domain
-      // This is a workaround since Supabase requires an email format
-      const phoneAsEmail = `${phoneNumber}@phone.user`;
+      // Convert phone to email format for Supabase auth
+      const phoneAsEmail = formatPhoneAsEmail(phoneNumber);
       
       const { data, error } = await supabase.auth.signUp({
         email: phoneAsEmail,
@@ -92,8 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (phoneNumber: string, password: string): Promise<void> => {
     try {
       console.log("Signing in with phone number:", phoneNumber);
-      // Convert phone number to email format for Supabase auth
-      const phoneAsEmail = `${phoneNumber}@phone.user`;
+      // Convert phone to email format for Supabase auth
+      const phoneAsEmail = formatPhoneAsEmail(phoneNumber);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: phoneAsEmail,

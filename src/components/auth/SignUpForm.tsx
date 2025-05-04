@@ -46,11 +46,14 @@ const SignUpForm: React.FC = () => {
     setIsSubmitting(true);
     try {
       console.log("Attempting signup with phone:", data.phoneNumber);
+      // Clean phone number of any spaces or special characters
+      const cleanPhone = data.phoneNumber.replace(/\D/g, '');
+      
       // Generate a fake email using the phone number
       // This is required because Supabase auth requires an email format
-      const phoneAsEmail = `${data.phoneNumber}@phone.user`;
+      const phoneAsEmail = `${cleanPhone}@phone.user`;
       
-      await signUp(data.phoneNumber, data.password, phoneAsEmail, data.name);
+      await signUp(cleanPhone, data.password, phoneAsEmail, data.name);
       toast({
         title: "Account created!",
         description: "Your account has been created successfully."

@@ -38,7 +38,9 @@ const LoginForm = () => {
     setIsSubmitting(true);
     try {
       console.log("Attempting login with phone:", data.phoneNumber);
-      await signIn(data.phoneNumber, data.password);
+      // Clean phone number of any spaces or special characters
+      const cleanPhone = data.phoneNumber.replace(/\D/g, '');
+      await signIn(cleanPhone, data.password);
     } catch (error: any) {
       console.error("Login failed:", error);
       toast({
