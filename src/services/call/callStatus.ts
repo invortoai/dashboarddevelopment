@@ -2,6 +2,7 @@
 import { supabase } from '../supabaseClient';
 import { CallDetails } from '../../types';
 import { syncCallLogToCallDetails } from './syncData';
+import { recalculateUserCredits } from '../userCredits';
 
 export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
   success: boolean;
@@ -20,7 +21,7 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
     // Now query the call_details table for status information
     const { data, error } = await supabase
       .from('call_details')
-      .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, call_log_id')
+      .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, call_log_id, user_id')
       .eq('id', callDetailId)
       .single();
       
@@ -31,7 +32,7 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
       console.log('Attempting to fetch directly from call_log');
       const { data: logData, error: logError } = await supabase
         .from('call_log')
-        .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, id')
+        .select('call_status, call_duration, transcript, call_recording, summary, credits_consumed, id, user_id')
         .eq('call_detail_id', callDetailId)
         .single();
         
@@ -58,6 +59,16 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
         
       // Try to force sync one more time
       await syncCallLogToCallDetails(callDetailId);
+      
+      // If the call is complete, trigger a credit recalculation for the user
+      if (isComplete && logData.user_id) {
+        try {
+          console.log(`Call is complete, recalculating credits for user ${logData.user_id}`);
+          await recalculateUserCredits(logData.user_id);
+        } catch (recalcError) {
+          console.error('Error recalculating credits after call completion:', recalcError);
+        }
+      }
       
       return { 
         success: true, 
@@ -96,6 +107,16 @@ export const getCallStatusFromDetails = async (callDetailId: string): Promise<{
       (data.call_status === 'completed') ||
       (data.call_status?.toLowerCase().includes('complete')) ||
       isError;
+    
+    // If the call is complete, trigger a credit recalculation for the user
+    if (isComplete && data.user_id) {
+      try {
+        console.log(`Call is complete, recalculating credits for user ${data.user_id}`);
+        await recalculateUserCredits(data.user_id);
+      } catch (recalcError) {
+        console.error('Error recalculating credits after call completion:', recalcError);
+      }
+    }
     
     return { 
       success: true, 

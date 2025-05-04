@@ -5,6 +5,8 @@ import { formatTimeAgo, formatToIST } from '@/utils/dateUtils';
 import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { recalculateUserCredits } from '@/services/userCredits';
+import { useAuth } from '@/context/AuthContext';
 
 interface CallStatusProps {
   number: string;
@@ -46,6 +48,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
   const [showRefreshButton, setShowRefreshButton] = useState<boolean>(false);
   const [showCloseButton, setShowCloseButton] = useState<boolean>(false);
   const { toast } = useToast();
+  const { user, refreshUserData } = useAuth();
   
   // Add timer for in-progress calls
   useEffect(() => {
@@ -202,7 +205,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                                     onClick={handleRefreshCheck}
                                   >
                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                    Check Status
+                                    Check Status & Update Credits
                                   </Button>
                                 </div>
                               </div>
@@ -241,7 +244,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                                   onClick={handleRefreshCheck}
                                 >
                                   <RefreshCw className="mr-2 h-4 w-4" />
-                                  Check Status
+                                  Check Status & Update Credits
                                 </Button>
                               </div>
                             </div>
@@ -383,6 +386,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
 // Helper function for status button refresh
 const handleRefreshCheck = async () => {
   try {
+    // First, trigger the webhook to check for updated call status
     const response = await fetch('https://n8n.srv743759.hstgr.cloud/webhook/4069d9c5-cbeb-43d8-a08b-3935ffd91f58', {
       method: 'POST',
       headers: {
@@ -393,8 +397,43 @@ const handleRefreshCheck = async () => {
         timestamp: new Date().toISOString(),
       }),
     });
+
+    // Recalculate user credits if user is logged in and call is completed
+    if (user && user.id && (status === 'completed' || rawStatus?.toLowerCase().includes('complete') || rawStatus?.toLowerCase().includes('answered'))) {
+      try {
+        toast({
+          title: "Updating credits...",
+          description: "Recalculating your credit balance based on call history.",
+        });
+
+        // Perform credit recalculation
+        const recalcResult = await recalculateUserCredits(user.id);
+        
+        if (recalcResult.success) {
+          // Update user data in context
+          await refreshUserData();
+          console.log(`Credit balance recalculated after status refresh: ${recalcResult.newBalance} credits remaining`);
+          
+          toast({
+            title: "Credits Updated",
+            description: `Your credit balance has been recalculated to ${recalcResult.newBalance} credits.`,
+          });
+        } else {
+          console.error('Failed to recalculate credit balance during status refresh:', recalcResult.message);
+        }
+      } catch (error) {
+        console.error('Error recalculating credits during status refresh:', error);
+      }
+    } else {
+      console.log('Skipping credit recalculation - call not completed or user not logged in');
+    }
   } catch (error) {
     console.error('Error triggering refresh webhook:', error);
+    toast({
+      title: "Refresh Failed",
+      description: "Could not refresh call status. Please try again.",
+      variant: "destructive",
+    });
   }
 };
 
