@@ -135,7 +135,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId} using database function only`);
     
-    // ONLY use the database function for credit deduction - removed direct database method
+    // ONLY use the database function for credit deduction - we directly call the RPC function
     const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
       user_id_param: userId, 
       credits_to_deduct: creditsToDeduct 
@@ -143,6 +143,10 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     if (rpcError) {
       console.error('Error calling update_user_credits RPC function:', rpcError);
+      
+      // Additional direct verification of the RPC function issue
+      console.log('Attempting to log detailed RPC error information');
+      
       // Log the error but don't throw it to prevent call completion from failing
       await supabase.from('system_logs').insert({
         user_id: userId,
@@ -161,7 +165,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       });
     }
     
-    // Verify the deduction was successful by checking the updated balance
+    // Force a verification of the deduction success by checking the updated balance
     const { data: updatedUserData, error: updatedUserError } = await supabase
       .from('user_details')
       .select('credit')

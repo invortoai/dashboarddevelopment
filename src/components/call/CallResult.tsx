@@ -4,6 +4,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatToIST } from '@/utils/dateUtils';
 import { useNavigate } from 'react-router-dom';
+import { refreshUserCredits } from '@/services/userCredits';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface CallResultProps {
   callDetails: {
@@ -21,10 +24,27 @@ interface CallResultProps {
 
 const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { refreshUserData } = useAuth();
 
   const handleViewDetails = () => {
     navigate(`/history/${callDetails.id}`);
   };
+
+  React.useEffect(() => {
+    // When the call result is displayed with credits consumed,
+    // make sure we refresh the user's credit balance
+    if (callDetails.creditsConsumed !== undefined && callDetails.creditsConsumed > 0) {
+      // Force refresh user credit balance to reflect the deduction
+      refreshUserData()
+        .then(() => {
+          console.log('User credit balance refreshed after call completion');
+        })
+        .catch(error => {
+          console.error('Error refreshing user credit balance:', error);
+        });
+    }
+  }, [callDetails.creditsConsumed, refreshUserData]);
 
   if (!callDetails.callDuration) return null;
 
