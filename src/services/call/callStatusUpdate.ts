@@ -1,7 +1,5 @@
-
 import { supabase } from '../supabaseClient';
-import { deductUserCredits } from '../userCredits';
-import { recalculateUserCredits } from '../userCredits';
+import { deductUserCredits, recalculateUserCredits } from '../userCredits';
 
 export const updateCallStatus = async (callId: string, data: {
   callAttempted?: boolean;
