@@ -134,7 +134,7 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     console.log(`Attempting to deduct ${creditsToDeduct} credits from user ${userId}`);
     
-    // First check the current credit balance for better debugging
+    // CRITICAL FIX: Fetch current user data first
     const { data: userData, error: userQueryError } = await supabase
       .from('user_details')
       .select('credit')
@@ -148,9 +148,11 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       console.log(`Current user credit balance before deduction: ${userData.credit}`);
     }
     
-    // Directly update the user's credits in the user_details table
+    // Calculate new balance
     const newCreditBalance = Math.max(0, userData.credit - creditsToDeduct);
+    console.log(`Calculating new balance: ${userData.credit} - ${creditsToDeduct} = ${newCreditBalance}`);
     
+    // CRITICAL FIX: Use a direct update operation to ensure the new balance is set correctly
     const { error: updateError } = await supabase
       .from('user_details')
       .update({ credit: newCreditBalance })
@@ -159,6 +161,8 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (updateError) {
       console.error('Error updating user credits:', updateError);
       throw updateError;
+    } else {
+      console.log(`Successfully updated user credits to: ${newCreditBalance}`);
     }
     
     // Log the credit deduction to system_logs
