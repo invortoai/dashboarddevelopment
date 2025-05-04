@@ -166,7 +166,7 @@ export const setUserCredits = async (userId: string, creditAmount: number): Prom
 
 /**
  * Directly deduct credits from a user's balance
- * This is a more direct approach that bypasses the RPC function
+ * This is the preferred approach for all credit deductions
  */
 export const deductUserCredits = async (userId: string, creditsToDeduct: number): Promise<{
   success: boolean;
@@ -215,6 +215,15 @@ export const deductUserCredits = async (userId: string, creditsToDeduct: number)
     }
     
     console.log(`Successfully deducted ${creditsToDeduct} credits. New balance: ${data.credit}`);
+    
+    // Log this credit update in system logs
+    await supabase.from('system_logs').insert({
+      user_id: userId,
+      action_type: 'credit_deduction_direct',
+      message: `Successfully deducted ${creditsToDeduct} credits via direct method`,
+      response: `New balance: ${data.credit}`
+    });
+    
     return { 
       success: true, 
       credits: data.credit,
@@ -225,6 +234,88 @@ export const deductUserCredits = async (userId: string, creditsToDeduct: number)
     return { 
       success: false, 
       message: 'Error deducting credits' 
+    };
+  }
+};
+
+/**
+ * Update all users' credits - adds or deducts the specified amount
+ * This bulk operation affects all users in the system
+ */
+export const updateAllUserCredits = async (creditAmount: number, isDeduction: boolean = false): Promise<{
+  success: boolean;
+  usersUpdated?: number;
+  message: string;
+}> => {
+  try {
+    console.log(`${isDeduction ? 'Deducting' : 'Adding'} ${Math.abs(creditAmount)} credits for all users`);
+    
+    // First get all users to update and log
+    const { data: users, error: fetchError } = await supabase
+      .from('user_details')
+      .select('id, credit');
+      
+    if (fetchError || !users) {
+      console.error('Error fetching users for credit update:', fetchError);
+      return {
+        success: false,
+        message: 'Failed to fetch users for credit update'
+      };
+    }
+    
+    console.log(`Found ${users.length} users to update credits`);
+    
+    // Process each user individually to ensure accurate credit tracking
+    const updatePromises = users.map(async user => {
+      try {
+        const currentCredit = user.credit || 0;
+        const newCredit = isDeduction 
+          ? currentCredit - Math.abs(creditAmount)
+          : currentCredit + Math.abs(creditAmount);
+        
+        const finalCredit = Math.max(0, newCredit); // Ensure credit doesn't go below zero
+        
+        const { error: updateError } = await supabase
+          .from('user_details')
+          .update({ credit: finalCredit })
+          .eq('id', user.id);
+          
+        if (updateError) {
+          console.error(`Error updating credits for user ${user.id}:`, updateError);
+          return false;
+        }
+        
+        // Log the credit change in system_logs
+        await supabase.from('system_logs').insert({
+          user_id: user.id,
+          action_type: 'bulk_credit_update',
+          message: `${isDeduction ? 'Deducted' : 'Added'} ${Math.abs(creditAmount)} credits`,
+          response: `Previous: ${currentCredit}, New: ${finalCredit}`
+        });
+        
+        return true;
+      } catch (error) {
+        console.error(`Error processing user ${user.id} during bulk update:`, error);
+        return false;
+      }
+    });
+    
+    const results = await Promise.all(updatePromises);
+    const successCount = results.filter(result => result).length;
+    
+    console.log(`Successfully updated credits for ${successCount} out of ${users.length} users`);
+    
+    return {
+      success: true,
+      usersUpdated: successCount,
+      message: `Successfully updated credits for ${successCount} out of ${users.length} users`
+    };
+    
+  } catch (error) {
+    console.error('Error in updateAllUserCredits:', error);
+    return {
+      success: false,
+      message: 'Error updating all user credits'
     };
   }
 };

@@ -136,91 +136,35 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
     
-    // IMPROVED CREDIT DEDUCTION APPROACH
-    let creditDeductionSuccess = false;
+    // DIRECT CREDIT DEDUCTION - ONLY METHOD USED NOW
+    const deductionResult = await deductUserCredits(userId, creditsToDeduct);
     
-    try {
-      // First try using RPC function
-      console.log(`Trying to deduct credits using RPC function...`);
-      const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
-        user_id_param: userId, 
-        credits_to_deduct: creditsToDeduct 
-      });
+    if (deductionResult.success) {
+      console.log(`Successfully deducted credits using direct method. New balance: ${deductionResult.credits}`);
       
-      if (rpcError) {
-        console.error('Error with RPC credit deduction:', rpcError);
-        
-        // Log the error for debugging
-        await supabase.from('system_logs').insert({
-          user_id: userId,
-          action_type: 'credit_deduction_error',
-          message: `Failed to deduct ${creditsToDeduct} credits via RPC function from user ${userId}`,
-          response: rpcError.message
-        });
-      } else {
-        console.log(`Successfully used database function to deduct ${creditsToDeduct} credits`);
-        
-        // Log the successful credit deduction using the database function
-        await supabase.from('system_logs').insert({
-          user_id: userId,
-          action_type: 'credit_deduction_rpc',
-          message: `Successfully deducted ${creditsToDeduct} credits via RPC function from user ${userId}`,
-        });
-        
-        creditDeductionSuccess = true;
-      }
-    } catch (rpcIssue) {
-      console.error('Exception during RPC credit deduction:', rpcIssue);
-      
-      // Log the RPC exception
+      // Log the successful direct deduction
       await supabase.from('system_logs').insert({
         user_id: userId,
-        action_type: 'credit_deduction_rpc_exception',
-        message: `Exception during RPC credit deduction for user ${userId}`,
-        response: JSON.stringify(rpcIssue)
+        action_type: 'credit_deduction_direct',
+        message: `Successfully deducted ${creditsToDeduct} credits via direct method for user ${userId}`,
+        response: `New balance: ${deductionResult.credits}`
       });
-    }
-    
-    // If RPC approach failed, try the direct approach from userCredits service
-    if (!creditDeductionSuccess) {
-      try {
-        console.log(`Falling back to direct credit deduction...`);
-        const deductionResult = await deductUserCredits(userId, creditsToDeduct);
-        
-        if (deductionResult.success) {
-          console.log(`Successfully deducted credits using direct method. New balance: ${deductionResult.credits}`);
-          
-          // Log the successful direct deduction
-          await supabase.from('system_logs').insert({
-            user_id: userId,
-            action_type: 'credit_deduction_direct',
-            message: `Successfully deducted ${creditsToDeduct} credits via direct method for user ${userId}`,
-            response: `New balance: ${deductionResult.credits}`
-          });
-          
-          creditDeductionSuccess = true;
-        } else {
-          console.error('Direct credit deduction failed:', deductionResult.message);
-          
-          // Log the direct deduction failure
-          await supabase.from('system_logs').insert({
-            user_id: userId,
-            action_type: 'credit_deduction_direct_failed',
-            message: `Failed to deduct ${creditsToDeduct} credits via direct method for user ${userId}`,
-            response: deductionResult.message
-          });
-        }
-      } catch (directError) {
-        console.error('Exception during direct credit deduction:', directError);
-        
-        // Log the direct deduction exception
-        await supabase.from('system_logs').insert({
-          user_id: userId,
-          action_type: 'credit_deduction_direct_exception',
-          message: `Exception during direct credit deduction for user ${userId}`,
-          response: JSON.stringify(directError)
-        });
-      }
+    } else {
+      console.error('Direct credit deduction failed:', deductionResult.message);
+      
+      // Log the direct deduction failure
+      await supabase.from('system_logs').insert({
+        user_id: userId,
+        action_type: 'credit_deduction_direct_failed',
+        message: `Failed to deduct ${creditsToDeduct} credits via direct method for user ${userId}`,
+        response: deductionResult.message
+      });
+      
+      return { 
+        success: false, 
+        message: `Failed to deduct credits: ${deductionResult.message}`,
+        creditsDeducted: 0
+      };
     }
     
     // Force a verification of the deduction success by checking the updated balance

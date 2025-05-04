@@ -58,9 +58,18 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
             });
           } else {
             console.error('Failed to refresh credit balance:', refreshResult.message);
+            
+            // Try a second time with full user context refresh as fallback
+            await refreshUserData();
+            toast({
+              title: 'Credits Updated',
+              description: `${callDetails.creditsConsumed} credits were used for this call.`,
+            });
           }
         } catch (error) {
           console.error('Error refreshing user credit balance:', error);
+          // Still try to refresh user data even if there was an error
+          await refreshUserData();
         }
       }
     };
