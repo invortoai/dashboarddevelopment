@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -25,10 +25,18 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Add useEffect to redirect authenticated users
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to analytics");
+      navigate('/analytics');
+    }
+  }, [isAuthenticated, navigate]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -52,7 +60,10 @@ const LoginForm = () => {
         title: "Login Successful",
         description: "Welcome back!",
       });
-      navigate('/analytics');
+      
+      // Force navigation to ensure redirect happens
+      console.log("Login successful, navigating to analytics page");
+      navigate('/analytics', { replace: true });
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");

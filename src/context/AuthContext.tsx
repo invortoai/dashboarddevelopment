@@ -46,6 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     fetchSession();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+      console.log("Auth state changed:", event, session?.user?.id);
       setSession(session);
       
       if (session) {
@@ -129,6 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setSession(mockSession);
       initLoggingService(loggedInUser.id);
+      console.log("Login successful, user set:", loggedInUser.id);
       
     } catch (error: any) {
       console.error("Error signing in:", error.message);
