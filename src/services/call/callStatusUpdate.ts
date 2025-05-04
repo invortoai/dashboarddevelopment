@@ -53,12 +53,12 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
     
-    // FIXED: Always ensure call_duration is properly set as a number for call_details table
+    // Always ensure call_duration is properly set as a number for call_details table
     if (data.callDuration !== undefined) {
       updateObject.call_duration = data.callDuration;
     }
     
-    // FIXED: Calculate credits consumed based on call duration
+    // Calculate credits consumed based on call duration
     // Minimum 10 credits for ANY call with duration > 0
     // 10 credits for every 60 seconds (or part thereof) of call duration
     if (data.callDuration !== undefined && data.callDuration > 0) {
@@ -121,18 +121,39 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       call_detail_id: callId
     });
     
-    // FIXED: Always deduct credits from the user's balance if we have a call with some duration
-    // Now we force the deduction regardless of the updateObject.credits_consumed value 
+    // Make sure we have a creditsToDeduct value
     const creditsToDeduct = updateObject.credits_consumed || 10;
     
     console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
-    const { error: creditError } = await supabase.rpc('update_user_credits', {
+    
+    // Explicitly call the update_user_credits function to deduct credits
+    const { data: creditUpdateResult, error: creditError } = await supabase.rpc('update_user_credits', {
       user_id_param: userId,
       credits_to_deduct: creditsToDeduct
     });
     
     if (creditError) {
       console.error('Error updating user credits:', creditError);
+      
+      // Additional debugging information
+      console.error('Credit update parameters:', {
+        userId,
+        creditsToDeduct
+      });
+      
+      // Try to get user details to verify user exists
+      const { data: userCheck, error: userCheckError } = await supabase
+        .from('user_details')
+        .select('id, credit')
+        .eq('id', userId)
+        .single();
+        
+      if (userCheckError) {
+        console.error('Error checking user details:', userCheckError);
+      } else {
+        console.log('User details found:', userCheck);
+      }
+      
       throw creditError;
     } else {
       console.log(`Successfully deducted ${creditsToDeduct} credits from user ${userId}`);

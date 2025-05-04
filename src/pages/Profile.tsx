@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileDetails from '@/components/profile/ProfileDetails';
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
@@ -8,11 +8,18 @@ import { changePassword, updateUserProfile } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
 
 const Profile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
+  
+  // Refresh user data when profile page loads to get latest credit balance
+  useEffect(() => {
+    if (user) {
+      refreshUserData();
+    }
+  }, [user, refreshUserData]);
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -10,7 +11,7 @@ import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [callData, setCallData] = useState<{
@@ -113,6 +114,10 @@ const Dashboard: React.FC = () => {
               console.log('Call completed, stopping polling');
               setCallStatus('completed');
               setCallResult(callDetails);
+              
+              // Refresh user data to get updated credit balance
+              await refreshUserData();
+              
               clearInterval(intervalId); // Stop polling once completed
             } else if (callDetails.callStatus === 'in-progress' || 
                       callDetails.callStatus === 'yes' || 
@@ -129,7 +134,7 @@ const Dashboard: React.FC = () => {
     
     // Return cleanup function
     return () => clearInterval(intervalId);
-  }, [callData]);
+  }, [callData, refreshUserData]);
   
   // Reset the call state
   const resetCallState = () => {

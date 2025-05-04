@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   login: (phoneNumber: string, password: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
+  refreshUserData: () => Promise<void>; // Add function to refresh user data
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +23,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Function to refresh user data
+  const refreshUserData = async () => {
+    try {
+      if (!state.user) return;
+      
+      const { success, user: latestUserData } = await getUserDetails(state.user.id);
+      
+      if (success && latestUserData) {
+        setState({
+          user: latestUserData,
+          isAuthenticated: true,
+        });
+        
+        // Update localStorage with the latest user data
+        localStorage.setItem('user', JSON.stringify(latestUserData));
+        
+        console.log('User data refreshed with updated credit balance:', latestUserData.credit);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
 
   useEffect(() => {
     // Check if user is stored in localStorage on app load
@@ -163,6 +187,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login: loginUser,
         logout,
         loading,
+        refreshUserData,
       }}
     >
       {children}
