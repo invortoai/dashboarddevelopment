@@ -53,9 +53,8 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
     
-    // Ensure call_duration is an integer for call_details table
+    // Ensure call_duration is a number for call_details table
     if (data.callDuration !== undefined) {
-      // For call_log (can be float)
       updateObject.call_duration = data.callDuration;
     }
     
@@ -86,7 +85,10 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         .update(updateObject)
         .eq('call_detail_id', callId);
         
-      if (logError) throw logError;
+      if (logError) {
+        console.error('Error updating call_log:', logError);
+        throw logError;
+      }
       
       // For call_details table, ensure call_duration is an integer
       if (updateObject.call_duration !== undefined) {
@@ -99,7 +101,12 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         .update(updateObject)
         .eq('id', callId);
         
-      if (callError) throw callError;
+      if (callError) {
+        console.error('Error updating call_details:', callError);
+        throw callError;
+      }
+      
+      console.log('Successfully updated both tables with credit consumption:', updateObject.credits_consumed);
     }
     
     // Record call completion activity
@@ -121,6 +128,8 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       if (creditError) {
         console.error('Error updating user credits:', creditError);
         throw creditError;
+      } else {
+        console.log(`Successfully deducted ${updateObject.credits_consumed} credits from user ${userId}`);
       }
     }
     

@@ -1,6 +1,6 @@
 
 import { supabase } from '../supabaseClient';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 export const getDailyCallStats = async (userId: string): Promise<{ 
   success: boolean; 

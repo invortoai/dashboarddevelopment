@@ -1,7 +1,6 @@
 
 import { supabase } from '../supabaseClient';
 import { CallDetails } from '../../types';
-import { getCurrentISTDateTime } from '../../utils/dateUtils';
 
 export const getCallDetails = async (callId: string, userId: string): Promise<{
   success: boolean;
@@ -18,7 +17,7 @@ export const getCallDetails = async (callId: string, userId: string): Promise<{
       
     if (error) throw error;
     
-    const currentTime = getCurrentISTDateTime();
+    const currentTime = new Date().toISOString();
     
     const callDetails: CallDetails = {
       id: data.id,
@@ -60,7 +59,7 @@ export const viewRecording = async (userId: string, callId: string): Promise<{ s
     await supabase.from('user_activity').insert({
       user_id: userId,
       activity_type: 'view_recording',
-      timestamp: getCurrentISTDateTime(),
+      timestamp: new Date().toISOString(),
       call_detail_id: callId
     });
     
@@ -77,7 +76,7 @@ export const viewTranscript = async (userId: string, callId: string): Promise<{ 
     await supabase.from('user_activity').insert({
       user_id: userId,
       activity_type: 'view_transcript',
-      timestamp: getCurrentISTDateTime(),
+      timestamp: new Date().toISOString(),
       call_detail_id: callId
     });
     

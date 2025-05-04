@@ -1,7 +1,6 @@
 
 import { supabase } from '../supabaseClient';
 import { CallDetails } from '../../types';
-import { getCurrentISTDateTime } from '../../utils/dateUtils';
 
 export const getCallHistory = async (
   userId: string,
@@ -62,7 +61,7 @@ export const getCallHistory = async (
     await supabase.from('user_activity').insert({
       user_id: userId,
       activity_type: 'view_call_history',
-      timestamp: getCurrentISTDateTime(),
+      timestamp: new Date().toISOString(),
     });
     
     return { 
