@@ -71,18 +71,18 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
               <div className="flex flex-col">
                 <div>
                   <Label>Available Credits</Label>
-                  <div className="flex items-center space-x-3 mt-1">
+                  <div className="flex items-center space-x-2 mt-1">
                     <span className="text-sm font-semibold text-purple-600">{user.credit}</span>
                     <Button 
-                      variant="outline" 
-                      size="sm"
+                      variant="ghost" 
+                      size="icon"
                       onClick={onRecalculateCredit}
                       disabled={isRecalculatingCredit}
-                      className="h-7 text-xs px-2 flex items-center text-purple-700 border-purple-200 hover:bg-purple-50 hover:text-purple-800"
+                      className="h-6 w-6 p-0.5 rounded-full hover:bg-purple-50"
                       title="Refresh your credits"
                     >
-                      <RefreshCw size={12} className={isRecalculatingCredit ? 'mr-1 animate-spin text-purple-500' : 'mr-1 text-purple-500'} />
-                      {isRecalculatingCredit ? 'Refreshing...' : 'Refresh Credits'}
+                      <RefreshCw size={13} className={isRecalculatingCredit ? 'animate-spin text-purple-500' : 'text-purple-500'} />
+                      <span className="sr-only">Refresh Credits</span>
                     </Button>
                   </div>
                   {lastCreditRefresh && (
