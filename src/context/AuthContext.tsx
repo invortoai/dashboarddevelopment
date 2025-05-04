@@ -1,13 +1,17 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/services/supabaseClient';
 import { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { User } from '@/types';
 import { getUserProfile } from '@/services/userCredits';
+// Import the logging service directly instead of using require
+import { initLoggingService } from '../services/loggingService';
 
 interface AuthContextProps {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  isAuthenticated: boolean; // Add this property
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -40,7 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     fetchSession();
     
-    supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       setSession(session);
       
       if (session) {
@@ -51,13 +55,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
     
-    // Import here to avoid circular dependencies
-    const { initLoggingService } = require('../services/loggingService');
-    
     // When user changes, update the logging service with the user ID
     if (user) {
       initLoggingService(user.id);
     }
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user?.id]);
   
   const fetchUser = async (userId: string | undefined) => {
@@ -138,7 +143,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
   
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signUp, signIn, signOut, refreshUserData }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      isLoading, 
+      isAuthenticated: !!session, // Add this property
+      signUp, 
+      signIn, 
+      signOut, 
+      refreshUserData 
+    }}>
       {!isLoading && children}
     </AuthContext.Provider>
   );

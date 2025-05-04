@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -53,10 +52,8 @@ const SignUpForm: React.FC = () => {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       
-      // Empty email since we're not using email authentication
-      const dummyEmail = '';
-      
-      await signUp(cleanPhone, data.password, dummyEmail, data.name);
+      // We only pass email and password to signUp as per the interface
+      await signUp(cleanPhone, data.password);
     } catch (error: any) {
       console.error('Sign up error:', error);
       setSignupError(error.message || "Could not create account");
