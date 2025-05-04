@@ -80,13 +80,12 @@ const Profile: React.FC = () => {
     
     try {
       setIsRecalculatingCredit(true);
-      console.log('Recalculating credit balance for user:', user.id);
+      console.log('Refreshing credit balance for user:', user.id);
       
-      // Show a warning toast first
+      // Show a toast notification
       toast({
-        title: "Recalculating Credits",
-        description: "Recalculating your credits based on call history. This may take a moment...",
-        variant: "warning",
+        title: "Refreshing Credits",
+        description: "Refreshing your credits based on call history...",
       });
       
       // Use the dedicated service function for credit recalculation
@@ -100,20 +99,20 @@ const Profile: React.FC = () => {
         setLastCreditRefresh(new Date());
         
         toast({
-          title: "Credit Balance Recalculated",
-          description: `Your credit balance has been updated from ${result.previousBalance} to ${result.newBalance}`,
+          title: "Credits Refreshed",
+          description: `Your credit balance has been updated to ${result.newBalance}`,
         });
       } else {
         toast({
-          title: "Recalculation Failed",
-          description: result.message || "Could not recalculate your credit balance. Please try again.",
+          title: "Refresh Failed",
+          description: result.message || "Could not refresh your credit balance. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Error recalculating credit balance:', error);
+      console.error('Error refreshing credit balance:', error);
       toast({
-        title: "Recalculation Failed",
+        title: "Refresh Failed",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
