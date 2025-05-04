@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatTimeAgo, formatToIST } from '@/utils/dateUtils';
 import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { recalculateUserCredits } from '@/services/userCredits';
 import { useAuth } from '@/context/AuthContext';
 
@@ -260,7 +259,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                                     onClick={handleRefreshCheck}
                                   >
                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                    Check Status & Update Credits
+                                    Check Status
                                   </Button>
                                 </div>
                               </div>
@@ -299,7 +298,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                                   onClick={handleRefreshCheck}
                                 >
                                   <RefreshCw className="mr-2 h-4 w-4" />
-                                  Check Status & Update Credits
+                                  Check Status
                                 </Button>
                               </div>
                             </div>
