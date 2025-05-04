@@ -33,8 +33,9 @@ const LoginForm = () => {
   // Add useEffect to redirect authenticated users
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("User is authenticated, redirecting to analytics");
-      navigate('/analytics');
+      console.log("LoginForm useEffect: User is authenticated, redirecting to analytics");
+      // Use window.location for a hard redirect if router navigation isn't working
+      window.location.href = '/analytics';
     }
   }, [isAuthenticated, navigate]);
 
@@ -61,9 +62,9 @@ const LoginForm = () => {
         description: "Welcome back!",
       });
       
-      // Force navigation to ensure redirect happens
-      console.log("Login successful, navigating to analytics page");
-      navigate('/analytics', { replace: true });
+      // Force navigation using window.location for a hard redirect
+      console.log("Login successful, forcing navigation to analytics page");
+      window.location.href = '/analytics';
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");

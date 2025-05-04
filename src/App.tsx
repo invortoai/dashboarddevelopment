@@ -22,7 +22,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <Routes>
-        <Route path="/" element={<Navigate to="/analytics" />} />
+        <Route path="/" element={<Navigate to="/analytics" replace />} />
         <Route path="/landing" element={<Index />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/login" element={<LoginPage />} />

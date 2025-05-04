@@ -11,15 +11,18 @@ const LoginPage: React.FC = () => {
   // Additional useEffect to ensure redirect happens
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("LoginPage: User is authenticated, redirecting to analytics");
-      navigate('/analytics', { replace: true });
+      console.log("LoginPage useEffect: User is authenticated, redirecting to analytics");
+      // Force a hard redirect
+      window.location.href = '/analytics';
     }
   }, [isAuthenticated, navigate]);
 
   // Immediate redirect if already authenticated
   if (isAuthenticated) {
     console.log("LoginPage: Initial check - user is authenticated, redirecting to analytics");
-    return <Navigate to="/analytics" />;
+    // Use window.location for a hard redirect instead of React Router
+    window.location.href = '/analytics';
+    return null; // Return null while redirecting
   }
 
   return <LoginForm />;
