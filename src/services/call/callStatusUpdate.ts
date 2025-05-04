@@ -149,16 +149,31 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       
       // FIXED: Try direct update as a fallback if the RPC fails
       console.log('Attempting direct update to user_details table as fallback');
-      const { error: directUpdateError } = await supabase
+      
+      // First get the current credit value
+      const { data: userData, error: userError } = await supabase
         .from('user_details')
-        .update({ 
-          credit: supabase.rpc('get_current_credits', { user_id_param: userId }) - creditsToDeduct 
-        })
-        .eq('id', userId);
+        .select('credit')
+        .eq('id', userId)
+        .single();
         
-      if (directUpdateError) {
-        console.error('Error with direct credit update:', directUpdateError);
-        throw directUpdateError;
+      if (userError) {
+        console.error('Error fetching current user credits:', userError);
+      } else if (userData) {
+        // Now update with the new credit value
+        const currentCredits = userData.credit;
+        const newCredits = Math.max(0, currentCredits - creditsToDeduct);
+        
+        const { error: directUpdateError } = await supabase
+          .from('user_details')
+          .update({ credit: newCredits })
+          .eq('id', userId);
+          
+        if (directUpdateError) {
+          console.error('Error with direct credit update:', directUpdateError);
+        } else {
+          console.log(`Successfully updated credits directly: ${currentCredits} -> ${newCredits}`);
+        }
       }
       
       // Try to get user details to verify user exists
