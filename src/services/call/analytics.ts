@@ -35,7 +35,8 @@ export const getDailyCallStats = async (userId: string): Promise<{
         // Add this call's data to the accumulated totals
         dailyCounts[dateKey].count += 1;
         dailyCounts[dateKey].duration += call.call_duration || 0;
-        dailyCounts[dateKey].credits += call.credits_consumed || 0;
+        // FIXED: Ensure we count credits properly, with a default value of 10 if missing
+        dailyCounts[dateKey].credits += call.credits_consumed || (call.call_duration > 0 ? 10 : 0);
       } catch (err) {
         console.error('Error processing call record for analytics:', err, call);
       }

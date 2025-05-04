@@ -53,17 +53,18 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
     
-    // Ensure call_duration is a number for call_details table
+    // FIXED: Always ensure call_duration is properly set as a number for call_details table
     if (data.callDuration !== undefined) {
       updateObject.call_duration = data.callDuration;
     }
     
-    // Calculate credits consumed based on call duration
-    // NEW LOGIC: 10 credits for every 60 seconds (or part thereof) of call duration
+    // FIXED: Calculate credits consumed based on call duration
+    // Minimum 10 credits for ANY call with duration > 0
+    // 10 credits for every 60 seconds (or part thereof) of call duration
     if (data.callDuration !== undefined && data.callDuration > 0) {
       // Calculate how many 60-second blocks (or part thereof) the call lasted
       const CREDITS_PER_MINUTE = 10;
-      const sixtySecondBlocks = Math.ceil(data.callDuration / 60);
+      const sixtySecondBlocks = Math.max(1, Math.ceil(data.callDuration / 60));
       
       // Multiply by credits per minute to get total credits
       const calculatedCredits = sixtySecondBlocks * CREDITS_PER_MINUTE;
@@ -72,9 +73,10 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
       updateObject.credits_consumed = data.creditsConsumed;
-    } else {
+    } else if (data.callDuration === 0 || data.callDuration === undefined) {
       // For failed or empty calls, charge minimum of 10 credits
       updateObject.credits_consumed = 10;
+      console.log('No call duration recorded, charging minimum 10 credits');
     }
     
     // Only update if we have actual data
@@ -119,20 +121,21 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       call_detail_id: callId
     });
     
-    // Deduct credits from the user's balance if we know how many to deduct
-    if (updateObject.credits_consumed) {
-      console.log(`Deducting ${updateObject.credits_consumed} credits from user ${userId}`);
-      const { error: creditError } = await supabase.rpc('update_user_credits', {
-        user_id_param: userId,
-        credits_to_deduct: updateObject.credits_consumed
-      });
-      
-      if (creditError) {
-        console.error('Error updating user credits:', creditError);
-        throw creditError;
-      } else {
-        console.log(`Successfully deducted ${updateObject.credits_consumed} credits from user ${userId}`);
-      }
+    // FIXED: Always deduct credits from the user's balance if we have a call with some duration
+    // Now we force the deduction regardless of the updateObject.credits_consumed value 
+    const creditsToDeduct = updateObject.credits_consumed || 10;
+    
+    console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
+    const { error: creditError } = await supabase.rpc('update_user_credits', {
+      user_id_param: userId,
+      credits_to_deduct: creditsToDeduct
+    });
+    
+    if (creditError) {
+      console.error('Error updating user credits:', creditError);
+      throw creditError;
+    } else {
+      console.log(`Successfully deducted ${creditsToDeduct} credits from user ${userId}`);
     }
     
     return { success: true, message: 'Call completion data updated successfully' };

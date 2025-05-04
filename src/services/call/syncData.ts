@@ -29,11 +29,13 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       call_status: callLogData.call_status,
       call_duration: callLogData.call_duration,
       call_time: callLogData.call_time,
+      credits_consumed: callLogData.credits_consumed,
       summary: callLogData.summary ? 'yes' : 'no',
       transcript: callLogData.transcript ? 'yes' : 'no',
       call_recording: callLogData.call_recording ? 'yes' : 'no'
     });
     
+    // FIXED: Ensure we're properly handling credits_consumed value during sync
     // Update the call_details table with the data from call_log
     // Handle type conversion for call_duration (convert float to integer)
     const updateData = {
@@ -42,7 +44,7 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
       call_attempted: callLogData.call_attempted,
       call_duration: callLogData.call_duration ? Math.round(callLogData.call_duration) : null, // Convert float to integer
       call_time: callLogData.call_time,
-      credits_consumed: callLogData.credits_consumed,
+      credits_consumed: callLogData.credits_consumed || (callLogData.call_duration > 0 ? 10 : 0), // Ensure we have a value
       summary: callLogData.summary,
       call_recording: callLogData.call_recording,
       transcript: callLogData.transcript,
@@ -64,7 +66,7 @@ export const syncCallLogToCallDetails = async (callDetailId: string): Promise<{
     // Verify the update actually happened by reading the call_details record
     const { data: verifyData, error: verifyError } = await supabase
       .from('call_details')
-      .select('call_status, call_duration, summary, transcript, call_recording')
+      .select('call_status, call_duration, summary, transcript, call_recording, credits_consumed')
       .eq('id', callDetailId)
       .single();
       
