@@ -187,6 +187,17 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       console.log(`Credits deducted: ${userData.credit - updatedUserData.credit}`);
     }
     
+    // Use database function if available as a fallback mechanism
+    try {
+      await supabase.rpc('update_user_credits', { 
+        user_id_param: userId, 
+        credits_to_deduct: creditsToDeduct 
+      });
+      console.log(`Called update_user_credits RPC function as backup method`);
+    } catch (rpcError) {
+      console.log(`RPC function call failed, but direct update already succeeded:`, rpcError);
+    }
+    
     return { 
       success: true, 
       message: 'Call completion data updated successfully',
