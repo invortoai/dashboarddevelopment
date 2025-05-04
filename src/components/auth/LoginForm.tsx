@@ -10,6 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -25,6 +27,7 @@ type FormData = z.infer<typeof formSchema>;
 const LoginForm = () => {
   const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -36,6 +39,7 @@ const LoginForm = () => {
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
+    setLoginError(null); // Reset any previous errors
     try {
       console.log("Attempting login with phone:", data.phoneNumber);
       // Clean phone number of any spaces or special characters
@@ -43,6 +47,7 @@ const LoginForm = () => {
       await signIn(cleanPhone, data.password);
     } catch (error: any) {
       console.error("Login failed:", error);
+      setLoginError(error.message || "Could not log in with these credentials");
       toast({
         variant: "destructive",
         title: "Login Failed",
@@ -61,6 +66,19 @@ const LoginForm = () => {
           <h2 className="text-2xl font-bold text-white">Welcome back</h2>
           <p className="text-sm text-muted-foreground">
             Login to your account
+          </p>
+        </div>
+        
+        {loginError && (
+          <Alert variant="destructive">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertDescription>{loginError}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="p-3 bg-muted rounded-md mb-4">
+          <p className="text-sm">
+            <strong>Note:</strong> If you haven't signed up yet, please <Link to="/signup" className="text-purple underline">create an account</Link> first.
           </p>
         </div>
         
