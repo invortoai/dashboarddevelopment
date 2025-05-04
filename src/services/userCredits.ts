@@ -37,6 +37,8 @@ export const refreshUserCredits = async (userId: string): Promise<{
 }> => {
   try {
     console.log(`Manually refreshing credit balance for user ${userId}`);
+    
+    // Use no-cache fetch policy to ensure we get fresh data from the database
     const { data, error } = await supabase
       .from('user_details')
       .select('credit')

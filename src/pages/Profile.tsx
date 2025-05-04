@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileDetails from '@/components/profile/ProfileDetails';
@@ -6,7 +5,7 @@ import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
 import { useAuth } from '@/context/AuthContext';
 import { changePassword, updateUserProfile } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/services/supabaseClient';
+import { refreshUserCredits } from '@/services/userCredits';
 
 const Profile: React.FC = () => {
   const { user, refreshUserData } = useAuth();
@@ -15,26 +14,28 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
+  const [hasRefreshed, setHasRefreshed] = useState<boolean>(false);
   
-  // Force refresh user data when profile page loads to get latest credit balance
+  // Only refresh user data once when profile page loads
   useEffect(() => {
     const refreshData = async () => {
-      if (user) {
+      if (user && !hasRefreshed) {
         console.log('Profile page: Forcing refresh of user data to get latest credit balance');
         try {
           setIsRefreshingCredit(true);
           await refreshUserData();
           console.log('User data refreshed successfully on profile page load');
-          setIsRefreshingCredit(false);
+          setHasRefreshed(true); // Mark as refreshed to prevent infinite loop
         } catch (error) {
           console.error('Error refreshing user data on profile page:', error);
+        } finally {
           setIsRefreshingCredit(false);
         }
       }
     };
     
     refreshData();
-  }, [refreshUserData, user]); // Added refreshUserData to dependencies
+  }, [refreshUserData, user, hasRefreshed]); // Added hasRefreshed to dependencies
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
@@ -86,32 +87,24 @@ const Profile: React.FC = () => {
       setIsRefreshingCredit(true);
       console.log('Manually refreshing credit balance for user:', user.id);
       
-      // Directly fetch the latest credit balance from the database
-      const { data, error } = await supabase
-        .from('user_details')
-        .select('credit')
-        .eq('id', user.id)
-        .single();
+      // Use the dedicated service function for credit refresh
+      const result = await refreshUserCredits(user.id);
       
-      if (error) {
-        console.error('Error fetching latest credit balance:', error);
+      if (result.success) {
+        // Use the Auth context's refresh function to update the user object
+        await refreshUserData();
+        
+        toast({
+          title: "Credit Balance Refreshed",
+          description: `Your current credit balance is ${result.credits}`,
+        });
+      } else {
         toast({
           title: "Refresh Failed",
-          description: "Could not refresh your credit balance. Please try again.",
+          description: result.message || "Could not refresh your credit balance. Please try again.",
           variant: "destructive",
         });
-        return;
       }
-      
-      console.log('Latest credit balance from database:', data.credit);
-      
-      // Use the Auth context's refresh function to update the user object
-      await refreshUserData();
-      
-      toast({
-        title: "Credit Balance Refreshed",
-        description: `Your current credit balance is ${data.credit}`,
-      });
     } catch (error) {
       console.error('Error refreshing credit balance:', error);
       toast({
