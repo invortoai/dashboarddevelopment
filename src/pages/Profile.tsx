@@ -17,7 +17,6 @@ const Profile: React.FC = () => {
   // Refresh user data when profile page loads to get latest credit balance
   useEffect(() => {
     if (user) {
-      // FIXED: Added console log for debugging
       console.log('Profile page: Refreshing user data to get latest credit balance');
       refreshUserData();
     }
@@ -39,9 +38,7 @@ const Profile: React.FC = () => {
         
         // Update the user in the auth context
         if (result.user) {
-          localStorage.setItem('user', JSON.stringify(result.user));
-          
-          // FIXED: Use refreshUserData instead of reload
+          // FIXED: Don't manually update localStorage, use refreshUserData instead
           await refreshUserData();
           toast({
             title: "Data Refreshed",

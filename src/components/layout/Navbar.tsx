@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -11,6 +11,7 @@ import Logo from '@/components/Logo';
 const Navbar: React.FC = () => {
   const { logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -21,6 +22,13 @@ const Navbar: React.FC = () => {
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
+  };
+
+  const handleLogout = () => {
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+    logout();
   };
 
   // Conditionally render logo based on sidebar state
@@ -41,18 +49,25 @@ const Navbar: React.FC = () => {
   }) => {
     const active = isActive(to);
     
+    // Use navigate instead of redirect to handle click events
+    const handleClick = () => {
+      if (isMobile) {
+        setMobileOpen(false);
+      }
+      navigate(to);
+    };
+    
     return (
-      <Link to={to} className="block w-full" onClick={() => isMobile && setMobileOpen(false)}>
-        <Button
-          variant={active ? "secondary" : "ghost"}
-          className="flex items-center gap-2 w-full justify-start transition-none"
-          type="button"
-        >
-          {icon}
-          {/* Only show label when not collapsed or on mobile */}
-          {(!collapsed || isMobile) && <span>{label}</span>}
-        </Button>
-      </Link>
+      <Button
+        variant={active ? "secondary" : "ghost"}
+        className="flex items-center gap-2 w-full justify-start transition-none"
+        type="button"
+        onClick={handleClick}
+      >
+        {icon}
+        {/* Only show label when not collapsed or on mobile */}
+        {(!collapsed || isMobile) && <span>{label}</span>}
+      </Button>
     );
   };
 
@@ -104,10 +119,7 @@ const Navbar: React.FC = () => {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => {
-                    setMobileOpen(false);
-                    logout();
-                  }}
+                  onClick={handleLogout}
                 >
                   Logout
                 </Button>
@@ -158,7 +170,7 @@ const Navbar: React.FC = () => {
         <Button 
           variant="outline" 
           className={`w-full ${collapsed ? 'justify-center' : ''}`}
-          onClick={logout}
+          onClick={handleLogout}
           type="button"
         >
           {collapsed ? 'Out' : 'Logout'}
