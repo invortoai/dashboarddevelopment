@@ -44,8 +44,10 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
   transcript?: string;
   callDuration?: number;
   creditsConsumed?: number;
-}): Promise<{ success: boolean; message: string }> => {
+}): Promise<{ success: boolean; message: string; creditsDeducted?: number }> => {
   try {
+    console.log('Starting updateCallCompletion with data:', { callId, userId, ...data });
+    
     // Only update fields that have actual processed data, not dummy values
     let updateObject: any = {};
     
@@ -130,10 +132,23 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       creditsToDeduct = 10; // Minimum credits to deduct
     }
     
-    console.log(`Deducting ${creditsToDeduct} credits from user ${userId}`);
+    console.log(`Attempting to deduct ${creditsToDeduct} credits from user ${userId}`);
+    
+    // First check the current credit balance for better debugging
+    const { data: userData, error: userQueryError } = await supabase
+      .from('user_details')
+      .select('credit')
+      .eq('id', userId)
+      .single();
+
+    if (userQueryError) {
+      console.error('Error checking user credit balance:', userQueryError);
+    } else {
+      console.log(`Current user credit balance before deduction: ${userData.credit}`);
+    }
     
     // Use the update_user_credits database function instead of direct update
-    const { error: rpcError } = await supabase.rpc(
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
       'update_user_credits', 
       { 
         user_id_param: userId, 
@@ -146,9 +161,25 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       throw rpcError;
     }
     
-    console.log(`Successfully updated user credits by deducting ${creditsToDeduct} credits`);
+    // Verify the deduction was successful by checking the updated balance
+    const { data: updatedUserData, error: updatedUserError } = await supabase
+      .from('user_details')
+      .select('credit')
+      .eq('id', userId)
+      .single();
+      
+    if (updatedUserError) {
+      console.error('Error verifying credit update:', updatedUserError);
+    } else {
+      console.log(`Updated user credit balance after deduction: ${updatedUserData.credit}`);
+      console.log(`Credits deducted: ${userData?.credit - updatedUserData.credit}`);
+    }
     
-    return { success: true, message: 'Call completion data updated successfully' };
+    return { 
+      success: true, 
+      message: 'Call completion data updated successfully',
+      creditsDeducted: creditsToDeduct
+    };
   } catch (error) {
     console.error('Update call completion error:', error);
     return { success: false, message: 'Failed to update call completion data' };

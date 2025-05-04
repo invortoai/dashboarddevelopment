@@ -1,196 +1,163 @@
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { supabase } from '@/services/supabaseClient';
+import { User } from '@/types';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthState, User } from '../types';
-import { getUserDetails, login, logout as logoutService, signUp as signUpService } from '../services/authService';
-import { useToast } from '../hooks/use-toast';
-
-interface AuthContextType extends AuthState {
-  signUp: (name: string, phoneNumber: string, password: string) => Promise<boolean>;
-  login: (phoneNumber: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  loading: boolean;
-  refreshUserData: () => Promise<void>; // Add function to refresh user data
+interface AuthContextProps {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  signUp: (email: string, password: string, phone_number: string, name: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-  });
-  const [loading, setLoading] = useState<boolean>(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  // Function to refresh user data
-  const refreshUserData = async () => {
-    try {
-      if (!state.user) return;
-      
-      const { success, user: latestUserData } = await getUserDetails(state.user.id);
-      
-      if (success && latestUserData) {
-        setState({
-          user: latestUserData,
-          isAuthenticated: true,
-        });
-        
-        // Update localStorage with the latest user data
-        localStorage.setItem('user', JSON.stringify(latestUserData));
-        
-        console.log('User data refreshed with updated credit balance:', latestUserData.credit);
-      }
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    }
-  };
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check if user is stored in localStorage on app load
-    const checkAuth = async () => {
+    const loadSession = async () => {
       try {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData) as User;
-          
-          // Verify the user still exists in the database
-          const { success, user: latestUserData } = await getUserDetails(user.id);
-          
-          if (success && latestUserData) {
-            setState({
-              user: latestUserData,
-              isAuthenticated: true,
-            });
-          } else {
-            // User not found in DB or other error, clear localStorage
-            localStorage.removeItem('user');
-          }
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          setIsAuthenticated(true);
+          await refreshUserData();
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
-        localStorage.removeItem('user');
+        console.error("Error loading session:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    checkAuth();
+    loadSession();
+
+    // Listen for changes on auth state
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        setIsAuthenticated(true);
+        refreshUserData();
+      } else if (event === 'SIGNED_OUT') {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    });
   }, []);
 
-  const signUp = async (name: string, phoneNumber: string, password: string) => {
-    setLoading(true);
+  const signUp = async (email: string, password: string, phone_number: string, name: string): Promise<void> => {
     try {
-      const { success, message, user } = await signUpService(name, phoneNumber, password);
-      
-      if (success && user) {
-        setState({
-          user,
-          isAuthenticated: true,
-        });
-        
-        localStorage.setItem('user', JSON.stringify(user));
-        navigate('/analytics');  // Redirect to analytics instead of dashboard
-        toast({
-          title: "Signup successful",
-          description: "Welcome to the app!",
-        });
-        return true;
-      } else {
-        toast({
-          title: "Signup failed",
-          description: message,
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Sign up error:', error);
-      toast({
-        title: "Signup failed",
-        description: "An unexpected error occurred. Please try again later.",
-        variant: "destructive",
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            phone_number: phone_number,
+            name: name,
+          }
+        }
       });
-      return false;
-    } finally {
-      setLoading(false);
+
+      if (error) throw error;
+
+      // Optionally, sign in the user immediately after signing up
+      if (data.user) {
+        await signIn(email, password);
+      }
+    } catch (error: any) {
+      console.error("Sign up failed:", error.message);
+      throw error;
     }
   };
 
-  const loginUser = async (phoneNumber: string, password: string) => {
-    setLoading(true);
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      const { success, message, user } = await login(phoneNumber, password);
-      
-      if (success && user) {
-        setState({
-          user,
-          isAuthenticated: true,
-        });
-        
-        localStorage.setItem('user', JSON.stringify(user));
-        navigate('/analytics');  // Redirect to analytics instead of dashboard
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        return true;
-      } else {
-        toast({
-          title: "Login failed",
-          description: message,
-          variant: "destructive",
-        });
-        return false;
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        title: "Login failed",
-        description: "An unexpected error occurred. Please try again later.",
-        variant: "destructive",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
       });
-      return false;
-    } finally {
-      setLoading(false);
+
+      if (error) {
+        console.error("Sign-in error:", error.message);
+        throw error;
+      }
+
+      if (data.user) {
+        setIsAuthenticated(true);
+        await refreshUserData();
+      }
+    } catch (error: any) {
+      console.error("Sign-in failed:", error.message);
+      throw error;
     }
   };
 
-  const logout = async () => {
-    if (state.user) {
-      try {
-        await logoutService(state.user.id);
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
+  const signOut = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setIsAuthenticated(false);
+      setUser(null);
+    } catch (error: any) {
+      console.error("Sign-out error:", error.message);
     }
-    
-    setState({
-      user: null,
-      isAuthenticated: false,
-    });
-    
-    localStorage.removeItem('user');
-    navigate('/login');
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
+  };
+
+  const refreshUserData = async (): Promise<void> => {
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (authUser) {
+        const { data: userDetails, error } = await supabase
+          .from('user_details')
+          .select('*')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user details:", error.message);
+          throw error;
+        }
+
+        if (userDetails) {
+          const userObject: User = {
+            id: userDetails.id,
+            name: userDetails.name,
+            phoneNumber: userDetails.phone_number,
+            credit: userDetails.credit,
+            signupTime: userDetails.signup_time,
+            lastLogin: userDetails.last_login,
+          };
+          setUser(userObject);
+          setIsAuthenticated(true);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error: any) {
+      console.error("Error refreshing user data:", error.message);
+    }
+  };
+
+  const value: AuthContextProps = {
+    user,
+    isAuthenticated,
+    isLoading,
+    signUp,
+    signIn,
+    signOut,
+    refreshUserData,
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        signUp,
-        login: loginUser,
-        logout,
-        loading,
-        refreshUserData,
-      }}
-    >
-      {children}
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };
@@ -198,7 +165,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

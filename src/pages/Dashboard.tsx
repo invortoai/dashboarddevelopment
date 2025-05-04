@@ -115,7 +115,9 @@ const Dashboard: React.FC = () => {
               setCallResult(callDetails);
               
               // Refresh user data to get updated credit balance
+              console.log('Refreshing user data to update credit balance...');
               await refreshUserData();
+              console.log('User data refreshed. Credits should be updated.');
               
               clearInterval(intervalId); // Stop polling once completed
             } else if (callDetails.callStatus === 'in-progress' || 
