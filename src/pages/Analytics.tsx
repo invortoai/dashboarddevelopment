@@ -5,27 +5,19 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
 import { Button } from '@/components/ui/button';
 import { Phone } from 'lucide-react';
-import { supabase } from '@/services/supabaseClient';
+import { getDailyCallStats } from '@/services/call/analytics';
 import { useToast } from '@/hooks/use-toast';
 
 interface DailyCallData {
   date: string;
-  calls: number;
+  count: number;
   duration: number;
   credits: number;
-  count: number; // This is needed for the AnalyticsChart component
-}
-
-interface CallDetail {
-  id: string;
-  call_duration: number;
-  credits_consumed: number;
-  created_at: string;
 }
 
 const Analytics: React.FC = () => {
@@ -44,31 +36,26 @@ const Analytics: React.FC = () => {
     
     const fetchCallData = async () => {
       try {
-        const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
-        const startDate = subDays(new Date(), days).toISOString();
+        // Get actual call data from getDailyCallStats service
+        const result = await getDailyCallStats(user.id);
         
-        // Fetch actual call data from Supabase
-        const { data: callDetails, error } = await supabase
-          .from('call_details')
-          .select('id, call_duration, credits_consumed, created_at')
-          .eq('user_id', user.id)
-          .gte('created_at', startDate)
-          .order('created_at', { ascending: true });
-        
-        if (error) {
-          console.error('Error fetching call data:', error);
+        if (result.success && result.stats) {
+          // Filter data based on the selected time range
+          const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
+          const cutoffDate = subDays(new Date(), days);
+          
+          const filteredStats = filterStatsByDateRange(result.stats, cutoffDate);
+          setChartData(filteredStats);
+          
+          console.log('Analytics chart data:', filteredStats);
+        } else {
           toast({
             title: 'Error',
-            description: 'Failed to fetch call data',
+            description: result.message || 'Failed to fetch call data',
             variant: 'destructive',
           });
-          setIsLoading(false);
-          return;
         }
         
-        // Process the data to group by day
-        const processedData = processCallData(callDetails || [], days);
-        setChartData(processedData);
         setIsLoading(false);
       } catch (err) {
         console.error('Error in data processing:', err);
@@ -84,44 +71,25 @@ const Analytics: React.FC = () => {
     fetchCallData();
   }, [timeRange, user, toast]);
   
-  // Process call data to group by day
-  const processCallData = (callDetails: CallDetail[], days: number): DailyCallData[] => {
-    // Create empty data structure for all days in the range
-    const daysMap: Record<string, DailyCallData> = {};
-    
-    // Initialize all days in the range
-    for (let i = 0; i < days; i++) {
-      const date = format(subDays(new Date(), days - i - 1), 'MMM dd');
-      daysMap[date] = {
-        date,
-        calls: 0,
-        duration: 0,
-        credits: 0,
-        count: 0
-      };
-    }
-    
-    // Fill in actual call data
-    callDetails.forEach(call => {
-      const callDate = format(parseISO(call.created_at), 'MMM dd');
+  // Function to filter stats by date range
+  const filterStatsByDateRange = (stats: DailyCallData[], cutoffDate: Date): DailyCallData[] => {
+    // Create date objects for comparison
+    return stats.filter(stat => {
+      // Convert "MMM dd" format to a date object in the current year
+      const currentYear = new Date().getFullYear();
+      const [month, day] = stat.date.split(' ');
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthIndex = monthNames.indexOf(month);
       
-      // Only process if the date is in our range
-      if (daysMap[callDate]) {
-        daysMap[callDate].calls += 1;
-        daysMap[callDate].count += 1;
-        daysMap[callDate].duration += call.call_duration || 0;
-        daysMap[callDate].credits += call.credits_consumed || 0;
-      }
+      if (monthIndex === -1) return false;
+      
+      const statDate = new Date(currentYear, monthIndex, parseInt(day));
+      return statDate >= cutoffDate;
     });
-    
-    // Convert map to array and sort by date
-    return Object.values(daysMap).sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
   };
   
   const getTotalCalls = (): number => {
-    return chartData.reduce((total, day) => total + day.calls, 0);
+    return chartData.reduce((total, day) => total + day.count, 0);
   };
   
   const getTotalDuration = (): number => {
@@ -206,7 +174,7 @@ const Analytics: React.FC = () => {
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
-                  dataKey="calls"
+                  dataKey="count"
                   color="#8854d0"
                 />
               </CardContent>
