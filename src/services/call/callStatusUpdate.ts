@@ -53,13 +53,14 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     if (data.callRecording) updateObject.call_recording = data.callRecording;
     if (data.transcript) updateObject.transcript = data.transcript;
     
-    // Ensure call_duration is a number for call_details table
+    // Ensure call_duration is a number for call_log table
     if (data.callDuration !== undefined) {
       updateObject.call_duration = data.callDuration;
     }
     
     // Calculate credits consumed based on call duration
     // NEW LOGIC: 10 credits for every 60 seconds (or part thereof) of call duration
+    // IMPORTANT: Only calculate credits if call duration > 0
     if (data.callDuration !== undefined && data.callDuration > 0) {
       // Calculate how many 60-second blocks (or part thereof) the call lasted
       const CREDITS_PER_MINUTE = 10;
@@ -72,10 +73,8 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       console.log(`Calculated credits consumed: ${updateObject.credits_consumed} for ${data.callDuration} seconds (${sixtySecondBlocks} 60-second blocks)`);
     } else if (data.creditsConsumed !== undefined) {
       updateObject.credits_consumed = data.creditsConsumed;
-    } else {
-      // For failed or empty calls, charge minimum of 10 credits
-      updateObject.credits_consumed = 10;
     }
+    // No else clause for minimum credits - if duration is 0, don't set any credits_consumed
     
     // Only update if we have actual data
     if (Object.keys(updateObject).length > 0) {
@@ -92,46 +91,30 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
         throw logError;
       }
       
-      // For call_details table, ensure call_duration is an integer
-      if (updateObject.call_duration !== undefined) {
-        updateObject.call_duration = Math.round(updateObject.call_duration);
-      }
-      
-      // Update the call_details table with the same data
-      const { error: callError } = await supabase
-        .from('call_details')
-        .update(updateObject)
-        .eq('id', callId);
-        
-      if (callError) {
-        console.error('Error updating call_details:', callError);
-        throw callError;
-      }
-      
-      console.log('Successfully updated both tables with credit consumption:', updateObject.credits_consumed);
-    }
-    
-    // Record call completion activity
-    await supabase.from('user_activity').insert({
-      user_id: userId,
-      activity_type: 'call_completed',
-      timestamp: new Date().toISOString(),
-      call_detail_id: callId
-    });
-    
-    // Deduct credits from the user's balance if we know how many to deduct
-    if (updateObject.credits_consumed) {
-      console.log(`Deducting ${updateObject.credits_consumed} credits from user ${userId}`);
-      const { error: creditError } = await supabase.rpc('update_user_credits', {
-        user_id_param: userId,
-        credits_to_deduct: updateObject.credits_consumed
+      // Record call completion activity
+      await supabase.from('user_activity').insert({
+        user_id: userId,
+        activity_type: 'call_completed',
+        timestamp: new Date().toISOString(),
+        call_detail_id: callId
       });
       
-      if (creditError) {
-        console.error('Error updating user credits:', creditError);
-        throw creditError;
+      // Only deduct credits from the user's balance if call had duration > 0 and we calculated credits
+      if (updateObject.credits_consumed) {
+        console.log(`Deducting ${updateObject.credits_consumed} credits from user ${userId}`);
+        const { error: creditError } = await supabase.rpc('update_user_credits', {
+          user_id_param: userId,
+          credits_to_deduct: updateObject.credits_consumed
+        });
+        
+        if (creditError) {
+          console.error('Error updating user credits:', creditError);
+          throw creditError;
+        } else {
+          console.log(`Successfully deducted ${updateObject.credits_consumed} credits from user ${userId}`);
+        }
       } else {
-        console.log(`Successfully deducted ${updateObject.credits_consumed} credits from user ${userId}`);
+        console.log('No credits to deduct since call duration is 0 or not provided');
       }
     }
     
