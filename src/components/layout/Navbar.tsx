@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +8,7 @@ import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucid
 import Logo from '@/components/Logo';
 
 const Navbar: React.FC = () => {
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -29,7 +28,7 @@ const Navbar: React.FC = () => {
     if (isMobile) {
       setMobileOpen(false);
     }
-    logout();
+    signOut();
   };
 
   // Conditionally render logo based on sidebar state

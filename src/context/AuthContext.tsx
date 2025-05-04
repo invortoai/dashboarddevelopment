@@ -1,6 +1,8 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/services/supabaseClient';
 import { User } from '@/types';
+import { toast } from '@/components/ui/use-toast';
 
 interface AuthContextProps {
   user: User | null;
@@ -71,6 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error("Sign up failed:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Sign Up Failed",
+        description: error.message || "Failed to create account"
+      });
       throw error;
     }
   };
@@ -84,12 +91,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error("Sign-in error:", error.message);
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: error.message || "Invalid credentials"
+        });
         throw error;
       }
 
       if (data.user) {
         setIsAuthenticated(true);
         await refreshUserData();
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in."
+        });
       }
     } catch (error: any) {
       console.error("Sign-in failed:", error.message);
@@ -103,8 +119,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       setIsAuthenticated(false);
       setUser(null);
+      toast({
+        title: "Signed out",
+        description: "You've been successfully signed out."
+      });
     } catch (error: any) {
       console.error("Sign-out error:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Sign Out Failed",
+        description: error.message || "Failed to sign out"
+      });
     }
   };
 

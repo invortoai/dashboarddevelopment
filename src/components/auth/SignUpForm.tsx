@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -7,21 +6,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
 
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'Name must be at least 2 characters',
   }),
-  phoneNumber: z.string().refine(validatePhoneNumber, {
+  phoneNumber: z.string().regex(/^\d{10}$/, {
     message: 'Phone number must be exactly 10 digits with no spaces or special characters',
   }),
-  password: z.string()
-    .min(6, { message: 'Password must be at least 6 characters' })
-    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-    .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
-    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+  password: z.string().min(8, {
+    message: 'Password must be at least 8 characters',
+  }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -30,7 +26,7 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const SignUpForm = () => {
+const SignUpForm: React.FC = () => {
   const { signUp } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,7 +43,9 @@ const SignUpForm = () => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      await signUp(data.name, data.phoneNumber, data.password);
+      await signUp(data.phoneNumber, data.password, data.phoneNumber, data.name);
+    } catch (error) {
+      console.error('Sign up error:', error);
     } finally {
       setIsSubmitting(false);
     }

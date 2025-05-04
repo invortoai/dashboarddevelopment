@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -21,7 +22,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
@@ -35,7 +36,9 @@ const LoginForm = () => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      await login(data.phoneNumber, data.password);
+      await signIn(data.phoneNumber, data.password);
+    } catch (error) {
+      console.error("Login failed:", error);
     } finally {
       setIsSubmitting(false);
     }

@@ -10,11 +10,11 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const isMobile = useIsMobile();
 
   // Show loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen animated-bg">
         <div className="bg-card rounded-lg p-8 shadow-lg">

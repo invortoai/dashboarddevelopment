@@ -5,9 +5,9 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 const SignUpPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen animated-bg">
         <div className="bg-card rounded-lg p-8 shadow-lg">
