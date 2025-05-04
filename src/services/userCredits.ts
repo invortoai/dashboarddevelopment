@@ -1,4 +1,3 @@
-
 import { supabase } from './supabaseClient';
 import { User } from '@/types';
 
@@ -160,6 +159,99 @@ export const setUserCredits = async (userId: string, creditAmount: number): Prom
     return { 
       success: false, 
       message: 'Error setting credit balance' 
+    };
+  }
+};
+
+/**
+ * Recalculate a single user's credits based on their call history
+ * This will reset their balance to the initial credit amount minus all consumed credits
+ */
+export const recalculateUserCredits = async (userId: string, initialCredit: number = 1000): Promise<{
+  success: boolean;
+  previousBalance?: number;
+  newBalance?: number;
+  message: string;
+}> => {
+  try {
+    console.log(`Recalculating credits for user ${userId} with initial balance of ${initialCredit}`);
+    
+    // First get the current credit balance
+    const { data: userData, error: userError } = await supabase
+      .from('user_details')
+      .select('credit')
+      .eq('id', userId)
+      .single();
+      
+    if (userError || !userData) {
+      console.error('Error fetching user credit balance for recalculation:', userError);
+      return {
+        success: false,
+        message: 'Failed to fetch current credit balance'
+      };
+    }
+    
+    const previousBalance = userData.credit;
+    console.log(`Current credit balance for user ${userId}: ${previousBalance}`);
+    
+    // Get all completed calls with credits consumed
+    const { data: callData, error: callError } = await supabase
+      .from('call_details')
+      .select('credits_consumed')
+      .eq('user_id', userId)
+      .not('credits_consumed', 'is', null);
+      
+    if (callError) {
+      console.error(`Error fetching call credit history for user ${userId}:`, callError);
+      return {
+        success: false,
+        message: 'Failed to fetch call history'
+      };
+    }
+    
+    // Calculate total credits consumed
+    const totalConsumedCredits = callData.reduce((sum, call) => {
+      return sum + (call.credits_consumed || 0);
+    }, 0);
+    
+    console.log(`User ${userId} - Total consumed credits: ${totalConsumedCredits}`);
+    
+    // Calculate the correct credit balance
+    const calculatedBalance = initialCredit - totalConsumedCredits;
+    
+    // Set the corrected credit balance
+    const result = await setUserCredits(userId, calculatedBalance);
+    
+    if (!result.success) {
+      console.error(`Failed to update credit balance for user ${userId}:`, result.message);
+      return {
+        success: false,
+        message: `Failed to update credit balance: ${result.message}`,
+        previousBalance
+      };
+    }
+    
+    // Log this credit correction in system logs
+    await supabase.from('system_logs').insert({
+      user_id: userId,
+      action_type: 'credit_balance_recalculation',
+      message: `Credit balance recalculated from ${previousBalance} to ${calculatedBalance}`,
+      response: `Initial: ${initialCredit}, Total consumed: ${totalConsumedCredits}`
+    });
+    
+    console.log(`Successfully recalculated credits for user ${userId} - New balance: ${calculatedBalance}`);
+    
+    return {
+      success: true,
+      message: `Credit balance successfully recalculated from ${previousBalance} to ${calculatedBalance}`,
+      previousBalance,
+      newBalance: calculatedBalance
+    };
+  } catch (error) {
+    console.error('Error in recalculateUserCredits:', error);
+    return {
+      success: false,
+      message: 'Unexpected error while recalculating user credit balance'
     };
   }
 };

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User } from '@/types';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Calculator } from 'lucide-react';
 import { formatTimeAgo } from '@/utils/dateUtils';
 
 interface ProfileDetailsProps {
@@ -13,8 +13,10 @@ interface ProfileDetailsProps {
   onUpdateProfile: (data: { name?: string; phoneNumber?: string }) => void;
   onChangePassword: () => void;
   onRefreshCredit: () => void;
+  onRecalculateCredit: () => void;
   isUpdating: boolean;
   isRefreshingCredit?: boolean;
+  isRecalculatingCredit?: boolean;
   lastCreditRefresh?: Date | string | null;
 }
 
@@ -23,8 +25,10 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
   onUpdateProfile, 
   onChangePassword,
   onRefreshCredit,
+  onRecalculateCredit,
   isUpdating,
   isRefreshingCredit = false,
+  isRecalculatingCredit = false,
   lastCreditRefresh = null
 }) => {
   const [name, setName] = useState(user.name || '');
@@ -67,18 +71,32 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
               <div className="flex flex-col">
                 <div>
                   <Label>Available Credits</Label>
-                  <div className="flex items-center justify-between mt-1">
+                  <div className="flex flex-col space-y-2 mt-1">
                     <span className="text-sm font-semibold text-purple-600">{user.credit}</span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={onRefreshCredit}
-                      disabled={isRefreshingCredit}
-                      className="h-7 px-2"
-                    >
-                      <RefreshCw size={14} className={`mr-1 ${isRefreshingCredit ? 'animate-spin' : ''}`} />
-                      {isRefreshingCredit ? 'Refreshing...' : 'Refresh Balance'}
-                    </Button>
+                    
+                    <div className="flex flex-col space-y-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={onRefreshCredit}
+                        disabled={isRefreshingCredit}
+                        className="h-7 px-2 w-full"
+                      >
+                        <RefreshCw size={14} className={`mr-1 ${isRefreshingCredit ? 'animate-spin' : ''}`} />
+                        {isRefreshingCredit ? 'Refreshing...' : 'Refresh Balance'}
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={onRecalculateCredit}
+                        disabled={isRecalculatingCredit || isRefreshingCredit}
+                        className="h-7 px-2 w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Calculator size={14} className="mr-1" />
+                        {isRecalculatingCredit ? 'Recalculating...' : 'Recalculate Credits'}
+                      </Button>
+                    </div>
                   </div>
                   {lastCreditRefresh && (
                     <div className="mt-1 text-xs text-gray-500">

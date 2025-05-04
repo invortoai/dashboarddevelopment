@@ -5,7 +5,7 @@ import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
 import { useAuth } from '@/context/AuthContext';
 import { changePassword, updateUserProfile } from '@/services/authService';
 import { useToast } from '@/hooks/use-toast';
-import { refreshUserCredits } from '@/services/userCredits';
+import { refreshUserCredits, recalculateUserCredits } from '@/services/userCredits';
 import { fixAllUserCredits } from '@/services/call/creditFix';
 
 const Profile: React.FC = () => {
@@ -15,6 +15,7 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
+  const [isRecalculatingCredit, setIsRecalculatingCredit] = useState<boolean>(false);
   const [isFixingAllCredits, setIsFixingAllCredits] = useState<boolean>(false);
   const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   
@@ -120,6 +121,54 @@ const Profile: React.FC = () => {
     }
   };
   
+  // Function to recalculate a user's credits based on call history
+  const handleRecalculateCredit = async () => {
+    if (!user) return;
+    
+    try {
+      setIsRecalculatingCredit(true);
+      console.log('Recalculating credit balance for user:', user.id);
+      
+      // Show a warning toast first
+      toast({
+        title: "Recalculating Credits",
+        description: "Recalculating your credits based on call history. This may take a moment...",
+        variant: "warning",
+      });
+      
+      // Use the dedicated service function for credit recalculation
+      const result = await recalculateUserCredits(user.id);
+      
+      if (result.success) {
+        // Use the Auth context's refresh function to update the user object
+        await refreshUserData();
+        
+        // Update last refresh timestamp
+        setLastCreditRefresh(new Date());
+        
+        toast({
+          title: "Credit Balance Recalculated",
+          description: `Your credit balance has been updated from ${result.previousBalance} to ${result.newBalance}`,
+        });
+      } else {
+        toast({
+          title: "Recalculation Failed",
+          description: result.message || "Could not recalculate your credit balance. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error recalculating credit balance:', error);
+      toast({
+        title: "Recalculation Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecalculatingCredit(false);
+    }
+  };
+  
   // Function to fix all user credits (admin function)
   const handleFixAllCredits = async () => {
     if (!user) return;
@@ -216,8 +265,10 @@ const Profile: React.FC = () => {
               onUpdateProfile={handleUpdateProfile}
               onChangePassword={() => setIsChangingPassword(true)}
               onRefreshCredit={handleRefreshCredit}
+              onRecalculateCredit={handleRecalculateCredit}
               isUpdating={isUpdating}
               isRefreshingCredit={isRefreshingCredit}
+              isRecalculatingCredit={isRecalculatingCredit}
               lastCreditRefresh={lastCreditRefresh}
             />
             
