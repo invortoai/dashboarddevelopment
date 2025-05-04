@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatToIST } from '@/utils/dateUtils';
@@ -31,19 +31,23 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
     navigate(`/history/${callDetails.id}`);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     // When the call result is displayed with credits consumed,
     // make sure we refresh the user's credit balance
-    if (callDetails.creditsConsumed !== undefined && callDetails.creditsConsumed > 0) {
-      // Force refresh user credit balance to reflect the deduction
-      refreshUserData()
-        .then(() => {
+    const updateCredits = async () => {
+      if (callDetails.creditsConsumed !== undefined && callDetails.creditsConsumed > 0) {
+        try {
+          // Force refresh user credit balance to reflect the deduction
+          console.log('Refreshing user credit balance after call completion');
+          await refreshUserData();
           console.log('User credit balance refreshed after call completion');
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('Error refreshing user credit balance:', error);
-        });
-    }
+        }
+      }
+    };
+    
+    updateCredits();
   }, [callDetails.creditsConsumed, refreshUserData]);
 
   if (!callDetails.callDuration) return null;

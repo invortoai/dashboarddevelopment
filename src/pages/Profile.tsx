@@ -17,6 +17,18 @@ const Profile: React.FC = () => {
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
   const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   
+  // Auto-refresh credits when component mounts
+  useEffect(() => {
+    if (user) {
+      const refreshOnMount = async () => {
+        console.log('Auto-refreshing credit balance on profile page load');
+        await handleRefreshCredit();
+      };
+      
+      refreshOnMount();
+    }
+  }, []);
+  
   // Update last credit refresh time when component mounts
   useEffect(() => {
     if (user) {
@@ -67,7 +79,7 @@ const Profile: React.FC = () => {
   };
   
   // Direct function to refresh credit balance
-  const refreshCreditBalance = async () => {
+  const handleRefreshCredit = async () => {
     if (!user) return;
     
     try {
@@ -158,7 +170,7 @@ const Profile: React.FC = () => {
             user={user} 
             onUpdateProfile={handleUpdateProfile}
             onChangePassword={() => setIsChangingPassword(true)}
-            onRefreshCredit={refreshCreditBalance}
+            onRefreshCredit={handleRefreshCredit}
             isUpdating={isUpdating}
             isRefreshingCredit={isRefreshingCredit}
             lastCreditRefresh={lastCreditRefresh}
