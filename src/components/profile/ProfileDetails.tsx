@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User } from '@/types';
 import { RefreshCw } from 'lucide-react';
+import { formatTimeAgo } from '@/utils/dateUtils';
 
 interface ProfileDetailsProps {
   user: User;
@@ -13,6 +15,7 @@ interface ProfileDetailsProps {
   onRefreshCredit: () => void;
   isUpdating: boolean;
   isRefreshingCredit?: boolean;
+  lastCreditRefresh?: Date | string | null;
 }
 
 const ProfileDetails: React.FC<ProfileDetailsProps> = ({ 
@@ -21,7 +24,8 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
   onChangePassword,
   onRefreshCredit,
   isUpdating,
-  isRefreshingCredit = false
+  isRefreshingCredit = false,
+  lastCreditRefresh = null
 }) => {
   const [name, setName] = useState(user.name || '');
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
@@ -61,20 +65,27 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                 <div className="mt-1 text-sm text-gray-500">{formatDate(user.lastLogin)}</div>
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center justify-between">
+                <div>
                   <Label>Available Credits</Label>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={onRefreshCredit}
-                    disabled={isRefreshingCredit}
-                    className="h-6 px-2"
-                  >
-                    <RefreshCw size={14} className={`mr-1 ${isRefreshingCredit ? 'animate-spin' : ''}`} />
-                    {isRefreshingCredit ? 'Refreshing...' : 'Refresh'}
-                  </Button>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-sm font-semibold text-purple-600">{user.credit}</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={onRefreshCredit}
+                      disabled={isRefreshingCredit}
+                      className="h-7 px-2"
+                    >
+                      <RefreshCw size={14} className={`mr-1 ${isRefreshingCredit ? 'animate-spin' : ''}`} />
+                      {isRefreshingCredit ? 'Refreshing...' : 'Refresh Balance'}
+                    </Button>
+                  </div>
+                  {lastCreditRefresh && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Last updated: {formatTimeAgo(lastCreditRefresh)}
+                    </div>
+                  )}
                 </div>
-                <div className="mt-1 text-sm font-semibold text-purple-600">{user.credit}</div>
               </div>
             </div>
           </div>

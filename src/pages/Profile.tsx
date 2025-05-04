@@ -15,41 +15,14 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
+  const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   
-  // Refresh user data when the profile page is loaded or when the tab becomes visible
+  // Update last credit refresh time when component mounts
   useEffect(() => {
-    const refreshData = async () => {
-      if (user) {
-        try {
-          setIsRefreshingCredit(true);
-          console.log('Profile page: Refreshing user data to get latest credit balance');
-          await refreshUserData();
-        } catch (error) {
-          console.error('Error refreshing user data on profile page:', error);
-        } finally {
-          setIsRefreshingCredit(false);
-        }
-      }
-    };
-    
-    // Initial refresh when component mounts
-    refreshData();
-    
-    // Set up visibility change listener to refresh when tab becomes visible
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        console.log('Tab became visible, refreshing user data');
-        refreshData();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [refreshUserData, user]);
+    if (user) {
+      setLastCreditRefresh(new Date());
+    }
+  }, [user]);
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
@@ -107,6 +80,9 @@ const Profile: React.FC = () => {
       if (result.success) {
         // Use the Auth context's refresh function to update the user object
         await refreshUserData();
+        
+        // Update last refresh timestamp
+        setLastCreditRefresh(new Date());
         
         toast({
           title: "Credit Balance Refreshed",
@@ -185,6 +161,7 @@ const Profile: React.FC = () => {
             onRefreshCredit={refreshCreditBalance}
             isUpdating={isUpdating}
             isRefreshingCredit={isRefreshingCredit}
+            lastCreditRefresh={lastCreditRefresh}
           />
         )}
       </div>
