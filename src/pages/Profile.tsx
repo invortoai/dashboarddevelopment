@@ -14,18 +14,16 @@ const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState<boolean>(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState<boolean>(false);
   const [isRefreshingCredit, setIsRefreshingCredit] = useState<boolean>(false);
-  const [hasRefreshed, setHasRefreshed] = useState<boolean>(false);
   
-  // Only refresh user data once when profile page loads
+  // Always refresh user data when profile page loads or becomes visible
   useEffect(() => {
     const refreshData = async () => {
-      if (user && !hasRefreshed) {
+      if (user) {
         console.log('Profile page: Forcing refresh of user data to get latest credit balance');
         try {
           setIsRefreshingCredit(true);
           await refreshUserData();
           console.log('User data refreshed successfully on profile page load');
-          setHasRefreshed(true); // Mark as refreshed to prevent infinite loop
         } catch (error) {
           console.error('Error refreshing user data on profile page:', error);
         } finally {
@@ -35,7 +33,21 @@ const Profile: React.FC = () => {
     };
     
     refreshData();
-  }, [refreshUserData, user, hasRefreshed]); // Added hasRefreshed to dependencies
+    
+    // Listen for visibility changes to refresh when user returns to the page
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page became visible, refreshing user data');
+        refreshData();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshUserData, user]);
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
