@@ -11,7 +11,7 @@ import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { AlertTriangle } from 'lucide-react';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -71,7 +71,7 @@ const LoginForm = () => {
         
         {loginError && (
           <Alert variant="destructive">
-            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{loginError}</AlertDescription>
           </Alert>
         )}
