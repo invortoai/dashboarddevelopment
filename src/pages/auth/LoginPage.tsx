@@ -9,7 +9,7 @@ const LoginPage: React.FC = () => {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/analytics" />;
   }
 
   return <LoginForm />;

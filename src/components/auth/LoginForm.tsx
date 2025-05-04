@@ -47,12 +47,12 @@ const LoginForm = () => {
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       await signIn(cleanPhone, data.password);
       
-      // If successful, navigate to dashboard
+      // If successful, navigate to analytics (the app's default page)
       toast({
         title: "Login Successful",
         description: "Welcome back!",
       });
-      navigate('/dashboard');
+      navigate('/analytics');
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");
