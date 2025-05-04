@@ -149,7 +149,6 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
     }
     
     // Directly update the user's credits in the user_details table
-    // Instead of calling the database function
     const newCreditBalance = Math.max(0, userData.credit - creditsToDeduct);
     
     const { error: updateError } = await supabase
