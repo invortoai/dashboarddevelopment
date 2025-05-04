@@ -12,3 +12,4 @@ export * from './callStatus';
 export * from './callStatusUpdate';
 export * from './syncData';
 export * from './analytics';
+export * from './creditFix'; // Add the new module

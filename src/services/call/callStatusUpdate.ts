@@ -133,35 +133,71 @@ export const updateCallCompletion = async (callId: string, userId: string, data:
       creditsToDeduct = 10; // Minimum credits to deduct
     }
     
-    console.log(`Deducting ${creditsToDeduct} credits from user ${userId} using database function only`);
+    console.log(`Deducting ${creditsToDeduct} credits from user ${userId} using database function`);
     
-    // ONLY use the database function for credit deduction - we directly call the RPC function
-    const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
-      user_id_param: userId, 
-      credits_to_deduct: creditsToDeduct 
-    });
-    
-    if (rpcError) {
-      console.error('Error calling update_user_credits RPC function:', rpcError);
-      
-      // Additional direct verification of the RPC function issue
-      console.log('Attempting to log detailed RPC error information');
-      
-      // Log the error but don't throw it to prevent call completion from failing
-      await supabase.from('system_logs').insert({
-        user_id: userId,
-        action_type: 'credit_deduction_error',
-        message: `Failed to deduct ${creditsToDeduct} credits via RPC function from user ${userId}`,
-        response: rpcError.message
+    try {
+      // Call the RPC function to deduct credits
+      const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_credits', { 
+        user_id_param: userId, 
+        credits_to_deduct: creditsToDeduct 
       });
-    } else {
-      console.log(`Successfully used database function to deduct ${creditsToDeduct} credits`);
       
-      // Log the successful credit deduction using the database function
+      if (rpcError) {
+        console.error('Error calling update_user_credits RPC function:', rpcError);
+        
+        // Log the error but continue with the process
+        await supabase.from('system_logs').insert({
+          user_id: userId,
+          action_type: 'credit_deduction_error',
+          message: `Failed to deduct ${creditsToDeduct} credits via RPC function from user ${userId}`,
+          response: rpcError.message
+        });
+        
+        // Try an alternative direct update as a fallback
+        const { error: updateError } = await supabase
+          .from('user_details')
+          .update({ credit: supabase.rpc('credit') - creditsToDeduct }) // Using a direct calculation
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error('Error with direct credit update fallback:', updateError);
+          
+          // If fallback fails too, log it but still consider the call completed
+          await supabase.from('system_logs').insert({
+            user_id: userId,
+            action_type: 'credit_fallback_error',
+            message: `Failed to deduct ${creditsToDeduct} credits via direct update for user ${userId}`,
+            response: updateError.message
+          });
+        } else {
+          console.log(`Successfully used direct update fallback to deduct ${creditsToDeduct} credits`);
+          
+          // Log the successful fallback credit deduction
+          await supabase.from('system_logs').insert({
+            user_id: userId,
+            action_type: 'credit_deduction_fallback',
+            message: `Successfully deducted ${creditsToDeduct} credits via direct update for user ${userId}`,
+          });
+        }
+      } else {
+        console.log(`Successfully used database function to deduct ${creditsToDeduct} credits`);
+        
+        // Log the successful credit deduction using the database function
+        await supabase.from('system_logs').insert({
+          user_id: userId,
+          action_type: 'credit_deduction_rpc',
+          message: `Successfully deducted ${creditsToDeduct} credits via RPC function from user ${userId}`,
+        });
+      }
+    } catch (creditError) {
+      console.error('Unexpected error during credit deduction:', creditError);
+      
+      // Log unexpected errors but continue with the process
       await supabase.from('system_logs').insert({
         user_id: userId,
-        action_type: 'credit_deduction_rpc',
-        message: `Successfully deducted ${creditsToDeduct} credits via RPC function from user ${userId}`,
+        action_type: 'credit_deduction_exception',
+        message: `Exception while trying to deduct ${creditsToDeduct} credits for user ${userId}`,
+        response: JSON.stringify(creditError)
       });
     }
     

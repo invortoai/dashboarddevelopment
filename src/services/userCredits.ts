@@ -122,3 +122,44 @@ export const getUserProfile = async (userId: string): Promise<{
     };
   }
 };
+
+/**
+ * Manually set user credits to a specific value (used for fixing balance issues)
+ */
+export const setUserCredits = async (userId: string, creditAmount: number): Promise<{
+  success: boolean;
+  credits?: number;
+  message: string;
+}> => {
+  try {
+    console.log(`Manually setting credit balance for user ${userId} to ${creditAmount}`);
+    
+    const { data, error } = await supabase
+      .from('user_details')
+      .update({ credit: creditAmount })
+      .eq('id', userId)
+      .select('credit')
+      .single();
+      
+    if (error) {
+      console.error('Error setting user credit balance:', error);
+      return { 
+        success: false, 
+        message: 'Failed to set credit balance' 
+      };
+    }
+    
+    console.log(`Set credit balance for user ${userId} to ${data.credit}`);
+    return { 
+      success: true, 
+      credits: data.credit,
+      message: 'Credit balance set successfully' 
+    };
+  } catch (error) {
+    console.error('Error in setUserCredits:', error);
+    return { 
+      success: false, 
+      message: 'Error setting credit balance' 
+    };
+  }
+};
