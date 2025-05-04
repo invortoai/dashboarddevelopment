@@ -59,10 +59,10 @@ export const getCallHistory = async (userId: string): Promise<{
   try {
     console.log('Fetching call history from call_log for user ID:', userId);
     
-    // Get data directly from call_log table, ensuring we include credits_consumed
+    // Get data directly from call_log table
     const { data, error } = await supabase
       .from('call_log')
-      .select('*, call_details(id, credits_consumed)')
+      .select('*, call_details(id)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
       
@@ -86,7 +86,7 @@ export const getCallHistory = async (userId: string): Promise<{
       transcript: call.transcript,
       callDuration: call.call_duration,
       callTime: call.call_time,
-      creditsConsumed: call.credits_consumed, // Ensure credits are included
+      creditsConsumed: call.credits_consumed,
       feedback: call.feedback,
       createdAt: call.created_at
     }));
