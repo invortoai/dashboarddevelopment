@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatToIST } from '@/utils/dateUtils';
 import { useNavigate } from 'react-router-dom';
-import { refreshUserCredits } from '@/services/userCredits';
+import { refreshUserCredits, recalculateUserCredits } from '@/services/userCredits';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -43,31 +43,41 @@ const CallResult: React.FC<CallResultProps> = ({ callDetails, onReset }) => {
       
       if (callDetails.creditsConsumed !== undefined && callDetails.creditsConsumed > 0) {
         try {
-          // First force a direct refresh from the database
-          console.log('Refreshing user credit balance after call completion');
-          const refreshResult = await refreshUserCredits(user.id);
+          console.log('Performing full credit recalculation after call completion');
+          // First perform a full recalculation based on call history
+          const recalcResult = await recalculateUserCredits(user.id);
           
-          if (refreshResult.success) {
+          if (recalcResult.success) {
             // Then update the auth context
             await refreshUserData();
-            console.log(`Credit balance refreshed: ${refreshResult.credits} credits remaining`);
+            console.log(`Credit balance recalculated: ${recalcResult.newBalance} credits remaining`);
             
             toast({
-              title: 'Credits Updated',
-              description: `${callDetails.creditsConsumed} credits were used for this call. Your new balance is ${refreshResult.credits} credits.`,
+              title: 'Credits Recalculated',
+              description: `${callDetails.creditsConsumed} credits were used for this call. Your balance has been recalculated to ${recalcResult.newBalance} credits.`,
             });
           } else {
-            console.error('Failed to refresh credit balance:', refreshResult.message);
+            console.error('Failed to recalculate credit balance:', recalcResult.message);
             
-            // Try a second time with full user context refresh as fallback
-            await refreshUserData();
-            toast({
-              title: 'Credits Updated',
-              description: `${callDetails.creditsConsumed} credits were used for this call.`,
-            });
+            // Fall back to a simple refresh as a backup
+            const refreshResult = await refreshUserCredits(user.id);
+            if (refreshResult.success) {
+              await refreshUserData();
+              toast({
+                title: 'Credits Updated',
+                description: `${callDetails.creditsConsumed} credits were used for this call. Your new balance is ${refreshResult.credits} credits.`,
+              });
+            } else {
+              // As a final fallback, just refresh user data
+              await refreshUserData();
+              toast({
+                title: 'Credits Updated',
+                description: `${callDetails.creditsConsumed} credits were used for this call.`,
+              });
+            }
           }
         } catch (error) {
-          console.error('Error refreshing user credit balance:', error);
+          console.error('Error updating user credit balance:', error);
           // Still try to refresh user data even if there was an error
           await refreshUserData();
         }

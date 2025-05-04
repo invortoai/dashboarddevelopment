@@ -92,6 +92,7 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                         onClick={onRecalculateCredit}
                         disabled={isRecalculatingCredit || isRefreshingCredit}
                         className="h-7 px-2 w-full bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                        title="Recalculate credits based on your call history"
                       >
                         <Calculator size={14} className="mr-1" />
                         {isRecalculatingCredit ? 'Recalculating...' : 'Recalculate Credits'}
