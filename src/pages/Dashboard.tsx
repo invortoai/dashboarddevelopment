@@ -1,17 +1,15 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallForm from '@/components/call/CallForm';
 import CallStatus from '@/components/call/CallStatus';
-import CallDispositionChart from '@/components/analytics/CallDispositionChart';
 import { initiateCall, getCallLogData, syncCallLogToCallDetails, submitFeedback } from '@/services/callService';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/services/supabaseClient';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
   const { user, refreshUserData } = useAuth();
@@ -28,90 +26,6 @@ const Dashboard: React.FC = () => {
   const [callResult, setCallResult] = useState<CallDetails | null>(null);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [rawStatus, setRawStatus] = useState<string | null>(null);
-  
-  // State for call disposition data
-  const [dispositionData, setDispositionData] = useState<
-    Array<{ name: string; value: number; color: string }>
-  >([
-    { name: 'Answered', value: 0, color: '#22c55e' },
-    { name: 'No Answer', value: 0, color: '#f97316' },
-    { name: 'Busy', value: 0, color: '#eab308' },
-    { name: 'Failed', value: 0, color: '#ef4444' },
-    { name: 'Pending', value: 0, color: '#6b7280' },
-  ]);
-  const [totalCalls, setTotalCalls] = useState(0);
-  
-  // Fetch call disposition data
-  useEffect(() => {
-    const fetchCallDispositionData = async () => {
-      if (!user) return;
-      
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const { data, error } = await supabase
-          .from('call_details')
-          .select('call_status')
-          .eq('user_id', user.id)
-          .gte('created_at', today.toISOString());
-          
-        if (error) {
-          console.error('Error fetching call disposition data:', error);
-          return;
-        }
-        
-        if (!data || data.length === 0) {
-          setTotalCalls(0);
-          return;
-        }
-        
-        setTotalCalls(data.length);
-        
-        const statusCounts: Record<string, number> = {
-          'answered': 0,
-          'no answer': 0,
-          'busy': 0,
-          'failed': 0,
-          'pending': 0
-        };
-        
-        data.forEach(call => {
-          const status = call.call_status?.toLowerCase() || 'pending';
-          
-          if (status.includes('answer') && !status.includes('no')) {
-            statusCounts['answered']++;
-          } else if (status.includes('no answer') || status.includes('not answered')) {
-            statusCounts['no answer']++;
-          } else if (status.includes('busy')) {
-            statusCounts['busy']++;
-          } else if (status.includes('fail') || status.includes('error')) {
-            statusCounts['failed']++;
-          } else {
-            statusCounts['pending']++;
-          }
-        });
-        
-        const newData = [
-          { name: 'Answered', value: statusCounts['answered'], color: '#22c55e' },
-          { name: 'No Answer', value: statusCounts['no answer'], color: '#f97316' },
-          { name: 'Busy', value: statusCounts['busy'], color: '#eab308' },
-          { name: 'Failed', value: statusCounts['failed'], color: '#ef4444' },
-          { name: 'Pending', value: statusCounts['pending'], color: '#6b7280' }
-        ].filter(item => item.value > 0); // Only include statuses with values
-        
-        setDispositionData(newData);
-      } catch (error) {
-        console.error('Error in fetchCallDispositionData:', error);
-      }
-    };
-    
-    fetchCallDispositionData();
-    
-    // Refresh data every 5 minutes
-    const intervalId = setInterval(fetchCallDispositionData, 300000);
-    return () => clearInterval(intervalId);
-  }, [user]);
   
   // Function to handle call initiation
   const handleCallInitiate = async (data: { number: string; developer: string; project: string }) => {
@@ -276,11 +190,23 @@ const Dashboard: React.FC = () => {
       navigate(`/history/${callData.callId}`);
     }
   };
+
+  const handleViewAnalytics = () => {
+    navigate('/analytics');
+  };
   
   return (
     <DashboardLayout>
       <div className="max-w-3xl mx-auto mb-8">
-        <h1 className="text-3xl font-bold mb-6">Call Dashboard</h1>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+          <h1 className="text-3xl font-bold">Call Dashboard</h1>
+          <Button 
+            onClick={handleViewAnalytics}
+            className="mt-3 md:mt-0 bg-purple-600 hover:bg-purple-700"
+          >
+            View Call Analytics
+          </Button>
+        </div>
         
         {/* Only show the call form when no call is in progress */}
         <CallForm 
@@ -303,76 +229,6 @@ const Dashboard: React.FC = () => {
             isPopup={true} // Explicitly set to true for call from dashboard
           />
         )}
-      </div>
-      
-      {/* Analytics Section */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Today's Call Analytics</h2>
-        
-        <Tabs defaultValue="chart" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="chart">Call Distribution</TabsTrigger>
-            <TabsTrigger value="status">Call Status</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="chart" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CallDispositionChart 
-                  data={dispositionData} 
-                  totalCalls={totalCalls} 
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="status" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Status Breakdown</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Pie Chart */}
-                  <div className="flex justify-center items-center h-64">
-                    <CallDispositionChart 
-                      data={dispositionData} 
-                      totalCalls={totalCalls}
-                      simplified={true}
-                    />
-                  </div>
-                  
-                  {/* Status List */}
-                  <div className="space-y-2">
-                    {dispositionData.map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-2 rounded bg-background border">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                          <span>{item.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{item.value}</span>
-                          <span className="text-muted-foreground text-sm">
-                            ({Math.round((item.value / totalCalls) * 100)}%)
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-2 border-t">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Total</span>
-                        <span className="font-semibold">{totalCalls} calls</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </DashboardLayout>
   );

@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format, subDays } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
+import CallDispositionByDateChart from '@/components/analytics/CallDispositionByDateChart';
 import { Button } from '@/components/ui/button';
 import { Phone } from 'lucide-react';
-import { getDailyCallStats } from '@/services/call/analytics';
+import { getDailyCallStats, getCallDispositionStatsByDate } from '@/services/call/analytics';
 import { useToast } from '@/hooks/use-toast';
 
 interface DailyCallData {
@@ -20,18 +21,27 @@ interface DailyCallData {
   credits: number;
 }
 
+interface CallDispositionData {
+  date: string;
+  status: string;
+  count: number;
+  color: string;
+}
+
 const Analytics: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState('7days');
   const [chartData, setChartData] = useState<DailyCallData[]>([]);
+  const [dispositionData, setDispositionData] = useState<CallDispositionData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDispositionLoading, setIsDispositionLoading] = useState(false);
   
   useEffect(() => {
     if (!user) return;
     
-    // Set loading state
+    // Set loading state for general analytics
     setIsLoading(true);
     
     const fetchCallData = async () => {
@@ -69,6 +79,32 @@ const Analytics: React.FC = () => {
     };
     
     fetchCallData();
+    
+    // Set loading state for disposition data
+    setIsDispositionLoading(true);
+    
+    const fetchDispositionData = async () => {
+      try {
+        const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
+        
+        // Get call disposition data
+        const dispositionResult = await getCallDispositionStatsByDate(user.id, days);
+        
+        if (dispositionResult.success && dispositionResult.stats) {
+          setDispositionData(dispositionResult.stats);
+          console.log('Call disposition stats by date:', dispositionResult.stats);
+        } else {
+          console.error('Failed to fetch call disposition data:', dispositionResult.message);
+        }
+        
+        setIsDispositionLoading(false);
+      } catch (err) {
+        console.error('Error fetching disposition data:', err);
+        setIsDispositionLoading(false);
+      }
+    };
+    
+    fetchDispositionData();
   }, [timeRange, user, toast]);
   
   // Function to filter stats by date range
@@ -160,6 +196,7 @@ const Analytics: React.FC = () => {
             <TabsTrigger value="calls" className="flex-1 md:flex-none">Calls</TabsTrigger>
             <TabsTrigger value="duration" className="flex-1 md:flex-none">Duration</TabsTrigger>
             <TabsTrigger value="credits" className="flex-1 md:flex-none">Credits</TabsTrigger>
+            <TabsTrigger value="disposition" className="flex-1 md:flex-none">Status</TabsTrigger>
           </TabsList>
           
           <TabsContent value="calls" className="pt-4">
@@ -217,6 +254,13 @@ const Analytics: React.FC = () => {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="disposition" className="pt-4">
+            <CallDispositionByDateChart 
+              data={dispositionData}
+              isLoading={isDispositionLoading}
+            />
           </TabsContent>
         </Tabs>
       </div>
