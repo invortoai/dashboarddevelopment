@@ -128,3 +128,16 @@ a {
   background-color: var(--popover, #fff);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* Fix for Sheet component on mobile */
+[data-radix-popper-content-wrapper],
+[role="dialog"] {
+  z-index: 9999 !important;
+  background-color: var(--popover) !important;
+}
+
+/* Make sure the SheetContent is visible and properly styled */
+[role="dialog"] {
+  background-color: var(--background);
+  box-shadow: var(--shadow);
+}

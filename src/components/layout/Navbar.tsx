@@ -119,7 +119,7 @@ const Navbar: React.FC = () => {
         </div>
         
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw] z-50 block">
+          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw] z-[100] block">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b border-border">
                 <NavIcon />
