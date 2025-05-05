@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { recalculateUserCredits } from '@/services/userCredits';
 import { useAuth } from '@/context/AuthContext';
+import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 
 interface CallStatusProps {
   number: string;
@@ -174,8 +176,6 @@ const CallStatus: React.FC<CallStatusProps> = ({
     }
   };
 
-  if (!status) return null;
-
   const hasError = rawStatus?.toLowerCase().includes('error') || 
                   rawStatus?.toLowerCase().includes('busy') || 
                   rawStatus?.toLowerCase().includes('failed');
@@ -185,264 +185,265 @@ const CallStatus: React.FC<CallStatusProps> = ({
                      (rawStatus?.toLowerCase().includes('answered') || 
                       rawStatus?.toLowerCase().includes('complete'));
   
-  // Only render as a popup if isPopup is true
-  if (isPopup) {
-    return (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 overflow-y-auto">
-        <div className="w-full max-w-md md:max-w-lg">
-          <Card className="bg-card border-2 border-purple shadow-xl relative">
-            {/* Improved close button positioning */}
-            {((hasError || showCloseButton) && onClose) && (
-              <button 
-                onClick={onClose} 
-                className="absolute -right-3 -top-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
+  if (!status) return null;
+  
+  const content = (
+    <Card className="bg-card border-2 border-purple shadow-xl relative">
+      {/* Close button positioning */}
+      {((hasError || showCloseButton) && onClose) && (
+        <button 
+          onClick={onClose} 
+          className="absolute -right-3 -top-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
+      <CardContent className="p-3 md:p-4 overflow-y-auto">
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold">Call Status</h3>
+            {status === 'in-progress' && !hasError && (
+              <span className="inline-flex items-center">
+                <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
+                Live {elapsedSeconds > 0 && `- ${formatTime(elapsedSeconds)}`}
+              </span>
             )}
-            <CardContent className="p-4 md:p-6">
-              <div className="flex flex-col space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Call Status</h3>
-                  {status === 'in-progress' && !hasError && (
-                    <span className="inline-flex items-center">
-                      <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
-                      Live {elapsedSeconds > 0 && `- ${formatTime(elapsedSeconds)}`}
-                    </span>
-                  )}
-                  {hasError && (
-                    <span className="inline-flex items-center text-amber-500">
-                      <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
-                      Connection Issue
-                    </span>
-                  )}
-                  {isSuccessful && (
-                    <span className="inline-flex items-center text-green-600">
-                      <span className="w-2 h-2 rounded-full bg-green-600 mr-2 animate-pulse"></span>
-                      Connection Successful
-                    </span>
-                  )}
+            {hasError && (
+              <span className="inline-flex items-center text-amber-500">
+                <span className="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                Connection Issue
+              </span>
+            )}
+            {isSuccessful && (
+              <span className="inline-flex items-center text-green-600">
+                <span className="w-2 h-2 rounded-full bg-green-600 mr-2 animate-pulse"></span>
+                Connection Successful
+              </span>
+            )}
+          </div>
+
+          {/* Call Log ID - smaller, more compact */}
+          {callLogId && (
+            <div className="text-center p-1.5 bg-muted/50 rounded-md border border-border">
+              <p className="text-xs font-medium break-all">Call Log ID: {callLogId}</p>
+            </div>
+          )}
+
+          {/* Main content area with call details - more compact */}
+          <div className="p-3 border border-border rounded-md bg-muted overflow-y-auto max-h-[35vh]">
+            {status === 'initiating' && (
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="flex items-center space-x-2">
+                  <div className="h-4 w-4 rounded-full border-2 border-t-transparent border-purple animate-spin"></div>
+                  <p>Initiating call...</p>
                 </div>
 
-                {/* Call Log ID */}
-                {callLogId && (
-                  <div className="text-center p-2 bg-muted/50 rounded-md border border-border">
-                    <p className="text-sm font-medium break-all">Call Log ID: {callLogId}</p>
+                {showRefreshButton && (
+                  <div className="w-full mt-2">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2.5 mb-2">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <AlertCircle className="h-4 w-4 text-yellow-400" aria-hidden="true" />
+                        </div>
+                        <div className="ml-2">
+                          <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
+                          <div className="mt-1 text-xs text-yellow-700">
+                            <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below</p>
+                          </div>
+                          <div className="mt-2">
+                            <Button 
+                              variant="outline" 
+                              className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 text-xs h-8 px-2"
+                              onClick={handleRefreshCheck}
+                            >
+                              <RefreshCw className="mr-1 h-3 w-3" />
+                              Check Status
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {status === 'in-progress' && !hasError && (
+              <div>
+                <p className="text-sm">
+                  Call in progress with <span className="font-bold">{developer}</span> on{' '}
+                  <span className="font-bold">{number}</span>. Status updates when finished.
+                </p>
 
-                {/* Main content area with call details */}
-                <div className="p-4 border border-border rounded-md bg-muted overflow-hidden">
-                  {status === 'initiating' && (
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="h-4 w-4 rounded-full border-2 border-t-transparent border-purple animate-spin"></div>
-                        <p>Initiating call...</p>
+                {showRefreshButton && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2.5 mt-2">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <AlertCircle className="h-4 w-4 text-yellow-400" aria-hidden="true" />
                       </div>
-
-                      {showRefreshButton && (
-                        <div className="w-full mt-4">
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
-                            <div className="flex">
-                              <div className="flex-shrink-0">
-                                <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                              </div>
-                              <div className="ml-3">
-                                <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
-                                <div className="mt-2 text-sm text-yellow-700">
-                                  <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below to check its status</p>
-                                </div>
-                                <div className="mt-4">
-                                  <Button 
-                                    variant="outline" 
-                                    className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800"
-                                    onClick={handleRefreshCheck}
-                                  >
-                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                    Check Status
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                      <div className="ml-2">
+                        <h3 className="text-xs font-medium text-yellow-800">Wait for call completion</h3>
+                        <div className="mt-1 text-xs text-yellow-700">
+                          <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and click below</p>
                         </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {status === 'in-progress' && !hasError && (
-                    <div>
-                      <p>
-                        Call in progress with <span className="font-bold">{developer}</span> on{' '}
-                        <span className="font-bold">{number}</span>. The status will be updated once the call is finished.
-                      </p>
-                      <p className="mt-2 font-medium text-purple-700">
-                        Within 30 seconds, system will let you refresh the status to get the call response, use it properly.
-                      </p>
-
-                      {showRefreshButton && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mt-4">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                            </div>
-                            <div className="ml-3">
-                              <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
-                              <div className="mt-2 text-sm text-yellow-700">
-                                <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below to check its status</p>
-                              </div>
-                              <div className="mt-4">
-                                <Button 
-                                  variant="outline" 
-                                  className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800"
-                                  onClick={handleRefreshCheck}
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  Check Status
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {lastPolled && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Last checked: {formatTimeAgo(lastPolled)}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  
-                  {status === 'in-progress' && hasError && (
-                    <div>
-                      <p className="text-amber-500 font-medium mb-2">
-                        Call connection issue detected
-                      </p>
-                      <p>
-                        There was a problem connecting the call to <span className="font-bold">{developer}</span> on{' '}
-                        <span className="font-bold">{number}</span>.
-                      </p>
-                      {rawStatus && (
-                        <p className="text-xs text-muted-foreground mt-2 break-all">
-                          Error: {rawStatus}
-                        </p>
-                      )}
-                      <p className="text-sm mt-2">
-                        Please try again in a few minutes or contact support if the issue persists.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {status === 'completed' && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <CallStatusBadge status={rawStatus || 'Completed'} />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Developer</p>
-                          <p className="font-medium break-all">{developer}</p>
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Phone Number</p>
-                          <p className="font-medium break-all">{number}</p>
-                        </div>
-                        
-                        {/* Date and Time section */}
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Call Date & Time</p>
-                          <p className="font-medium">
-                            {callResult?.createdAt ? formatToIST(callResult.createdAt) :
-                             callResult?.callTime ? formatToIST(callResult.callTime) : '-'}
-                          </p>
-                        </div>
-                        
-                        {callResult?.callDuration !== undefined && (
-                          <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">Call Duration</p>
-                            <p className="font-medium">{callResult.callDuration} seconds</p>
-                          </div>
-                        )}
-
-                        {/* Credits Used section */}
-                        <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Credits Used</p>
-                          <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
-                        </div>
-                      </div>
-
-                      {callResult?.summary && (
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2">Call Summary</h4>
-                          <div className="p-3 bg-muted/50 rounded border border-border text-sm whitespace-pre-wrap">
-                            {callResult.summary}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {status === 'completed' && (
-                  <form onSubmit={handleFeedbackSubmit} className="mt-2">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5 text-purple" />
-                        <h4 className="font-medium">Share Your Feedback</h4>
-                      </div>
-                      <Textarea
-                        placeholder="Add your feedback here (max 1000 characters)"
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        maxLength={1000}
-                        className="min-h-24 resize-none"
-                      />
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                        <div className="text-sm text-muted-foreground">
-                          {feedback.length}/1000 characters
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="mt-2">
                           <Button 
-                            type="submit" 
-                            disabled={!feedback.trim() || isSubmitting}
-                            className="w-full sm:w-auto"
-                            size="sm"
+                            variant="outline" 
+                            className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 h-8 px-2 text-xs"
+                            onClick={handleRefreshCheck}
                           >
-                            {isSubmitting ? 'Sending...' : 'Send Feedback'}
-                          </Button>
-                          
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onViewDetails}
-                            className="w-full sm:w-auto"
-                            size="sm"
-                          >
-                            View Full Details
+                            <RefreshCw className="mr-1 h-3 w-3" />
+                            Check Status
                           </Button>
                         </div>
                       </div>
                     </div>
-                  </form>
+                  </div>
+                )}
+                
+                {lastPolled && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Last checked: {formatTimeAgo(lastPolled)}
+                  </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            )}
+            
+            {status === 'in-progress' && hasError && (
+              <div>
+                <p className="text-amber-500 font-medium mb-2 text-sm">
+                  Call connection issue detected
+                </p>
+                <p className="text-sm">
+                  There was a problem connecting the call to <span className="font-bold">{developer}</span> on{' '}
+                  <span className="font-bold">{number}</span>.
+                </p>
+                {rawStatus && (
+                  <p className="text-xs text-muted-foreground mt-1 break-all">
+                    Error: {rawStatus}
+                  </p>
+                )}
+                <p className="text-xs mt-1">
+                  Please try again in a few minutes or contact support if the issue persists.
+                </p>
+              </div>
+            )}
+            
+            {status === 'completed' && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CallStatusBadge status={rawStatus || 'Completed'} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="space-y-0.5 text-xs">
+                    <p className="text-muted-foreground">Developer</p>
+                    <p className="font-medium break-all">{developer}</p>
+                  </div>
+                  
+                  <div className="space-y-0.5 text-xs">
+                    <p className="text-muted-foreground">Phone Number</p>
+                    <p className="font-medium break-all">{number}</p>
+                  </div>
+                  
+                  <div className="space-y-0.5 text-xs">
+                    <p className="text-muted-foreground">Call Date & Time</p>
+                    <p className="font-medium">
+                      {callResult?.createdAt ? formatToIST(callResult.createdAt) :
+                       callResult?.callTime ? formatToIST(callResult.callTime) : '-'}
+                    </p>
+                  </div>
+                  
+                  {callResult?.callDuration !== undefined && (
+                    <div className="space-y-0.5 text-xs">
+                      <p className="text-muted-foreground">Call Duration</p>
+                      <p className="font-medium">{callResult.callDuration} seconds</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-0.5 text-xs">
+                    <p className="text-muted-foreground">Credits Used</p>
+                    <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
+                  </div>
+                </div>
+
+                {callResult?.summary && (
+                  <div>
+                    <h4 className="font-medium mb-1 text-xs">Call Summary</h4>
+                    <div className="p-2 bg-muted/50 rounded border border-border text-xs whitespace-pre-wrap max-h-20 overflow-y-auto">
+                      {callResult.summary}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {status === 'completed' && (
+            <form onSubmit={handleFeedbackSubmit} className="mt-1">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <MessageSquare className="h-4 w-4 text-purple" />
+                  <h4 className="font-medium text-sm">Share Your Feedback</h4>
+                </div>
+                <Textarea
+                  placeholder="Add your feedback here (max 1000 characters)"
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  maxLength={1000}
+                  className="min-h-16 resize-none text-sm"
+                />
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <div className="text-xs text-muted-foreground">
+                    {feedback.length}/1000 characters
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      type="submit" 
+                      disabled={!feedback.trim() || isSubmitting}
+                      className="h-8 text-xs"
+                      size="sm"
+                    >
+                      {isSubmitting ? 'Sending...' : 'Send Feedback'}
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onViewDetails}
+                      className="h-8 text-xs whitespace-nowrap"
+                      size="sm"
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // When in popup mode, render with dialog/backdrop
+  if (isPopup) {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
+        <div className="w-full max-w-md">
+          {content}
         </div>
       </div>
     );
   } else {
     // When not in popup mode, render as a regular component
-    return null;
+    return content;
   }
 };
 
-// Call Status Badge Component
+// Call Status Badge Component - more compact
 const CallStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   // Normalized status for comparison
   const normalizedStatus = status.toLowerCase();
@@ -451,34 +452,29 @@ const CallStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   let Icon: React.ElementType | null = null;
   
   if (normalizedStatus.includes('answered') || normalizedStatus.includes('complete') || normalizedStatus.includes('completed')) {
-    // Green for answered calls
     bgColor = 'bg-green-500/20';
     textColor = 'text-green-600';
     Icon = Check;
   } else if (normalizedStatus.includes('busy') || normalizedStatus.includes('number busy')) {
-    // Yellow for busy numbers
     bgColor = 'bg-yellow-500/20';
     textColor = 'text-yellow-600';
     Icon = PhoneOff;
   } else if (normalizedStatus.includes('not answered') || normalizedStatus.includes('no answer')) {
-    // Orange for unanswered calls
     bgColor = 'bg-orange-500/20';
     textColor = 'text-orange-600';
     Icon = PhoneMissed;
   } else if (normalizedStatus.includes('error') || normalizedStatus.includes('fail')) {
-    // Red for errors
     bgColor = 'bg-red-500/20';
     textColor = 'text-red-600';
     Icon = X;
   } else {
-    // Gray default for other statuses
     bgColor = 'bg-gray-500/20';
     textColor = 'text-gray-500';
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${bgColor} ${textColor}`}>
-      {Icon && <Icon size={14} />}
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${bgColor} ${textColor}`}>
+      {Icon && <Icon size={12} />}
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
