@@ -2,7 +2,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 
 interface NavLinkProps {
   to: string;
@@ -26,7 +25,6 @@ const NavLink: React.FC<NavLinkProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isNavigating, setIsNavigating] = React.useState(false);
   
   const isActive = () => {
@@ -45,35 +43,20 @@ const NavLink: React.FC<NavLinkProps> = ({
     // Set navigating state to prevent multiple clicks
     setIsNavigating(true);
     
-    // Debug
-    console.log('NavLink clicked:', to, 'Current path:', location.pathname);
-    
     // Call the optional onNavigate callback (useful for closing mobile menu)
     if (onNavigate) {
       onNavigate();
     }
     
-    // Navigate regardless of active state - fix for navigation from profile page
+    // Navigate regardless of active state
     setTimeout(() => {
-      // Use navigate instead of location.pathname direct comparison
       navigate(to);
       
-      // Show toast notification on mobile
-      if (isMobile) {
-        toast({
-          title: "Navigating",
-          description: `Going to ${label}`,
-          duration: 2000
-        });
-      }
-      
-      console.log('Navigation executed to:', to);
-    }, 100);
-    
-    // Reset navigation state after navigation completes
-    setTimeout(() => {
-      setIsNavigating(false);
-    }, 500);
+      // Reset navigation state after navigation completes
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 300);
+    }, 50);
   };
   
   return (

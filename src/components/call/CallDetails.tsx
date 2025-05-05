@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { formatToIST } from '@/utils/dateUtils';
 import { CallDetails as CallDetailsType } from '@/types';
+import { Headphones, FileText } from 'lucide-react';
 
 interface CallDetailsProps {
   callDetails: CallDetailsType;
@@ -42,89 +43,76 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
   
   const handleTranscriptClick = async () => {
     await onTranscriptView();
-    setShowTranscript(true);
+    setShowTranscript(!showTranscript);
   };
   
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Call Information</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Developer Name</p>
-              <p className="font-medium">{callDetails.developer}</p>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Call Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <InfoItem label="Developer" value={callDetails.developer} />
+              <InfoItem label="Phone Number" value={formatPhoneNumber(callDetails.number)} />
+              <InfoItem 
+                label="Call Date & Time" 
+                value={
+                  callDetails.createdAt ? formatToIST(callDetails.createdAt) :
+                  callDetails.callTime ? formatToIST(callDetails.callTime) : '-'
+                } 
+              />
             </div>
-            
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Phone Number</p>
-              <p className="font-medium">{formatPhoneNumber(callDetails.number)}</p>
+            <div className="space-y-4">
+              <InfoItem label="Project Name" value={callDetails.project} />
+              <InfoItem 
+                label="Call Status" 
+                value={callDetails.callStatus || 'Pending'} 
+              />
+              <InfoItem 
+                label="Call Duration" 
+                value={callDetails.callDuration ? `${callDetails.callDuration} seconds` : '-'} 
+              />
+              <InfoItem 
+                label="Credits Used" 
+                value={String(callDetails.creditsConsumed ?? 0)} 
+              />
             </div>
-            
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Project Name</p>
-              <p className="font-medium">{callDetails.project}</p>
-            </div>
-            
-            {/* Always display Call Date & Time, with fallback logic */}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Call Date & Time</p>
-              <p className="font-medium">
-                {callDetails.createdAt ? formatToIST(callDetails.createdAt) :
-                 callDetails.callTime ? formatToIST(callDetails.callTime) : '-'}
-              </p>
-            </div>
-            
-            {callDetails.callStatus && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Call Status</p>
-                <p className="font-medium">{callDetails.callStatus}</p>
-              </div>
-            )}
-            
-            {callDetails.callDuration !== undefined && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Call Duration</p>
-                <p className="font-medium">{callDetails.callDuration} seconds</p>
-              </div>
-            )}
-            
-            {/* Always display Credits Used, even if 0 */}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Credits Used</p>
-              <p className="font-medium">{callDetails.creditsConsumed ?? 0}</p>
-            </div>
-            
-            {callDetails.callLogId && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Call Log ID</p>
-                <p className="font-medium">{callDetails.callLogId}</p>
-              </div>
-            )}
           </div>
           
-          <div className="flex flex-wrap gap-3 mt-6">
-            {callDetails.callRecording && (
-              <Button onClick={handleRecordingClick}>
-                Listen to Recording
-              </Button>
-            )}
-            
-            {callDetails.transcript && (
-              <Button variant="outline" onClick={handleTranscriptClick}>
-                View Transcript
-              </Button>
-            )}
-          </div>
+          {(callDetails.callRecording || callDetails.transcript) && (
+            <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-border">
+              {callDetails.callRecording && (
+                <Button onClick={handleRecordingClick} className="flex items-center gap-2">
+                  <Headphones size={16} />
+                  Listen to Recording
+                </Button>
+              )}
+              
+              {callDetails.transcript && (
+                <Button 
+                  variant={showTranscript ? "secondary" : "outline"} 
+                  onClick={handleTranscriptClick}
+                  className="flex items-center gap-2"
+                >
+                  <FileText size={16} />
+                  {showTranscript ? "Hide Transcript" : "View Transcript"}
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
       
       {callDetails.summary && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-xl font-bold mb-4">Call Summary</h3>
-            <div className="p-4 bg-muted rounded border border-border whitespace-pre-wrap">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Call Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-muted/50 rounded-md border border-border whitespace-pre-wrap">
               {callDetails.summary}
             </div>
           </CardContent>
@@ -133,27 +121,28 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
       
       {/* Transcript display with in-window behavior */}
       {showTranscript && callDetails.transcript && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Transcript</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowTranscript(false)}>
-                Close
-              </Button>
-            </div>
-            <div className="p-4 bg-muted rounded border border-border whitespace-pre-wrap max-h-96 overflow-auto">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xl">Transcript</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setShowTranscript(false)}>
+              Hide
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-muted/50 rounded-md border border-border whitespace-pre-wrap max-h-96 overflow-auto">
               {callDetails.transcript}
             </div>
           </CardContent>
         </Card>
       )}
       
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="text-xl font-bold mb-4">Feedback</h3>
-          
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Feedback</CardTitle>
+        </CardHeader>
+        <CardContent>
           {callDetails.feedback && (
-            <div className="p-4 bg-muted rounded border border-border mb-4 whitespace-pre-wrap max-h-60 overflow-auto">
+            <div className="p-4 bg-muted/50 rounded-md border border-border mb-6 whitespace-pre-wrap max-h-60 overflow-auto">
               {callDetails.feedback}
             </div>
           )}
@@ -165,7 +154,7 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 maxLength={1000}
-                className="min-h-24"
+                className="min-h-24 resize-none"
               />
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
@@ -185,5 +174,13 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
     </div>
   );
 };
+
+// Helper component for information items
+const InfoItem = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <p className="text-sm text-muted-foreground mb-1">{label}</p>
+    <p className="font-medium">{value}</p>
+  </div>
+);
 
 export default CallDetailsComponent;

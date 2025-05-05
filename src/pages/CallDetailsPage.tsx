@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -9,6 +10,7 @@ import { syncCallLogToCallDetails } from '@/services/call/syncData';
 import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { ChevronLeft } from 'lucide-react';
 
 const CallDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -185,7 +187,7 @@ const CallDetailsPage: React.FC = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex justify-center items-center h-full">
+        <div className="flex justify-center items-center h-full py-20">
           <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-purple animate-spin"></div>
         </div>
       </DashboardLayout>
@@ -195,7 +197,7 @@ const CallDetailsPage: React.FC = () => {
   if (!callDetails) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-full">
+        <div className="flex flex-col items-center justify-center h-full py-20">
           <p className="text-lg text-muted-foreground mb-4">Call details not found</p>
           <Button onClick={() => navigate('/history')}>
             Back to Call History
@@ -207,18 +209,24 @@ const CallDetailsPage: React.FC = () => {
   
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto relative">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Call Details</h1>
-          <div className="flex gap-2">
+      <div className="container max-w-4xl mx-auto px-4">
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            onClick={handleClose}
+            className="mb-4 flex items-center gap-2"
+          >
+            <ChevronLeft size={16} />
+            Back to Call History
+          </Button>
+          
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold">Call Details</h1>
             {id && !isComplete && (
               <Button variant="secondary" onClick={fetchCallDetails}>
                 Check Status
               </Button>
             )}
-            <Button variant="outline" onClick={handleClose}>
-              Back to Call History
-            </Button>
           </div>
         </div>
         

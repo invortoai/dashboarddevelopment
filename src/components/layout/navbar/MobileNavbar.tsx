@@ -36,6 +36,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
           <SheetContent 
             side="left" 
             className="p-0 bg-sidebar w-[250px] max-w-[80vw] overflow-auto z-[100]"
+            hideCloseButton={true}
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b border-border">
@@ -60,7 +61,6 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
                   icon={<BarChart2 size={20} />} 
                   label="Analytics" 
                   onNavigate={handleClose}
-                  isMobile={true}
                 />
                 
                 <NavLink 
@@ -68,7 +68,6 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
                   icon={<History size={20} />} 
                   label="Call History" 
                   onNavigate={handleClose}
-                  isMobile={true}
                 />
                 
                 <NavLink 
@@ -76,7 +75,6 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
                   icon={<User size={20} />} 
                   label="Profile" 
                   onNavigate={handleClose}
-                  isMobile={true}
                 />
               </div>
               
