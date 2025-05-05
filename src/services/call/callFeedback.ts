@@ -1,6 +1,7 @@
 
 import { supabase } from '../supabaseClient';
-import { formatToIST, getCurrentISTDateTime } from '../../utils/dateUtils';
+import { format } from 'date-fns';
+import { getCurrentISTDateTime } from '../../utils/dateUtils';
 
 export const submitFeedback = async (
   userId: string,
@@ -18,9 +19,10 @@ export const submitFeedback = async (
       
     if (fetchError) throw fetchError;
     
-    // Format the new feedback with timestamp using the same format as call information
-    const timestamp = formatToIST(new Date());
-    const formattedNewFeedback = `[${timestamp}]: ${feedback}`;
+    // Format the new feedback with timestamp in the specified format: "02 May 2025, 09:24 pm"
+    const now = new Date();
+    const timestamp = format(now, "dd MMM yyyy, hh:mm a");
+    const formattedNewFeedback = `${timestamp}: ${feedback}`;
     
     // Combine existing feedback with new feedback
     let updatedFeedback = formattedNewFeedback;

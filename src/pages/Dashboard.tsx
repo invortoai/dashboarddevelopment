@@ -11,6 +11,7 @@ import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/services/supabaseClient';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Dashboard: React.FC = () => {
   const { user, refreshUserData } = useAuth();
@@ -307,12 +308,71 @@ const Dashboard: React.FC = () => {
       {/* Analytics Section */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Today's Call Analytics</h2>
-        <div className="grid grid-cols-12 gap-4">
-          <CallDispositionChart 
-            data={dispositionData} 
-            totalCalls={totalCalls} 
-          />
-        </div>
+        
+        <Tabs defaultValue="chart" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="chart">Call Distribution</TabsTrigger>
+            <TabsTrigger value="status">Call Status</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="chart" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Call Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CallDispositionChart 
+                  data={dispositionData} 
+                  totalCalls={totalCalls} 
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="status" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Call Status Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Pie Chart */}
+                  <div className="flex justify-center items-center h-64">
+                    <CallDispositionChart 
+                      data={dispositionData} 
+                      totalCalls={totalCalls}
+                      simplified={true}
+                    />
+                  </div>
+                  
+                  {/* Status List */}
+                  <div className="space-y-2">
+                    {dispositionData.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between p-2 rounded bg-background border">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                          <span>{item.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{item.value}</span>
+                          <span className="text-muted-foreground text-sm">
+                            ({Math.round((item.value / totalCalls) * 100)}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold">Total</span>
+                        <span className="font-semibold">{totalCalls} calls</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

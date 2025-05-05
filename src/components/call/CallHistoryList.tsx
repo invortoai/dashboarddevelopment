@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { Check, PhoneOff, PhoneMissed, X, Search, Calendar, Filter } from 'lucide-react';
+import { Check, PhoneOff, PhoneMissed, X, Search, Calendar } from 'lucide-react';
 import { 
   Popover,
   PopoverContent,
@@ -65,8 +66,43 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   
+  // State for available status options
+  const [statusOptions, setStatusOptions] = useState<string[]>(['all']);
+  
   // Filtered calls
   const [filteredCalls, setFilteredCalls] = useState<CallDetails[]>(calls);
+  
+  // Extract unique status options from calls
+  useEffect(() => {
+    if (calls.length > 0) {
+      const uniqueStatuses = new Set<string>();
+      uniqueStatuses.add('all'); // Always include 'all' option
+      
+      calls.forEach(call => {
+        if (call.callStatus) {
+          // Extract the basic status type for better categorization
+          let normalizedStatus = call.callStatus.toLowerCase();
+          
+          if (normalizedStatus.includes('answer') && !normalizedStatus.includes('no')) {
+            uniqueStatuses.add('answered');
+          } else if (normalizedStatus.includes('complete')) {
+            uniqueStatuses.add('completed');
+          } else if (normalizedStatus.includes('no answer') || normalizedStatus.includes('not answered')) {
+            uniqueStatuses.add('no answer');
+          } else if (normalizedStatus.includes('busy')) {
+            uniqueStatuses.add('busy');
+          } else if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
+            uniqueStatuses.add('failed');
+          } else if (normalizedStatus) {
+            // Add any other unique status that doesn't match our predefined categories
+            uniqueStatuses.add(normalizedStatus);
+          }
+        }
+      });
+      
+      setStatusOptions(Array.from(uniqueStatuses));
+    }
+  }, [calls]);
   
   // Update filtered calls when filters change
   useEffect(() => {
@@ -77,8 +113,8 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       const term = searchTerm.toLowerCase();
       result = result.filter(call => 
         call.number.toLowerCase().includes(term) || 
-        call.developer.toLowerCase().includes(term) ||
-        call.project.toLowerCase().includes(term)
+        call.developer?.toLowerCase().includes(term) ||
+        call.project?.toLowerCase().includes(term)
       );
     }
     
@@ -105,6 +141,28 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
     
     setFilteredCalls(result);
   }, [calls, searchTerm, selectedDate, selectedStatus]);
+  
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && isMobile && onLoadMore && !isLoading) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    
+    if (bottomRef.current) {
+      observer.observe(bottomRef.current);
+    }
+    
+    return () => {
+      if (bottomRef.current) {
+        observer.unobserve(bottomRef.current);
+      }
+    };
+  }, [onLoadMore, isLoading, isMobile]);
   
   // Reset filters
   const resetFilters = () => {
@@ -245,12 +303,12 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
               <SelectValue placeholder="Status Filter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="answered">Answered</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="no answer">No Answer</SelectItem>
-              <SelectItem value="busy">Busy</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
+              {statusOptions.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === 'all' ? 'All Statuses' : 
+                    status.charAt(0).toUpperCase() + status.slice(1)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           
