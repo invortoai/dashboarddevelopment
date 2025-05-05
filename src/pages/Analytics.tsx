@@ -165,12 +165,12 @@ const Analytics: React.FC = () => {
           <TabsContent value="calls" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-center">Call Volume</CardTitle>
-                <CardDescription className="text-center">
+                <CardTitle>Call Volume</CardTitle>
+                <CardDescription>
                   Number of calls over time
                 </CardDescription>
               </CardHeader>
-              <CardContent className="py-4 px-2 md:px-6">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -184,12 +184,12 @@ const Analytics: React.FC = () => {
           <TabsContent value="duration" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-center">Call Duration</CardTitle>
-                <CardDescription className="text-center">
+                <CardTitle>Call Duration</CardTitle>
+                <CardDescription>
                   Total call duration in seconds
                 </CardDescription>
               </CardHeader>
-              <CardContent className="py-4 px-2 md:px-6">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -203,12 +203,12 @@ const Analytics: React.FC = () => {
           <TabsContent value="credits" className="pt-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-center">Credits Used</CardTitle>
-                <CardDescription className="text-center">
+                <CardTitle>Credits Used</CardTitle>
+                <CardDescription>
                   Total credits consumed
                 </CardDescription>
               </CardHeader>
-              <CardContent className="py-4 px-2 md:px-6">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
