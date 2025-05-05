@@ -68,6 +68,7 @@ const Navbar: React.FC = () => {
       // Prevent multiple navigation attempts
       if (isNavigating) return;
       
+      // Set navigating state to prevent multiple clicks
       setIsNavigating(true);
       
       // Close sheet if it's open
@@ -75,24 +76,27 @@ const Navbar: React.FC = () => {
         setSheetOpen(false);
       }
       
-      // Navigate only if we're not already on this route
-      if (!active) {
-        // Short timeout to allow sheet to close first
-        setTimeout(() => {
-          navigate(to);
-          
-          // Show toast notification on mobile
-          if (isMobile) {
-            toast({
-              title: "Navigating",
-              description: `Going to ${label}`,
-              duration: 2000
-            });
-          }
-        }, 100);
-      }
+      // Debug
+      console.log('NavLink clicked:', to, 'Current path:', location.pathname);
       
-      // Reset navigation state after a short delay
+      // Navigate regardless of active state - fix for navigation from profile page
+      setTimeout(() => {
+        // Use navigate instead of location.pathname direct comparison
+        navigate(to);
+        
+        // Show toast notification on mobile
+        if (isMobile) {
+          toast({
+            title: "Navigating",
+            description: `Going to ${label}`,
+            duration: 2000
+          });
+        }
+        
+        console.log('Navigation executed to:', to);
+      }, 100);
+      
+      // Reset navigation state after navigation completes
       setTimeout(() => {
         setIsNavigating(false);
       }, 500);
