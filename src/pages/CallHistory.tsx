@@ -181,6 +181,7 @@ const CallHistory: React.FC = () => {
             isLoading={loading}
             currentPage={currentPage}
             totalPages={totalPages}
+            totalCalls={totalCalls}
             onPageChange={handlePageChange}
             onLoadMore={isMobile ? handleLoadMore : undefined}
           />

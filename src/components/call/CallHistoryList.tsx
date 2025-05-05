@@ -30,6 +30,7 @@ interface CallHistoryListProps {
   isLoading: boolean;
   currentPage: number;
   totalPages: number;
+  totalCalls?: number;
   onPageChange: (page: number) => void;
   onLoadMore?: () => void;
 }
@@ -39,6 +40,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   isLoading, 
   currentPage,
   totalPages,
+  totalCalls,
   onPageChange,
   onLoadMore
 }) => {
@@ -165,48 +167,58 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 
   return (
     <div className="space-y-4">
-      <ScrollArea className="w-full">
-        <div className="w-full overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Developer</TableHead>
-                <TableHead>Number</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {calls.map((call) => (
-                <TableRow key={call.id} className="hover:bg-muted/50">
-                  <TableCell>
-                    {/* Use call.createdAt as the primary timestamp, with fallback to call.callTime */}
-                    {call.createdAt ? formatToIST(call.createdAt) : 
-                     call.callTime ? formatToIST(call.callTime) : '-'}
-                  </TableCell>
-                  <TableCell>{call.developer}</TableCell>
-                  <TableCell>{formatPhoneNumber(call.number)}</TableCell>
-                  <TableCell>
-                    {call.callDuration ? `${call.callDuration} seconds` : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <CallStatusBadge call={call} />
-                  </TableCell>
-                  <TableCell>
-                    <Link to={`/history/${call.id}`}>
-                      <Button variant="outline" size="sm">
-                        Details
-                      </Button>
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      {/* Display total count for mobile */}
+      {isMobile && totalCalls !== undefined && (
+        <div className="text-sm text-muted-foreground mb-2">
+          Total records: {totalCalls}
         </div>
-      </ScrollArea>
+      )}
+      
+      {/* Wrap the table in ScrollArea for horizontal scrolling specifically for mobile */}
+      <div className={`w-full ${isMobile ? 'overflow-hidden' : ''}`}>
+        <ScrollArea className="w-full" orientation={isMobile ? "horizontal" : "vertical"}>
+          <div className={`${isMobile ? 'min-w-[800px]' : 'w-full'}`}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Developer</TableHead>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {calls.map((call) => (
+                  <TableRow key={call.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      {/* Use call.createdAt as the primary timestamp, with fallback to call.callTime */}
+                      {call.createdAt ? formatToIST(call.createdAt) : 
+                       call.callTime ? formatToIST(call.callTime) : '-'}
+                    </TableCell>
+                    <TableCell>{call.developer}</TableCell>
+                    <TableCell>{formatPhoneNumber(call.number)}</TableCell>
+                    <TableCell>
+                      {call.callDuration ? `${call.callDuration} seconds` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <CallStatusBadge call={call} />
+                    </TableCell>
+                    <TableCell>
+                      <Link to={`/history/${call.id}`}>
+                        <Button variant="outline" size="sm">
+                          Details
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </ScrollArea>
+      </div>
       
       {/* Pagination controls for desktop */}
       {renderPagination()}
@@ -221,9 +233,9 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       {/* Observer element for infinite scroll */}
       <div ref={bottomRef} className="h-4" />
       
-      {!isMobile && (
+      {!isMobile && totalCalls !== undefined && (
         <div className="text-center text-sm text-muted-foreground">
-          Showing page {currentPage} of {totalPages} ({calls.length} calls)
+          Showing page {currentPage} of {totalPages} ({totalCalls} total records)
         </div>
       )}
     </div>
