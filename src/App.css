@@ -134,10 +134,29 @@ a {
 [role="dialog"] {
   z-index: 9999 !important;
   background-color: var(--popover) !important;
+  visibility: visible !important;
+  display: block !important;
 }
 
 /* Make sure the SheetContent is visible and properly styled */
 [role="dialog"] {
   background-color: var(--background);
   box-shadow: var(--shadow);
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Force sheet to be visible */
+.radix-sheet-content,
+[data-state="open"] {
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Ensure proper sheet appearance */
+.radix-sheet-overlay,
+[data-radix-sheet-overlay] {
+  display: block !important;
+  visibility: visible !important;
+  background-color: rgba(0, 0, 0, 0.5) !important;
 }

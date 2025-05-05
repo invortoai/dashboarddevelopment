@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useToast } from '@/hooks/use-toast';
 
@@ -119,10 +119,22 @@ const Navbar: React.FC = () => {
         </div>
         
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw] z-[100] block">
+          <SheetContent 
+            side="left" 
+            className="p-0 bg-sidebar w-[250px] max-w-[80vw] z-[100] block visible overflow-auto"
+            forceMount={true}
+          >
             <div className="flex flex-col h-full">
-              <div className="flex items-center justify-center p-4 border-b border-border">
+              <div className="flex items-center justify-between p-4 border-b border-border">
                 <NavIcon />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileOpen(false)}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <X size={18} />
+                </Button>
               </div>
               
               <div className="flex-1 flex flex-col space-y-2 p-4">
