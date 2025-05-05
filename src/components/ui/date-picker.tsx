@@ -72,12 +72,29 @@ export function DatePicker({ selected, onSelect, mode = "single", className }: D
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn("w-auto p-0 pointer-events-auto", className)} align="start">
-        <Calendar
-          mode={mode}
-          selected={mode === "range" ? dateRange : date}
-          onSelect={handleSelect}
-          initialFocus
-        />
+        {/* Render the appropriate Calendar based on mode to satisfy TypeScript */}
+        {mode === "range" ? (
+          <Calendar
+            mode="range"
+            selected={dateRange}
+            onSelect={handleSelect as (range: DateRange | undefined) => void}
+            initialFocus
+          />
+        ) : mode === "multiple" ? (
+          <Calendar
+            mode="multiple"
+            selected={date ? [date] : []}
+            onSelect={handleSelect as (dates: Date[] | undefined) => void}
+            initialFocus
+          />
+        ) : (
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleSelect as (date: Date | undefined) => void}
+            initialFocus
+          />
+        )}
       </PopoverContent>
     </Popover>
   )
