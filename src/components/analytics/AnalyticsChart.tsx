@@ -65,16 +65,16 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   }
 
   return (
-    <div className="w-full">
-      <h2 className="text-lg md:text-xl font-bold mb-4">{chartTitle}</h2>
-      <div className="h-72 md:h-96 w-full">
+    <div className="w-full flex flex-col items-center">
+      <h2 className="text-lg md:text-xl font-bold mb-4 text-center w-full">{chartTitle}</h2>
+      <div className="h-72 md:h-96 w-full px-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ 
               top: 10, 
               right: isMobile ? 10 : 30, 
-              left: 0, 
+              left: isMobile ? 0 : 10, 
               bottom: isMobile ? 50 : 30 
             }}
           >
