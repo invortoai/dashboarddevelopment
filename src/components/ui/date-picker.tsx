@@ -10,39 +10,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { type DateRange } from "react-day-picker"
 
 interface DatePickerProps {
   selected?: Date
   onSelect?: (date: Date | undefined) => void
-  mode?: "single" | "multiple" | "range" | "default"
-  className?: string
 }
 
-export function DatePicker({ selected, onSelect, mode = "single", className }: DatePickerProps) {
+export function DatePicker({ selected, onSelect }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(selected)
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>()
 
-  const handleSelect = React.useCallback(
-    (value: Date | DateRange | undefined) => {
-      if (mode === "range") {
-        const range = value as DateRange
-        setDateRange(range)
-        // For range mode, we typically want the end date as the selected date
-        // or the start date if end date is not yet selected
-        if (onSelect && range?.from) {
-          onSelect(range.to || range.from)
-        }
-      } else {
-        const singleDate = value as Date
-        setDate(singleDate)
-        if (onSelect) {
-          onSelect(singleDate)
-        }
-      }
-    },
-    [mode, onSelect]
-  )
+  const handleSelect = (newDate: Date | undefined) => {
+    setDate(newDate)
+    if (onSelect) {
+      onSelect(newDate)
+    }
+  }
 
   return (
     <Popover>
@@ -51,50 +33,20 @@ export function DatePicker({ selected, onSelect, mode = "single", className }: D
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
-            !date && !dateRange && "text-muted-foreground"
+            !date && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {mode === "range" && dateRange?.from ? (
-            dateRange.to ? (
-              <>
-                {format(dateRange.from, "LLL dd, y")} -{" "}
-                {format(dateRange.to, "LLL dd, y")}
-              </>
-            ) : (
-              format(dateRange.from, "LLL dd, y")
-            )
-          ) : date ? (
-            format(date, "PPP")
-          ) : (
-            <span>Pick a date</span>
-          )}
+          {date ? format(date, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-auto p-0 pointer-events-auto", className)} align="start">
-        {/* Render the appropriate Calendar based on mode to satisfy TypeScript */}
-        {mode === "range" ? (
-          <Calendar
-            mode="range"
-            selected={dateRange}
-            onSelect={handleSelect as (range: DateRange | undefined) => void}
-            initialFocus
-          />
-        ) : mode === "multiple" ? (
-          <Calendar
-            mode="multiple"
-            selected={date ? [date] : []}
-            onSelect={handleSelect as (dates: Date[] | undefined) => void}
-            initialFocus
-          />
-        ) : (
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={handleSelect as (date: Date | undefined) => void}
-            initialFocus
-          />
-        )}
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={handleSelect}
+          initialFocus
+        />
       </PopoverContent>
     </Popover>
   )

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
-import { getCallHistory, getUserCallStatuses } from '@/services/call/callHistory';
+import { getCallHistory } from '@/services/call/callHistory';
 import { autoSyncCallLogToDetails } from '@/services/call/syncData';
 import { getCallStatusFromDetails } from '@/services/call/callStatus';
 import { useAuth } from '@/context/AuthContext';
@@ -27,38 +27,13 @@ const CallHistory: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalCalls, setTotalCalls] = useState<number>(0);
   
-  // Filter state
-  const [availableStatuses, setAvailableStatuses] = useState<string[]>(['all']);
-  const [filters, setFilters] = useState<{
-    searchTerm?: string;
-    statusFilter?: string;
-    dateFilter?: Date;
-  }>({});
-  
-  // Fetch all unique call statuses for this user
-  const fetchUserCallStatuses = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      const result = await getUserCallStatuses(user.id);
-      if (result.success && result.statuses) {
-        setAvailableStatuses(result.statuses);
-        console.log('Available statuses:', result.statuses);
-      } else {
-        console.error('Failed to fetch call statuses:', result.message);
-      }
-    } catch (error) {
-      console.error('Error fetching call statuses:', error);
-    }
-  }, [user]);
-  
   // Memoized version of fetchCallHistory to prevent recreation on every render
   const fetchCallHistory = useCallback(async (page: number = currentPage, appendData: boolean = false) => {
     if (!user) return;
     
     try {
       setLoading(true);
-      console.log(`Fetching call history for user: ${user.id}, page: ${page}, pageSize: ${pageSize}, appendData: ${appendData}, filters:`, filters);
+      console.log(`Fetching call history for user: ${user.id}, page: ${page}, pageSize: ${pageSize}, appendData: ${appendData}`);
       
       // First sync all call data from call_log to call_details for consistency
       const syncResult = await autoSyncCallLogToDetails(user.id);
@@ -74,7 +49,7 @@ const CallHistory: React.FC = () => {
       }
       
       // Get the call history with fresh data from call_details
-      const result = await getCallHistory(user.id, page, pageSize, filters);
+      const result = await getCallHistory(user.id, page, pageSize);
       
       if (result.success && result.callHistory) {
         console.log(`Retrieved ${result.callHistory.length} calls from history`);
@@ -111,9 +86,6 @@ const CallHistory: React.FC = () => {
         } else {
           setCalls(updatedCalls);
         }
-        
-        // Fetch call statuses after calls are loaded
-        await fetchUserCallStatuses();
       } else {
         console.error('Failed to fetch call history:', result.message);
         toast({
@@ -135,7 +107,7 @@ const CallHistory: React.FC = () => {
       // Clear sync status after 3 seconds
       setTimeout(() => setSyncStatus(null), 3000);
     }
-  }, [user, pageSize, toast, refreshUserData, refreshedUserData, currentPage, filters, fetchUserCallStatuses]);
+  }, [user, pageSize, toast, refreshUserData, refreshedUserData]);
   
   // Now useEffect has a stable dependency - the memoized fetchCallHistory function
   useEffect(() => {
@@ -151,7 +123,7 @@ const CallHistory: React.FC = () => {
     return () => {
       // Cleanup function if needed
     };
-  }, [currentPage, fetchCallHistory, isMobile, filters]);
+  }, [currentPage, fetchCallHistory, isMobile]);
   
   const handlePageChange = (page: number) => {
     if (isMobile) {
@@ -170,27 +142,11 @@ const CallHistory: React.FC = () => {
     fetchCallHistory(nextPage, true);
   };
   
-  const handleFilterChange = (newFilters: {
-    searchTerm?: string;
-    statusFilter?: string;
-    dateFilter?: Date;
-  }) => {
-    setFilters(newFilters);
-    // Reset to page 1 when filters change
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
-      // If already on page 1, manually trigger a refresh
-      fetchCallHistory(1, false);
-    }
-  };
-  
   const handleRefresh = () => {
     setRefreshing(true);
     setRefreshedUserData(false); // Allow refreshUserData to be called again on manual refresh
     setCalls([]); // Clear existing calls on manual refresh
     setCurrentPage(1); // Reset to page 1
-    setFilters({}); // Clear all filters
     fetchCallHistory(1, false);
   };
   
@@ -228,8 +184,6 @@ const CallHistory: React.FC = () => {
             totalCalls={totalCalls}
             onPageChange={handlePageChange}
             onLoadMore={isMobile ? handleLoadMore : undefined}
-            onFilterChange={handleFilterChange}
-            availableStatuses={availableStatuses}
           />
         </div>
       </div>
