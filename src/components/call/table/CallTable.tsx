@@ -14,6 +14,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { CallStatusBadge } from './CallStatusBadge';
+import { ExternalLink } from 'lucide-react';
 
 interface CallTableProps {
   calls: CallDetails[];
@@ -24,35 +25,36 @@ const CallTable: React.FC<CallTableProps> = ({ calls }) => {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Date & Time</TableHead>
+          <TableHead className="w-[180px]">Date & Time</TableHead>
           <TableHead>Developer</TableHead>
           <TableHead>Project</TableHead>
           <TableHead>Number</TableHead>
           <TableHead>Duration</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Action</TableHead>
+          <TableHead className="text-right">Action</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {calls.map((call) => (
           <TableRow key={call.id} className="hover:bg-muted/50">
-            <TableCell>
+            <TableCell className="font-medium">
               {call.createdAt ? formatToIST(call.createdAt) : 
                call.callTime ? formatToIST(call.callTime) : '-'}
             </TableCell>
-            <TableCell>{call.developer}</TableCell>
-            <TableCell>{call.project}</TableCell>
+            <TableCell>{call.developer || '-'}</TableCell>
+            <TableCell>{call.project || '-'}</TableCell>
             <TableCell>{formatPhoneNumber(call.number)}</TableCell>
             <TableCell>
-              {call.callDuration ? `${call.callDuration} seconds` : '-'}
+              {call.callDuration ? `${call.callDuration}s` : '-'}
             </TableCell>
             <TableCell>
               <CallStatusBadge call={call} />
             </TableCell>
-            <TableCell>
+            <TableCell className="text-right">
               <Link to={`/history/${call.id}`}>
-                <Button variant="outline" size="sm">
+                <Button variant="ghost" size="sm" className="h-8 gap-1">
                   Details
+                  <ExternalLink className="h-3 w-3" />
                 </Button>
               </Link>
             </TableCell>

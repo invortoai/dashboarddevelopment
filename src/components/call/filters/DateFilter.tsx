@@ -32,21 +32,11 @@ const DateFilter: React.FC<DateFilterProps> = ({
   };
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 gap-1">
-          <Calendar className="h-4 w-4" />
-          {selectedDate ? formatToIST(selectedDate).split(' ')[0] : 'Date Filter'}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <DatePicker
-          selected={selectedDate}
-          onSelect={handleDateSelect}
-          mode="single"
-        />
-      </PopoverContent>
-    </Popover>
+    <DatePicker
+      selected={selectedDate}
+      onSelect={handleDateSelect}
+      mode="single"
+    />
   );
 };
 
