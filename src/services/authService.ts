@@ -3,7 +3,12 @@ import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
 import { logAuthError } from '../utils/authErrorLogger';
 
-export const signUp = async (name: string, phoneNumber: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
+export const signUp = async (
+  name: string, 
+  phoneNumber: string, 
+  password: string,
+  clientIP?: string | null
+): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
     console.log(`Attempting to create user with phone: ${phoneNumber.substring(0, 3)}***${phoneNumber.substring(7)}`);
     
@@ -24,7 +29,8 @@ export const signUp = async (name: string, phoneNumber: string, password: string
         password: password,
         error_message: 'Failed to verify if phone number exists',
         error_code: checkError.code,
-        error_details: checkError.message
+        error_details: checkError.message,
+        ip_address: clientIP || undefined
       });
       
       return { 
@@ -42,7 +48,8 @@ export const signUp = async (name: string, phoneNumber: string, password: string
         phone_number: phoneNumber,
         password: password,
         error_message: 'A user with this phone number already exists',
-        error_code: 'DUPLICATE_USER'
+        error_code: 'DUPLICATE_USER',
+        ip_address: clientIP || undefined
       });
       
       return { 
@@ -76,7 +83,8 @@ export const signUp = async (name: string, phoneNumber: string, password: string
         password: password,
         error_message: 'Failed to register user',
         error_code: createError.code,
-        error_details: createError.message
+        error_details: createError.message,
+        ip_address: clientIP || undefined
       });
       
       let errorMessage = 'Failed to register user';
@@ -123,7 +131,8 @@ export const signUp = async (name: string, phoneNumber: string, password: string
         phone_number: phoneNumber,
         password: password,
         error_message: 'Failed to create user account: No user data returned',
-        error_code: 'NO_USER_DATA'
+        error_code: 'NO_USER_DATA',
+        ip_address: clientIP || undefined
       });
       
       throw new Error('Failed to create user account');
@@ -137,7 +146,8 @@ export const signUp = async (name: string, phoneNumber: string, password: string
       phone_number: phoneNumber,
       password: password,
       error_message: error.message || 'Failed to register user',
-      error_details: error.stack
+      error_details: error.stack,
+      ip_address: clientIP || undefined
     });
     
     return { 
@@ -147,7 +157,11 @@ export const signUp = async (name: string, phoneNumber: string, password: string
   }
 };
 
-export const login = async (phoneNumber: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
+export const login = async (
+  phoneNumber: string, 
+  password: string,
+  clientIP?: string | null
+): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
     const { data: user, error } = await supabase
       .from('user_details')
@@ -164,7 +178,8 @@ export const login = async (phoneNumber: string, password: string): Promise<{ su
         password: password,
         error_message: 'Invalid phone number or password',
         error_code: error?.code,
-        error_details: error?.message
+        error_details: error?.message,
+        ip_address: clientIP || undefined
       });
       
       return { success: false, message: 'Invalid phone number or password' };
@@ -204,7 +219,8 @@ export const login = async (phoneNumber: string, password: string): Promise<{ su
       phone_number: phoneNumber,
       password: password,
       error_message: 'Failed to login',
-      error_details: error?.stack
+      error_details: error?.stack,
+      ip_address: clientIP || undefined
     });
     
     return { success: false, message: 'Failed to login' };

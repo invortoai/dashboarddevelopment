@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { getClientIP } from '@/utils/authErrorLogger';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -28,6 +29,21 @@ const LoginForm = () => {
   const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [clientIP, setClientIP] = useState<string | null>(null);
+
+  // Fetch client IP on component mount
+  useEffect(() => {
+    const fetchClientIP = async () => {
+      try {
+        const ip = await getClientIP();
+        setClientIP(ip);
+      } catch (error) {
+        console.error("Failed to fetch client IP:", error);
+      }
+    };
+    
+    fetchClientIP();
+  }, []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -44,7 +60,7 @@ const LoginForm = () => {
       console.log("Attempting login with phone:", data.phoneNumber);
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
-      await signIn(cleanPhone, data.password);
+      await signIn(cleanPhone, data.password, clientIP);
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");

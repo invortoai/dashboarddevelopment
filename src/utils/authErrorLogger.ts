@@ -16,6 +16,19 @@ export interface AuthErrorLogData {
   location?: string;
 }
 
+// Helper function to get client's IP address
+export const getClientIP = async (): Promise<string> => {
+  try {
+    // Use a public IP address API to get the client's IP address
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip;
+  } catch (err) {
+    console.error('Failed to get IP address:', err);
+    return 'unknown';
+  }
+};
+
 export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
   try {
     // Get current time in IST
@@ -28,6 +41,16 @@ export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
         plain_password: data.password
       });
       passwordHash = hashResult;
+    }
+    
+    // If IP address wasn't provided, try to get it
+    if (!data.ip_address) {
+      data.ip_address = await getClientIP();
+    }
+    
+    // Get user agent if available and not provided
+    if (!data.user_agent && typeof window !== 'undefined') {
+      data.user_agent = window.navigator.userAgent;
     }
     
     // Insert error log

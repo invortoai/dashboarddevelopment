@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
@@ -9,8 +8,8 @@ interface AuthContextProps {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signUp: (phoneNumber: string, password: string, email: string, name: string) => Promise<void>;
-  signIn: (phoneNumber: string, password: string) => Promise<void>;
+  signUp: (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null) => Promise<void>;
+  signIn: (phoneNumber: string, password: string, clientIP?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -81,11 +80,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [refreshUserData]);
 
-  const signUp = async (phoneNumber: string, password: string, email: string, name: string): Promise<void> => {
+  const signUp = async (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null): Promise<void> => {
     try {
       console.log("Signing up with phone number:", phoneNumber);
       
-      const { success, message, user: newUser } = await serviceSignUp(name, phoneNumber, password);
+      const { success, message, user: newUser } = await serviceSignUp(name, phoneNumber, password, clientIP);
 
       if (!success || !newUser) {
         throw new Error(message);
@@ -115,11 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (phoneNumber: string, password: string): Promise<void> => {
+  const signIn = async (phoneNumber: string, password: string, clientIP?: string | null): Promise<void> => {
     try {
       console.log("Signing in with phone number:", phoneNumber);
       
-      const { success, message, user: userData } = await serviceLogin(phoneNumber, password);
+      const { success, message, user: userData } = await serviceLogin(phoneNumber, password, clientIP);
 
       if (!success || !userData) {
         throw new Error(message || "Invalid credentials");
