@@ -47,6 +47,12 @@ interface CallHistoryListProps {
   totalCalls?: number;
   onPageChange: (page: number) => void;
   onLoadMore?: () => void;
+  onFilterChange?: (filters: {
+    searchTerm?: string;
+    statusFilter?: string;
+    dateFilter?: Date;
+  }) => void;
+  availableStatuses?: string[];
 }
 
 const CallHistoryList: React.FC<CallHistoryListProps> = ({ 
@@ -56,7 +62,9 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   totalPages,
   totalCalls,
   onPageChange,
-  onLoadMore
+  onLoadMore,
+  onFilterChange,
+  availableStatuses = ['all']
 }) => {
   const isMobile = useIsMobile();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -66,49 +74,14 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   
-  // State for available status options
-  const [statusOptions, setStatusOptions] = useState<string[]>(['all']);
-  
   // Filtered calls
   const [filteredCalls, setFilteredCalls] = useState<CallDetails[]>(calls);
   
-  // Extract unique status options from calls
-  useEffect(() => {
-    if (calls.length > 0) {
-      const uniqueStatuses = new Set<string>();
-      uniqueStatuses.add('all'); // Always include 'all' option
-      
-      calls.forEach(call => {
-        if (call.callStatus) {
-          // Extract the basic status type for better categorization
-          let normalizedStatus = call.callStatus.toLowerCase();
-          
-          if (normalizedStatus.includes('answer') && !normalizedStatus.includes('no')) {
-            uniqueStatuses.add('answered');
-          } else if (normalizedStatus.includes('complete')) {
-            uniqueStatuses.add('completed');
-          } else if (normalizedStatus.includes('no answer') || normalizedStatus.includes('not answered')) {
-            uniqueStatuses.add('no answer');
-          } else if (normalizedStatus.includes('busy')) {
-            uniqueStatuses.add('busy');
-          } else if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
-            uniqueStatuses.add('failed');
-          } else if (normalizedStatus) {
-            // Add any other unique status that doesn't match our predefined categories
-            uniqueStatuses.add(normalizedStatus);
-          }
-        }
-      });
-      
-      setStatusOptions(Array.from(uniqueStatuses));
-    }
-  }, [calls]);
-  
-  // Update filtered calls when filters change
+  // Apply filters
   useEffect(() => {
     let result = [...calls];
     
-    // Apply search filter
+    // Apply search filter locally for immediate feedback
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(call => 
@@ -118,29 +91,52 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       );
     }
     
-    // Apply date filter
-    if (selectedDate) {
-      const dateString = selectedDate.toDateString();
-      result = result.filter(call => {
-        const callDate = call.createdAt 
-          ? new Date(call.createdAt).toDateString() 
-          : call.callTime 
-            ? new Date(call.callTime).toDateString() 
-            : '';
-        return callDate === dateString;
-      });
-    }
-    
-    // Apply status filter
-    if (selectedStatus && selectedStatus !== 'all') {
-      result = result.filter(call => {
-        const status = (call.callStatus || '').toLowerCase();
-        return status.includes(selectedStatus.toLowerCase());
-      });
-    }
-    
     setFilteredCalls(result);
-  }, [calls, searchTerm, selectedDate, selectedStatus]);
+    
+    // Notify parent component about filter changes for server-side filtering
+    if (onFilterChange) {
+      // Debounce to avoid too many requests
+      const timeoutId = setTimeout(() => {
+        onFilterChange({
+          searchTerm,
+          statusFilter: selectedStatus === 'all' ? undefined : selectedStatus,
+          dateFilter: selectedDate
+        });
+      }, 300);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [calls, searchTerm, selectedStatus, selectedDate, onFilterChange]);
+  
+  // Handle status change
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status);
+    
+    // Reset to first page when changing filters
+    if (currentPage !== 1) {
+      onPageChange(1);
+    }
+  };
+  
+  // Handle date change
+  const handleDateChange = (date: Date | undefined) => {
+    setSelectedDate(date);
+    
+    // Reset to first page when changing filters
+    if (currentPage !== 1) {
+      onPageChange(1);
+    }
+  };
+  
+  // Handle search change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    
+    // Reset to first page when changing filters
+    if (e.target.value !== searchTerm && currentPage !== 1) {
+      onPageChange(1);
+    }
+  };
   
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -169,6 +165,16 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
     setSearchTerm('');
     setSelectedDate(undefined);
     setSelectedStatus('all');
+    
+    // Reset to first page
+    if (currentPage !== 1) {
+      onPageChange(1);
+    }
+    
+    // Notify parent component
+    if (onFilterChange) {
+      onFilterChange({});
+    }
   };
 
   if (isLoading && calls.length === 0) {
@@ -277,7 +283,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
           <Input
             placeholder="Search by number, developer or project..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="pl-8"
           />
         </div>
@@ -290,20 +296,32 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                 {selectedDate ? formatToIST(selectedDate).split(' ')[0] : 'Date Filter'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto p-0" sideOffset={4}>
               <DatePicker
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={handleDateChange}
+                mode="single"
+                className="border-none shadow-none"
               />
+              {selectedDate && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDateChange(undefined)}
+                  className="w-full mt-2"
+                >
+                  Clear Date
+                </Button>
+              )}
             </PopoverContent>
           </Popover>
           
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <Select value={selectedStatus} onValueChange={handleStatusChange}>
             <SelectTrigger className="w-[150px] h-10">
               <SelectValue placeholder="Status Filter" />
             </SelectTrigger>
             <SelectContent>
-              {statusOptions.map((status) => (
+              {availableStatuses.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status === 'all' ? 'All Statuses' : 
                     status.charAt(0).toUpperCase() + status.slice(1)}
@@ -327,7 +345,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
         </div>
       )}
       
-      {/* Fix: Update the ScrollArea implementation for mobile view */}
+      {/* Table view for both mobile and desktop */}
       <div className="w-full">
         {isMobile ? (
           <div className="overflow-auto">

@@ -5,7 +5,12 @@ import { CallDetails } from '../../types';
 export const getCallHistory = async (
   userId: string,
   page: number = 1,
-  pageSize: number = 10
+  pageSize: number = 10,
+  filters: {
+    searchTerm?: string;
+    statusFilter?: string;
+    dateFilter?: Date;
+  } = {}
 ): Promise<{ 
   success: boolean; 
   message: string; 
@@ -13,11 +18,29 @@ export const getCallHistory = async (
   totalCount?: number;
 }> => {
   try {
-    // First get the total count of calls for pagination
-    const { count, error: countError } = await supabase
+    // Create a query that will be filtered
+    let query = supabase
       .from('call_details')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('user_id', userId);
+    
+    // Apply filters if provided
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      query = query.or(`number.ilike.%${term}%,developer.ilike.%${term}%,project.ilike.%${term}%`);
+    }
+    
+    if (filters.statusFilter && filters.statusFilter !== 'all') {
+      query = query.ilike('call_status', `%${filters.statusFilter}%`);
+    }
+    
+    if (filters.dateFilter) {
+      const dateString = filters.dateFilter.toISOString().split('T')[0];
+      query = query.or(`created_at::date.eq.${dateString},call_time::date.eq.${dateString}`);
+    }
+    
+    // First get the total count of filtered calls for pagination
+    const { count, error: countError } = await query.count();
       
     if (countError) throw countError;
     
@@ -25,17 +48,14 @@ export const getCallHistory = async (
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
     
-    // Get the paginated data
-    const { data, error } = await supabase
-      .from('call_details')
-      .select('*')
-      .eq('user_id', userId)
+    // Get the paginated data with filters and sorting
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .range(from, to);
       
     if (error) throw error;
     
-    console.log(`Fetched ${data.length} calls out of ${count} total calls. Page: ${page}, PageSize: ${pageSize}`);
+    console.log(`Fetched ${data.length} calls out of ${count} total filtered calls. Page: ${page}, PageSize: ${pageSize}`);
     
     // Transform the data to match our type
     const callHistory: CallDetails[] = data.map(call => ({
@@ -73,5 +93,57 @@ export const getCallHistory = async (
   } catch (error) {
     console.error('Get call history error:', error);
     return { success: false, message: 'Failed to retrieve call history' };
+  }
+};
+
+// New function to fetch all unique call statuses for a user
+export const getUserCallStatuses = async (userId: string): Promise<{
+  success: boolean;
+  message: string;
+  statuses?: string[];
+}> => {
+  try {
+    const { data, error } = await supabase
+      .from('call_details')
+      .select('call_status')
+      .eq('user_id', userId)
+      .not('call_status', 'is', null);
+      
+    if (error) throw error;
+    
+    // Extract and clean up the statuses
+    const uniqueStatuses = new Set<string>();
+    uniqueStatuses.add('all'); // Always include 'all' option
+    
+    data.forEach(item => {
+      if (item.call_status) {
+        // Extract the basic status type for better categorization
+        let normalizedStatus = item.call_status.toLowerCase();
+        
+        if (normalizedStatus.includes('answer') && !normalizedStatus.includes('no')) {
+          uniqueStatuses.add('answered');
+        } else if (normalizedStatus.includes('complete')) {
+          uniqueStatuses.add('completed');
+        } else if (normalizedStatus.includes('no answer') || normalizedStatus.includes('not answered')) {
+          uniqueStatuses.add('no answer');
+        } else if (normalizedStatus.includes('busy')) {
+          uniqueStatuses.add('busy');
+        } else if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
+          uniqueStatuses.add('failed');
+        } else if (normalizedStatus) {
+          // Add any other unique status that doesn't match our predefined categories
+          uniqueStatuses.add(normalizedStatus);
+        }
+      }
+    });
+    
+    return { 
+      success: true, 
+      message: 'Call statuses retrieved successfully', 
+      statuses: Array.from(uniqueStatuses) 
+    };
+  } catch (error) {
+    console.error('Get call statuses error:', error);
+    return { success: false, message: 'Failed to retrieve call statuses' };
   }
 };
