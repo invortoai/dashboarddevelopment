@@ -17,12 +17,17 @@ interface DispositionData {
 interface CallDispositionChartProps {
   data: DispositionData[];
   totalCalls: number;
+  simplified?: boolean; // Add the simplified prop as optional
 }
 
-const CallDispositionChart: React.FC<CallDispositionChartProps> = ({ data, totalCalls }) => {
+const CallDispositionChart: React.FC<CallDispositionChartProps> = ({ 
+  data, 
+  totalCalls,
+  simplified = false // Default to false if not provided
+}) => {
   if (data.length === 0) {
     return (
-      <Card className="col-span-12 md:col-span-6 shadow-sm h-[350px]">
+      <Card className={`col-span-12 ${!simplified ? 'md:col-span-6 shadow-sm h-[350px]' : ''}`}>
         <CardHeader>
           <CardTitle>Call Disposition Status</CardTitle>
         </CardHeader>
@@ -33,6 +38,50 @@ const CallDispositionChart: React.FC<CallDispositionChartProps> = ({ data, total
     );
   }
 
+  // For simplified view, don't wrap in a Card
+  if (simplified) {
+    return (
+      <div className="h-full w-full">
+        <ChartContainer
+          config={{
+            answered: { label: "Answered", color: "#22c55e" },
+            "no answer": { label: "No Answer", color: "#f97316" },
+            busy: { label: "Busy", color: "#eab308" },
+            failed: { label: "Failed", color: "#ef4444" },
+            pending: { label: "Pending", color: "#6b7280" },
+          }}
+          className="h-full w-full"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent />
+                }
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </div>
+    );
+  }
+
+  // Regular full view with Card wrapper
   return (
     <Card className="col-span-12 md:col-span-6 shadow-sm h-[350px]">
       <CardHeader>
