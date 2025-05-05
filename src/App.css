@@ -75,16 +75,31 @@ a {
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
+    width: 100%;
   }
   
   input, button, select, textarea {
     font-size: 16px; /* Prevents iOS zoom on focus */
   }
+  
+  /* Fix for Sheet component on mobile */
+  [data-radix-popper-content-wrapper] {
+    max-width: 100vw !important;
+  }
 }
 
 /* Fix iOS bottom padding issues */
-@supports (-webkit-touch-callout: none) {
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 24px);
+}
+
+/* Fix for mobile sheets and modals */
+.fixed, .absolute {
+  transform: translateZ(0);
+}
+
+/* Properly display Sheet content on mobile */
+.radix-sheet-content {
+  display: block !important;
+  visibility: visible !important;
 }

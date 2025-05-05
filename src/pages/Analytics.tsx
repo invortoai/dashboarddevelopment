@@ -106,13 +106,13 @@ const Analytics: React.FC = () => {
   
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Welcome, {user?.name || 'User'}</h1>
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
+          <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name || 'User'}</h1>
           
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full md:w-32">
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
               <SelectContent>
@@ -124,7 +124,7 @@ const Analytics: React.FC = () => {
             
             <Button 
               onClick={handleMakeCallsClick}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
             >
               <Phone size={16} />
               Make Calls
@@ -132,34 +132,34 @@ const Analytics: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Calls</CardTitle>
-              <CardDescription className="text-2xl font-bold">{getTotalCalls()}</CardDescription>
+              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalCalls()}</CardDescription>
             </CardHeader>
           </Card>
           
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Duration</CardTitle>
-              <CardDescription className="text-2xl font-bold">{getTotalDuration()} secs</CardDescription>
+              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalDuration()} secs</CardDescription>
             </CardHeader>
           </Card>
           
-          <Card>
+          <Card className="sm:col-span-2 md:col-span-1">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Credits Used</CardTitle>
-              <CardDescription className="text-2xl font-bold">{getTotalCredits()}</CardDescription>
+              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalCredits()}</CardDescription>
             </CardHeader>
           </Card>
         </div>
         
-        <Tabs defaultValue="calls">
-          <TabsList>
-            <TabsTrigger value="calls">Calls</TabsTrigger>
-            <TabsTrigger value="duration">Duration</TabsTrigger>
-            <TabsTrigger value="credits">Credits</TabsTrigger>
+        <Tabs defaultValue="calls" className="w-full">
+          <TabsList className="w-full md:w-auto">
+            <TabsTrigger value="calls" className="flex-1 md:flex-none">Calls</TabsTrigger>
+            <TabsTrigger value="duration" className="flex-1 md:flex-none">Duration</TabsTrigger>
+            <TabsTrigger value="credits" className="flex-1 md:flex-none">Credits</TabsTrigger>
           </TabsList>
           
           <TabsContent value="calls" className="pt-4">
