@@ -17,7 +17,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen animated-bg">
-        <div className="bg-card rounded-lg p-8 shadow-lg">
+        <div className="bg-card rounded-lg p-4 md:p-8 shadow-lg w-full max-w-md mx-auto">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-purple animate-spin"></div>
             <p className="text-lg font-medium">Loading...</p>
@@ -35,8 +35,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Navbar />
-      <main className={`flex-1 overflow-auto p-4 md:p-6 ${isMobile ? 'pt-16' : ''}`}>
-        {children}
+      <main className={`flex-1 overflow-auto p-3 md:p-6 ${isMobile ? 'pt-16' : ''}`}>
+        <div className="container mx-auto max-w-7xl">
+          {children}
+        </div>
       </main>
     </div>
   );
