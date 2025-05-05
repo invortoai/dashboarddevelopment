@@ -4,6 +4,7 @@ import { CallDetails } from '@/types';
 import CallHistoryTable from './CallHistoryTable';
 import CallHistoryPagination from './CallHistoryPagination';
 import CallHistoryEmptyState from './CallHistoryEmptyState';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface CallHistoryListProps {
   calls: CallDetails[];
@@ -34,9 +35,9 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div>
+      <ScrollArea className="w-full">
         <CallHistoryTable calls={calls} />
-      </div>
+      </ScrollArea>
       
       {/* Pagination controls */}
       <CallHistoryPagination 
