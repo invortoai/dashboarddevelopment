@@ -42,7 +42,7 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-60 md:h-80">
+      <div className="flex justify-center items-center h-[200px] md:h-[300px]">
         <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-purple animate-spin"></div>
       </div>
     );
@@ -50,7 +50,7 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex justify-center items-center h-60 md:h-80">
+      <div className="flex justify-center items-center h-[200px] md:h-[300px]">
         <p className="text-muted-foreground">No call data available to display</p>
       </div>
     );
@@ -66,16 +66,16 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
 
   return (
     <div className="w-full">
-      <h2 className="text-lg md:text-xl font-bold mb-4">{chartTitle}</h2>
-      <div className="h-72 md:h-96 w-full">
+      <h2 className="text-lg md:text-xl font-bold mb-2">{chartTitle}</h2>
+      <div className="h-[180px] md:h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ 
-              top: 10, 
-              right: isMobile ? 10 : 30, 
+              top: 5, 
+              right: isMobile ? 5 : 20, 
               left: 0, 
-              bottom: isMobile ? 50 : 30 
+              bottom: isMobile ? 40 : 25 
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
@@ -84,15 +84,21 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
               tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }}
               angle={-45}
               textAnchor="end"
-              height={isMobile ? 60 : 40}
+              height={isMobile ? 50 : 35}
+              tickMargin={8}
             />
-            <YAxis tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }} />
+            <YAxis 
+              tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }}
+              width={30}
+              tickMargin={5}
+            />
             <Tooltip content={(props) => <CustomTooltip {...props} dataKey={dataKey} />} />
             <Bar 
               dataKey={dataKey}
               name="Calls" 
               fill={color}
               radius={[4, 4, 0, 0]}
+              maxBarSize={50}
             />
           </BarChart>
         </ResponsiveContainer>
