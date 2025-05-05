@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetClose, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu, X } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -15,7 +14,6 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
-  const [mobileOpen, setMobileOpen] = React.useState(false);
   const [isNavigating, setIsNavigating] = React.useState(false);
   const { toast } = useToast();
 
@@ -28,9 +26,6 @@ const Navbar: React.FC = () => {
   };
 
   const handleLogout = () => {
-    if (isMobile) {
-      setMobileOpen(false);
-    }
     signOut();
   };
 
@@ -60,10 +55,6 @@ const Navbar: React.FC = () => {
       if (isNavigating) return;
       
       setIsNavigating(true);
-      
-      if (isMobile) {
-        setMobileOpen(false);
-      }
       
       // Navigate only if we're not already on this route
       if (!active) {
@@ -104,71 +95,73 @@ const Navbar: React.FC = () => {
     return (
       <>
         <div className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border flex items-center px-4 z-40">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-            className="focus:outline-none"
-            aria-label="Open menu"
-          >
-            <Menu size={24} />
-          </Button>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="focus:outline-none"
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent 
+              side="left" 
+              className="p-0 bg-sidebar w-[250px] max-w-[80vw] overflow-auto z-[100]"
+            >
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between p-4 border-b border-border">
+                  <NavIcon />
+                  <SheetClose asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full"
+                      aria-label="Close menu"
+                    >
+                      <X size={18} />
+                    </Button>
+                  </SheetClose>
+                </div>
+                
+                <div className="flex-1 flex flex-col space-y-2 p-4">
+                  <NavLink 
+                    to="/analytics" 
+                    icon={<BarChart2 size={20} />} 
+                    label="Analytics" 
+                  />
+                  
+                  <NavLink 
+                    to="/history" 
+                    icon={<History size={20} />} 
+                    label="Call History" 
+                  />
+                  
+                  <NavLink 
+                    to="/profile" 
+                    icon={<User size={20} />} 
+                    label="Profile" 
+                  />
+                </div>
+                
+                <div className="p-4 border-t border-border">
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
+          
           <div className="flex-1 flex justify-center">
             <NavIcon />
           </div>
         </div>
-        
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent 
-            side="left" 
-            className="p-0 bg-sidebar w-[250px] max-w-[80vw] overflow-auto"
-          >
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-4 border-b border-border">
-                <NavIcon />
-                <SheetClose asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                  >
-                    <X size={18} />
-                  </Button>
-                </SheetClose>
-              </div>
-              
-              <div className="flex-1 flex flex-col space-y-2 p-4">
-                <NavLink 
-                  to="/analytics" 
-                  icon={<BarChart2 size={20} />} 
-                  label="Analytics" 
-                />
-                
-                <NavLink 
-                  to="/history" 
-                  icon={<History size={20} />} 
-                  label="Call History" 
-                />
-                
-                <NavLink 
-                  to="/profile" 
-                  icon={<User size={20} />} 
-                  label="Profile" 
-                />
-              </div>
-              
-              <div className="p-4 border-t border-border">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-              </div>
-            </div>
-          </SheetContent>
-        </Sheet>
         
         {/* Add top margin to content */}
         <div className="h-16"></div>

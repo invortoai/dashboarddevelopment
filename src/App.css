@@ -105,3 +105,10 @@ a {
   background-color: var(--popover, #fff);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* Ensure sheet content is visible */
+[data-radix-sheet-content] {
+  display: block !important;
+  visibility: visible !important;
+  z-index: 999 !important;
+}
