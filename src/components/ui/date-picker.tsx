@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { type DateRange } from "react-day-picker"
 
 interface DatePickerProps {
   selected?: Date
@@ -20,13 +21,28 @@ interface DatePickerProps {
 
 export function DatePicker({ selected, onSelect, mode = "single", className }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(selected)
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>()
 
-  const handleSelect = (newDate: Date | undefined) => {
-    setDate(newDate)
-    if (onSelect) {
-      onSelect(newDate)
-    }
-  }
+  const handleSelect = React.useCallback(
+    (value: Date | DateRange | undefined) => {
+      if (mode === "range") {
+        const range = value as DateRange
+        setDateRange(range)
+        // For range mode, we typically want the end date as the selected date
+        // or the start date if end date is not yet selected
+        if (onSelect && range?.from) {
+          onSelect(range.to || range.from)
+        }
+      } else {
+        const singleDate = value as Date
+        setDate(singleDate)
+        if (onSelect) {
+          onSelect(singleDate)
+        }
+      }
+    },
+    [mode, onSelect]
+  )
 
   return (
     <Popover>
@@ -35,17 +51,30 @@ export function DatePicker({ selected, onSelect, mode = "single", className }: D
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
+            !date && !dateRange && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {mode === "range" && dateRange?.from ? (
+            dateRange.to ? (
+              <>
+                {format(dateRange.from, "LLL dd, y")} -{" "}
+                {format(dateRange.to, "LLL dd, y")}
+              </>
+            ) : (
+              format(dateRange.from, "LLL dd, y")
+            )
+          ) : date ? (
+            format(date, "PPP")
+          ) : (
+            <span>Pick a date</span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn("w-auto p-0 pointer-events-auto", className)} align="start">
         <Calendar
           mode={mode}
-          selected={date}
+          selected={mode === "range" ? dateRange : date}
           onSelect={handleSelect}
           initialFocus
         />
