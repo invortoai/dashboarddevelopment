@@ -164,13 +164,13 @@ const Analytics: React.FC = () => {
           
           <TabsContent value="calls" className="pt-4">
             <Card>
-              <CardHeader className="pb-0">
+              <CardHeader>
                 <CardTitle>Call Volume</CardTitle>
                 <CardDescription>
                   Number of calls over time
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 pb-3 px-3 md:px-4">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -183,13 +183,13 @@ const Analytics: React.FC = () => {
           
           <TabsContent value="duration" className="pt-4">
             <Card>
-              <CardHeader className="pb-0">
+              <CardHeader>
                 <CardTitle>Call Duration</CardTitle>
                 <CardDescription>
                   Total call duration in seconds
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 pb-3 px-3 md:px-4">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -202,13 +202,13 @@ const Analytics: React.FC = () => {
           
           <TabsContent value="credits" className="pt-4">
             <Card>
-              <CardHeader className="pb-0">
+              <CardHeader>
                 <CardTitle>Credits Used</CardTitle>
                 <CardDescription>
                   Total credits consumed
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-3 pb-3 px-3 md:px-4">
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
