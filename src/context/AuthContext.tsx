@@ -178,36 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const refreshUserData = async (userId?: string): Promise<void> => {
-    try {
-      const id = userId || user?.id || localStorage.getItem('userId');
-      
-      if (!id) {
-        setIsAuthenticated(false);
-        setUser(null);
-        return;
-      }
-
-      const { success, user: userData } = await getUserDetails(id);
-
-      if (success && userData) {
-        setUser(userData);
-        setIsAuthenticated(true);
-      } else {
-        // If we couldn't get the user, clear authentication state
-        localStorage.removeItem('userId');
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-    } catch (error: any) {
-      console.error("Error refreshing user data:", error.message);
-      // On error, clear authentication state
-      localStorage.removeItem('userId');
-      setIsAuthenticated(false);
-      setUser(null);
-    }
-  };
-
   const value: AuthContextProps = {
     user,
     isAuthenticated,
