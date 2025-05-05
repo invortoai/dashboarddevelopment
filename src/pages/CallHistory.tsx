@@ -129,10 +129,7 @@ const CallHistory: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Call History</h1>
-          <div className="flex items-center gap-2">
-            {syncStatus && (
-              <span className="text-sm text-green-500">{syncStatus}</span>
-            )}
+          <div className="flex flex-col items-end gap-2">
             <Button 
               onClick={handleRefresh} 
               disabled={loading || refreshing}
@@ -140,17 +137,17 @@ const CallHistory: React.FC = () => {
             >
               {refreshing ? 'Refreshing...' : 'Refresh Data'}
             </Button>
+            {syncStatus && (
+              <span className="text-sm text-green-500">{syncStatus}</span>
+            )}
           </div>
         </div>
         
-        <p className="text-muted-foreground">
-          View the details of all your past calls, including recordings and transcripts.
-          {totalCalls > 0 && (
-            <span className="ml-1">
-              Showing {calls.length} of {totalCalls} total calls.
-            </span>
-          )}
-        </p>
+        {totalCalls > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Showing {calls.length} of {totalCalls} total calls
+          </p>
+        )}
         
         <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden p-4">
           <CallHistoryList 

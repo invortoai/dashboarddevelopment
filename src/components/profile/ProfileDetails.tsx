@@ -144,18 +144,18 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex flex-col sm:flex-row gap-3 sm:justify-between">
           {isEditing ? (
             <>
-              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button type="submit" onClick={handleSubmit} disabled={isUpdating}>
+              <Button variant="outline" onClick={() => setIsEditing(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button type="submit" onClick={handleSubmit} disabled={isUpdating} className="w-full sm:w-auto">
                 {isUpdating ? 'Saving...' : 'Save Changes'}
               </Button>
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={onChangePassword}>Change Password</Button>
-              <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+              <Button variant="outline" onClick={onChangePassword} className="w-full sm:w-auto">Change Password</Button>
+              <Button onClick={() => setIsEditing(true)} className="w-full sm:w-auto">Edit Profile</Button>
             </>
           )}
         </CardFooter>
