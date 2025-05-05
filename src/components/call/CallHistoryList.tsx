@@ -63,7 +63,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   
   // Filtered calls
   const [filteredCalls, setFilteredCalls] = useState<CallDetails[]>(calls);
@@ -96,7 +96,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
     }
     
     // Apply status filter
-    if (selectedStatus) {
+    if (selectedStatus && selectedStatus !== 'all') {
       result = result.filter(call => {
         const status = (call.callStatus || '').toLowerCase();
         return status.includes(selectedStatus.toLowerCase());
@@ -106,33 +106,11 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
     setFilteredCalls(result);
   }, [calls, searchTerm, selectedDate, selectedStatus]);
   
-  // Intersection observer for infinite scroll
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && isMobile && onLoadMore && !isLoading) {
-          onLoadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    
-    if (bottomRef.current) {
-      observer.observe(bottomRef.current);
-    }
-    
-    return () => {
-      if (bottomRef.current) {
-        observer.unobserve(bottomRef.current);
-      }
-    };
-  }, [onLoadMore, isLoading, isMobile]);
-
   // Reset filters
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedDate(undefined);
-    setSelectedStatus('');
+    setSelectedStatus('all');
   };
 
   if (isLoading && calls.length === 0) {
@@ -267,7 +245,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
               <SelectValue placeholder="Status Filter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="answered">Answered</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="no answer">No Answer</SelectItem>
@@ -276,7 +254,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
             </SelectContent>
           </Select>
           
-          {(searchTerm || selectedDate || selectedStatus) && (
+          {(searchTerm || selectedDate || selectedStatus !== 'all') && (
             <Button variant="ghost" size="sm" onClick={resetFilters} className="h-10">
               Clear
             </Button>
