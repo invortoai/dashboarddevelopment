@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,6 @@ import { formatToIST } from '@/utils/dateUtils';
 import { CallDetails } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { getAllCallStatuses } from '@/services/call/callHistory';
-import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -60,8 +58,6 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   onPageChange,
   onLoadMore
 }) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const bottomRef = useRef<HTMLDivElement>(null);
   
@@ -72,40 +68,41 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   
   // State for available status options
   const [statusOptions, setStatusOptions] = useState<string[]>(['all']);
-  const [loadingStatuses, setLoadingStatuses] = useState<boolean>(false);
   
   // Filtered calls
   const [filteredCalls, setFilteredCalls] = useState<CallDetails[]>(calls);
   
-  // Fetch all available statuses for this user
+  // Extract unique status options from calls
   useEffect(() => {
-    const fetchAllStatuses = async () => {
-      if (!user) return;
+    if (calls.length > 0) {
+      const uniqueStatuses = new Set<string>();
+      uniqueStatuses.add('all'); // Always include 'all' option
       
-      try {
-        setLoadingStatuses(true);
-        const result = await getAllCallStatuses(user.id);
-        
-        if (result.success && result.statuses) {
-          setStatusOptions(result.statuses);
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to load call status options",
-            variant: "destructive"
-          });
-          // Fallback to default option
-          setStatusOptions(['all']);
+      calls.forEach(call => {
+        if (call.callStatus) {
+          // Extract the basic status type for better categorization
+          let normalizedStatus = call.callStatus.toLowerCase();
+          
+          if (normalizedStatus.includes('answer') && !normalizedStatus.includes('no')) {
+            uniqueStatuses.add('answered');
+          } else if (normalizedStatus.includes('complete')) {
+            uniqueStatuses.add('completed');
+          } else if (normalizedStatus.includes('no answer') || normalizedStatus.includes('not answered')) {
+            uniqueStatuses.add('no answer');
+          } else if (normalizedStatus.includes('busy')) {
+            uniqueStatuses.add('busy');
+          } else if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
+            uniqueStatuses.add('failed');
+          } else if (normalizedStatus) {
+            // Add any other unique status that doesn't match our predefined categories
+            uniqueStatuses.add(normalizedStatus);
+          }
         }
-      } catch (error) {
-        console.error("Error fetching call statuses:", error);
-      } finally {
-        setLoadingStatuses(false);
-      }
-    };
-    
-    fetchAllStatuses();
-  }, [user, toast]);
+      });
+      
+      setStatusOptions(Array.from(uniqueStatuses));
+    }
+  }, [calls]);
   
   // Update filtered calls when filters change
   useEffect(() => {
@@ -286,17 +283,24 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
         </div>
         
         <div className="flex gap-2">
-          <DatePicker
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            placeholder="Date Filter"
-            clearable={true}
-            className="w-auto"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 gap-1">
+                <Calendar className="h-4 w-4" />
+                {selectedDate ? formatToIST(selectedDate).split(' ')[0] : 'Date Filter'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <DatePicker
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+            </PopoverContent>
+          </Popover>
           
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
             <SelectTrigger className="w-[150px] h-10">
-              <SelectValue placeholder={loadingStatuses ? "Loading..." : "Status Filter"} />
+              <SelectValue placeholder="Status Filter" />
             </SelectTrigger>
             <SelectContent>
               {statusOptions.map((status) => (
