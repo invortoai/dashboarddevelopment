@@ -35,6 +35,12 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
   const [phoneNumber, setPhoneNumber] = useState(user.phoneNumber || '');
   const [isEditing, setIsEditing] = useState(false);
   
+  // Force component to use latest user data
+  React.useEffect(() => {
+    setName(user.name || '');
+    setPhoneNumber(user.phoneNumber || '');
+  }, [user]);
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onUpdateProfile({ name, phoneNumber });
@@ -55,7 +61,7 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>User ID</Label>
                 <div className="mt-1 text-sm text-gray-500">{user.id}</div>
@@ -87,7 +93,7 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                   </div>
                   {lastCreditRefresh && (
                     <div className="mt-1 text-xs text-gray-500">
-                      Last updated: {formatTimeAgo(lastCreditRefresh)}
+                      Last updated: {typeof lastCreditRefresh === 'string' ? lastCreditRefresh : formatTimeAgo(lastCreditRefresh)}
                     </div>
                   )}
                 </div>

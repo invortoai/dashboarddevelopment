@@ -19,12 +19,14 @@ const Profile: React.FC = () => {
   const [isFixingAllCredits, setIsFixingAllCredits] = useState<boolean>(false);
   const [lastCreditRefresh, setLastCreditRefresh] = useState<Date | null>(null);
   
-  // Auto-refresh credits when component mounts
+  // Auto-refresh credits and user data when component mounts
   useEffect(() => {
     if (user) {
       setLastCreditRefresh(new Date());
+      // Ensure latest user data is loaded on both preview and production
+      refreshUserData().catch(err => console.error("Error refreshing user data:", err));
     }
-  }, [user]);
+  }, [user, refreshUserData]);
   
   // Handle profile update
   const handleUpdateProfile = async (data: { name?: string; phoneNumber?: string }) => {
@@ -68,9 +70,8 @@ const Profile: React.FC = () => {
     }
   };
   
-  // Keeping this function as a no-op for backward compatibility
+  // Keep this function for backward compatibility
   const handleRefreshCredit = async () => {
-    // No longer used, just update the timestamp
     setLastCreditRefresh(new Date());
   };
   
@@ -82,20 +83,15 @@ const Profile: React.FC = () => {
       setIsRecalculatingCredit(true);
       console.log('Refreshing credit balance for user:', user.id);
       
-      // Show a toast notification
       toast({
         title: "Refreshing Credits",
         description: "Refreshing your credits based on call history...",
       });
       
-      // Use the dedicated service function for credit recalculation
       const result = await recalculateUserCredits(user.id);
       
       if (result.success) {
-        // Use the Auth context's refresh function to update the user object
         await refreshUserData();
-        
-        // Update last refresh timestamp
         setLastCreditRefresh(new Date());
         
         toast({
@@ -132,10 +128,7 @@ const Profile: React.FC = () => {
       const result = await fixAllUserCredits();
       
       if (result.success) {
-        // Refresh the current user's data after the update
         await refreshUserData();
-        
-        // Update last refresh timestamp
         setLastCreditRefresh(new Date());
         
         toast({
@@ -194,7 +187,7 @@ const Profile: React.FC = () => {
     }
   };
   
-  // Check if user has admin privileges (first user for simplicity)
+  // Check if user has admin privileges
   const isAdmin = user && user.id === 'b36cd024-3f22-43f0-af73-9da43bcf0884';
   
   if (!user) return null;

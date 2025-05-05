@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
 import { signUp as serviceSignUp, login as serviceLogin, logout as serviceLogout, getUserDetails } from '@/services/authService';
@@ -22,11 +22,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Make refreshUserData available via useCallback so it can be dependency in useEffect
+  const refreshUserData = useCallback(async (userId?: string): Promise<void> => {
+    try {
+      const id = userId || user?.id || localStorage.getItem('userId');
+      
+      if (!id) {
+        setIsAuthenticated(false);
+        setUser(null);
+        return;
+      }
+
+      console.log("Refreshing user data for ID:", id);
+      const { success, user: userData } = await getUserDetails(id);
+
+      if (success && userData) {
+        console.log("User data refreshed successfully:", userData);
+        setUser(userData);
+        setIsAuthenticated(true);
+      } else {
+        console.warn("Failed to refresh user data, clearing auth state");
+        // If we couldn't get the user, clear authentication state
+        localStorage.removeItem('userId');
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error: any) {
+      console.error("Error refreshing user data:", error.message);
+      // On error, clear authentication state
+      localStorage.removeItem('userId');
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     // Check if there's a user ID stored in local storage
     const storedUserId = localStorage.getItem('userId');
     
     if (storedUserId) {
+      console.log("Found stored user ID, refreshing user data:", storedUserId);
       // If there's a stored user ID, fetch user details
       refreshUserData(storedUserId)
         .then(() => {
@@ -41,9 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
         });
     } else {
+      console.log("No stored user ID found, setting not authenticated");
       setIsLoading(false);
     }
-  }, []);
+  }, [refreshUserData]);
 
   const signUp = async (phoneNumber: string, password: string, email: string, name: string): Promise<void> => {
     try {
@@ -179,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
-    refreshUserData: () => refreshUserData(),
+    refreshUserData,
   };
 
   return (
