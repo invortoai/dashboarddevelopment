@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -173,11 +174,52 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
         </div>
       )}
       
-      {/* Wrap the table in ScrollArea for horizontal scrolling specifically for mobile */}
-      <div className={`w-full ${isMobile ? 'overflow-hidden' : ''}`}>
-        {/* Fix: Remove the orientation prop which is causing the error */}
-        <ScrollArea className="w-full">
-          <div className={`${isMobile ? 'min-w-[800px]' : 'w-full'}`}>
+      {/* Fix: Update the ScrollArea implementation for mobile view */}
+      <div className="w-full">
+        {isMobile ? (
+          <div className="overflow-auto">
+            <div className="min-w-[800px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Developer</TableHead>
+                    <TableHead>Number</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {calls.map((call) => (
+                    <TableRow key={call.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        {call.createdAt ? formatToIST(call.createdAt) : 
+                         call.callTime ? formatToIST(call.callTime) : '-'}
+                      </TableCell>
+                      <TableCell>{call.developer}</TableCell>
+                      <TableCell>{formatPhoneNumber(call.number)}</TableCell>
+                      <TableCell>
+                        {call.callDuration ? `${call.callDuration} seconds` : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <CallStatusBadge call={call} />
+                      </TableCell>
+                      <TableCell>
+                        <Link to={`/history/${call.id}`}>
+                          <Button variant="outline" size="sm">
+                            Details
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : (
+          <ScrollArea className="w-full">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -193,7 +235,6 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                 {calls.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50">
                     <TableCell>
-                      {/* Use call.createdAt as the primary timestamp, with fallback to call.callTime */}
                       {call.createdAt ? formatToIST(call.createdAt) : 
                        call.callTime ? formatToIST(call.callTime) : '-'}
                     </TableCell>
@@ -216,8 +257,8 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                 ))}
               </TableBody>
             </Table>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        )}
       </div>
       
       {/* Pagination controls for desktop */}
