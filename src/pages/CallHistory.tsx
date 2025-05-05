@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
@@ -8,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { CallDetails } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const CallHistory: React.FC = () => {
   const { user, refreshUserData } = useAuth();
@@ -17,6 +19,7 @@ const CallHistory: React.FC = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [refreshedUserData, setRefreshedUserData] = useState<boolean>(false);
+  const isMobile = useIsMobile();
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -25,12 +28,12 @@ const CallHistory: React.FC = () => {
   const [totalCalls, setTotalCalls] = useState<number>(0);
   
   // Memoized version of fetchCallHistory to prevent recreation on every render
-  const fetchCallHistory = useCallback(async (page: number = currentPage) => {
+  const fetchCallHistory = useCallback(async (page: number = currentPage, appendData: boolean = false) => {
     if (!user) return;
     
     try {
       setLoading(true);
-      console.log(`Fetching call history for user: ${user.id}, page: ${page}, pageSize: ${pageSize}`);
+      console.log(`Fetching call history for user: ${user.id}, page: ${page}, pageSize: ${pageSize}, appendData: ${appendData}`);
       
       // First sync all call data from call_log to call_details for consistency
       const syncResult = await autoSyncCallLogToDetails(user.id);
@@ -77,7 +80,12 @@ const CallHistory: React.FC = () => {
           })
         );
         
-        setCalls(updatedCalls);
+        // Append data or replace based on the appendData flag
+        if (appendData) {
+          setCalls(prevCalls => [...prevCalls, ...updatedCalls]);
+        } else {
+          setCalls(updatedCalls);
+        }
       } else {
         console.error('Failed to fetch call history:', result.message);
         toast({
@@ -99,28 +107,47 @@ const CallHistory: React.FC = () => {
       // Clear sync status after 3 seconds
       setTimeout(() => setSyncStatus(null), 3000);
     }
-  }, [user, pageSize, toast]);
+  }, [user, pageSize, toast, refreshUserData, refreshedUserData]);
   
   // Now useEffect has a stable dependency - the memoized fetchCallHistory function
   useEffect(() => {
-    // Only run on mount and when currentPage changes
-    fetchCallHistory(currentPage);
+    // Only run on mount and when currentPage changes, if not in mobile mode
+    if (!isMobile) {
+      fetchCallHistory(currentPage, false);
+    } else if (currentPage === 1) {
+      // On mobile, only fetch on first load
+      fetchCallHistory(currentPage, false);
+    }
     
     // Return cleanup to prevent state updates after unmount
     return () => {
       // Cleanup function if needed
     };
-  }, [currentPage, fetchCallHistory]);
+  }, [currentPage, fetchCallHistory, isMobile]);
   
   const handlePageChange = (page: number) => {
+    if (isMobile) {
+      // On mobile, we handle this through the loadMore function
+      return;
+    }
     setCurrentPage(page);
     // Fetch will be triggered by the useEffect watching currentPage
+  };
+  
+  const handleLoadMore = () => {
+    if (currentPage >= totalPages) return;
+    
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchCallHistory(nextPage, true);
   };
   
   const handleRefresh = () => {
     setRefreshing(true);
     setRefreshedUserData(false); // Allow refreshUserData to be called again on manual refresh
-    fetchCallHistory(currentPage);
+    setCalls([]); // Clear existing calls on manual refresh
+    setCurrentPage(1); // Reset to page 1
+    fetchCallHistory(1, false);
   };
   
   return (
@@ -142,7 +169,7 @@ const CallHistory: React.FC = () => {
           </div>
         </div>
         
-        {totalCalls > 0 && (
+        {totalCalls > 0 && !isMobile && (
           <p className="text-sm text-muted-foreground">
             Showing {calls.length} of {totalCalls} total calls
           </p>
@@ -155,6 +182,7 @@ const CallHistory: React.FC = () => {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={handlePageChange}
+            onLoadMore={isMobile ? handleLoadMore : undefined}
           />
         </div>
       </div>

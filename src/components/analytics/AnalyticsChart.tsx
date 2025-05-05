@@ -42,21 +42,17 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-4 md:p-6 flex justify-center items-center h-60 md:h-72">
-          <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-purple animate-spin"></div>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center items-center h-60 md:h-80">
+        <div className="h-12 w-12 rounded-full border-4 border-t-transparent border-purple animate-spin"></div>
+      </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-4 md:p-6 flex justify-center items-center h-60 md:h-72">
-          <p className="text-muted-foreground">No call data available to display</p>
-        </CardContent>
-      </Card>
+      <div className="flex justify-center items-center h-60 md:h-80">
+        <p className="text-muted-foreground">No call data available to display</p>
+      </div>
     );
   }
   
@@ -69,41 +65,39 @@ const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
   }
 
   return (
-    <Card>
-      <CardContent className="p-3 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold mb-4">{chartTitle}</h2>
-        <div className="h-60 md:h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              margin={{ 
-                top: 10, 
-                right: isMobile ? 10 : 30, 
-                left: 0, 
-                bottom: isMobile ? 50 : 30 
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={isMobile ? 60 : 40}
-              />
-              <YAxis tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip content={(props) => <CustomTooltip {...props} dataKey={dataKey} />} />
-              <Bar 
-                dataKey={dataKey}
-                name="Calls" 
-                fill={color}
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <h2 className="text-lg md:text-xl font-bold mb-4">{chartTitle}</h2>
+      <div className="h-72 md:h-96 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ 
+              top: 10, 
+              right: isMobile ? 10 : 30, 
+              left: 0, 
+              bottom: isMobile ? 50 : 30 
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#444" vertical={false} />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }}
+              angle={-45}
+              textAnchor="end"
+              height={isMobile ? 60 : 40}
+            />
+            <YAxis tick={{ fill: '#999', fontSize: isMobile ? 10 : 12 }} />
+            <Tooltip content={(props) => <CustomTooltip {...props} dataKey={dataKey} />} />
+            <Bar 
+              dataKey={dataKey}
+              name="Calls" 
+              fill={color}
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 

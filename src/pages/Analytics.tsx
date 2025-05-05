@@ -169,7 +169,7 @@ const Analytics: React.FC = () => {
                   Number of calls over time
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -188,7 +188,7 @@ const Analytics: React.FC = () => {
                   Total call duration in seconds
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
@@ -207,7 +207,7 @@ const Analytics: React.FC = () => {
                   Total credits consumed
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-2 md:p-4">
                 <AnalyticsChart 
                   data={chartData} 
                   isLoading={isLoading}
