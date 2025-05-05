@@ -34,9 +34,15 @@ export const getCallHistory = async (
       }
       
       if (filters.dateFilter) {
-        const dateString = filters.dateFilter.toISOString().split('T')[0];
-        query = query.filter('created_at', 'gte', `${dateString}T00:00:00.000Z`);
-        query = query.filter('created_at', 'lte', `${dateString}T23:59:59.999Z`);
+        try {
+          const dateString = filters.dateFilter.toISOString().split('T')[0];
+          console.log(`Applying date filter: ${dateString}`);
+          query = query.filter('created_at', 'gte', `${dateString}T00:00:00.000Z`);
+          query = query.filter('created_at', 'lte', `${dateString}T23:59:59.999Z`);
+        } catch (dateError) {
+          console.error('Error applying date filter:', dateError);
+          // Continue with query without date filter if there's an error
+        }
       }
       
       if (filters.statusFilter && filters.statusFilter !== 'all') {

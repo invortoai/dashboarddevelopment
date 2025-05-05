@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -65,6 +64,17 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  
+  // Handle date selection with DateRange support
+  const handleDateSelect = (date: Date | DateRange | undefined) => {
+    // We're only interested in single date selection in this component
+    if (date instanceof Date) {
+      setSelectedDate(date);
+    } else if (!date) {
+      setSelectedDate(undefined);
+    }
+    // Ignore DateRange and other types as we don't use them here
+  };
   
   // State for available status options
   const [statusOptions, setStatusOptions] = useState<string[]>(['all']);
@@ -293,7 +303,8 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
             <PopoverContent className="w-auto p-0">
               <DatePicker
                 selected={selectedDate}
-                onSelect={setSelectedDate}
+                onSelect={handleDateSelect}
+                mode="single"
               />
             </PopoverContent>
           </Popover>

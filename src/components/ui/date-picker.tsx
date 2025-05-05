@@ -25,6 +25,7 @@ export function DatePicker({
 }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | DateRange | undefined>(selected)
 
+  // Create a type-safe handler for all calendar modes
   const handleSelect = (newDate: Date | DateRange | undefined) => {
     setDate(newDate)
     if (onSelect) {
@@ -67,24 +68,26 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        {mode === "range" ? (
+        {mode === "range" && (
           <Calendar
             mode="range"
             selected={date as DateRange}
             onSelect={handleSelect as (range: DateRange | undefined) => void}
             initialFocus
           />
-        ) : mode === "multiple" ? (
+        )}
+        {mode === "multiple" && (
           <Calendar
             mode="multiple"
-            selected={date as Date[]}
+            selected={Array.isArray(date) ? date : []}
             onSelect={handleSelect as (dates: Date[] | undefined) => void}
             initialFocus
           />
-        ) : (
+        )}
+        {(mode === "single" || mode === "default") && (
           <Calendar
             mode="single"
-            selected={date as Date}
+            selected={date instanceof Date ? date : undefined}
             onSelect={handleSelect as (date: Date | undefined) => void}
             initialFocus
           />
