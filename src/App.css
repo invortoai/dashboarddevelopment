@@ -48,12 +48,14 @@
   color: #888;
 }
 
-/* Add mobile responsive styles */
+/* Mobile responsive styles */
 body, html {
   height: 100%;
   width: 100%;
   overflow-x: hidden;
   position: relative;
+  margin: 0;
+  padding: 0;
 }
 
 /* Fix for mobile menu */
@@ -65,4 +67,24 @@ body, html {
 button, 
 a {
   touch-action: manipulation;
+  min-height: 44px; /* Apple's recommended minimum tap target size */
+}
+
+/* Enhance mobile visibility */
+@media (max-width: 767px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  input, button, select, textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Fix iOS bottom padding issues */
+@supports (-webkit-touch-callout: none) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

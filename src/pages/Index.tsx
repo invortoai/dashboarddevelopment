@@ -11,21 +11,21 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-6">
       <div className="max-w-3xl w-full text-center">
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <Logo className="h-16 sm:h-20 w-auto mx-auto" />
         </div>
         
-        <h1 className="text-2xl md:text-5xl font-bold mb-4 text-white">
+        <h1 className="text-2xl md:text-5xl font-bold mb-3 md:mb-4 text-white">
           Invorto AI
         </h1>
         
-        <p className="text-base md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto px-2">
+        <p className="text-base md:text-xl mb-6 md:mb-8 text-muted-foreground max-w-2xl mx-auto px-2">
           Connect with developers instantly and track all your communications in one place
         </p>
         
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-10">
           <Link to="/signup" className="w-full sm:w-auto">
             <Button size="lg" className="w-full bg-purple hover:bg-purple-dark">
               Get Started
@@ -39,7 +39,7 @@ const Index = () => {
           </Link>
         </div>
         
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 px-2">
+        <div className="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 px-2">
           <FeatureCard 
             title="Automated Calls" 
             description="Trigger calls to developers with just a few clicks" 

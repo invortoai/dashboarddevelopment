@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -67,6 +68,15 @@ const Navbar: React.FC = () => {
       // Navigate only if we're not already on this route
       if (!active) {
         navigate(to);
+        
+        // Show toast notification on mobile
+        if (isMobile) {
+          toast({
+            title: "Navigating",
+            description: `Going to ${label}`,
+            duration: 2000
+          });
+        }
       }
       
       // Reset navigation state after a short delay
@@ -93,12 +103,13 @@ const Navbar: React.FC = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border flex items-center px-4 z-30">
+        <div className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border flex items-center px-4 z-50">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => setMobileOpen(true)}
             className="focus:outline-none"
+            aria-label="Open menu"
           >
             <Menu size={24} />
           </Button>
