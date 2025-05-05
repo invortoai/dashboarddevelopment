@@ -12,7 +12,13 @@ const SheetTrigger = SheetPrimitive.Trigger
 
 const SheetClose = SheetPrimitive.Close
 
-const SheetPortal = SheetPrimitive.Portal
+const SheetPortal = ({
+  className,
+  ...props
+}: SheetPrimitive.DialogPortalProps) => (
+  <SheetPrimitive.Portal className={cn(className)} {...props} />
+)
+SheetPortal.displayName = SheetPrimitive.Portal.displayName
 
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
@@ -50,21 +56,18 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-  VariantProps<typeof sheetVariants> { 
-    forceMount?: boolean;
-  }
+  VariantProps<typeof sheetVariants> {}
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, forceMount, ...props }, ref) => (
-  <SheetPortal forceMount={forceMount}>
-    <SheetOverlay className="z-[90]" forceMount={forceMount} />
+>(({ side = "right", className, children, ...props }, ref) => (
+  <SheetPortal>
+    <SheetOverlay className="z-[90]" />
     <SheetPrimitive.Content
       ref={ref}
       className={cn(sheetVariants({ side }), className, "relative z-[100]")}
       {...props}
-      forceMount={forceMount}
     >
       {children}
     </SheetPrimitive.Content>
