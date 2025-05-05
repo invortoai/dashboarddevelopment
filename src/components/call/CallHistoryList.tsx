@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -176,7 +175,8 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       
       {/* Wrap the table in ScrollArea for horizontal scrolling specifically for mobile */}
       <div className={`w-full ${isMobile ? 'overflow-hidden' : ''}`}>
-        <ScrollArea className="w-full" orientation={isMobile ? "horizontal" : "vertical"}>
+        {/* Fix: Remove the orientation prop which is causing the error */}
+        <ScrollArea className="w-full">
           <div className={`${isMobile ? 'min-w-[800px]' : 'w-full'}`}>
             <Table>
               <TableHeader>
