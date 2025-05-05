@@ -67,21 +67,28 @@ export function DatePicker({
           {getFormattedDate()}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
         {mode === "range" && (
           <Calendar
             mode="range"
             selected={date as DateRange}
             onSelect={handleSelect as (range: DateRange | undefined) => void}
             initialFocus
+            className="pointer-events-auto"
           />
         )}
         {mode === "multiple" && (
           <Calendar
             mode="multiple"
-            selected={Array.isArray(date) ? date : []}
-            onSelect={handleSelect as (dates: Date[] | undefined) => void}
+            selected={date instanceof Date ? [date] : []}
+            onSelect={(dates) => {
+              // Handle the multiple dates selection
+              // For simplicity, we'll just use the first date if any
+              const newDate = dates && dates.length > 0 ? dates[0] : undefined;
+              handleSelect(newDate);
+            }}
             initialFocus
+            className="pointer-events-auto"
           />
         )}
         {(mode === "single" || mode === "default") && (
@@ -90,6 +97,7 @@ export function DatePicker({
             selected={date instanceof Date ? date : undefined}
             onSelect={handleSelect as (date: Date | undefined) => void}
             initialFocus
+            className="pointer-events-auto"
           />
         )}
       </PopoverContent>
