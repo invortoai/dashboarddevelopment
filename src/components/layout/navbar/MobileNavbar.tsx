@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, X, BarChart2, History, User } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -42,16 +42,15 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
                 <div className="flex justify-center items-center">
                   <Logo text={true} />
                 </div>
-                <SheetClose asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    aria-label="Close menu"
-                  >
-                    <X size={18} />
-                  </Button>
-                </SheetClose>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full"
+                  aria-label="Close menu"
+                  onClick={handleClose}
+                >
+                  <X size={18} />
+                </Button>
               </div>
               
               <div className="flex-1 flex flex-col space-y-2 p-4">
