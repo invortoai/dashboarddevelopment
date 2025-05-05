@@ -40,7 +40,29 @@ export const getCallHistory = async (
     }
     
     // First get the total count of filtered calls for pagination
-    const { count, error: countError } = await query.count();
+    // Using count() is not directly available on the query object
+    // We need to use a separate query with a select count
+    const countQuery = supabase
+      .from('call_details')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    
+    // Apply the same filters to the count query
+    if (filters.searchTerm) {
+      const term = filters.searchTerm.toLowerCase();
+      countQuery.or(`number.ilike.%${term}%,developer.ilike.%${term}%,project.ilike.%${term}%`);
+    }
+    
+    if (filters.statusFilter && filters.statusFilter !== 'all') {
+      countQuery.ilike('call_status', `%${filters.statusFilter}%`);
+    }
+    
+    if (filters.dateFilter) {
+      const dateString = filters.dateFilter.toISOString().split('T')[0];
+      countQuery.or(`created_at::date.eq.${dateString},call_time::date.eq.${dateString}`);
+    }
+    
+    const { count, error: countError } = await countQuery;
       
     if (countError) throw countError;
     

@@ -14,9 +14,11 @@ import {
 interface DatePickerProps {
   selected?: Date
   onSelect?: (date: Date | undefined) => void
+  mode?: "single" | "multiple" | "range" | "default"
+  className?: string
 }
 
-export function DatePicker({ selected, onSelect }: DatePickerProps) {
+export function DatePicker({ selected, onSelect, mode = "single", className }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(selected)
 
   const handleSelect = (newDate: Date | undefined) => {
@@ -40,9 +42,9 @@ export function DatePicker({ selected, onSelect }: DatePickerProps) {
           {date ? format(date, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className={cn("w-auto p-0 pointer-events-auto", className)} align="start">
         <Calendar
-          mode="single"
+          mode={mode}
           selected={date}
           onSelect={handleSelect}
           initialFocus
