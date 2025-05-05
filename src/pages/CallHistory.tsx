@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import CallHistoryList from '@/components/call/CallHistoryList';
@@ -149,7 +148,7 @@ const CallHistory: React.FC = () => {
           </p>
         )}
         
-        <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden p-4">
+        <div className="bg-card rounded-lg shadow-sm border border-border p-4">
           <CallHistoryList 
             calls={calls} 
             isLoading={loading}

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -149,7 +148,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto">
+      <div>
         <Table>
           <TableHeader>
             <TableRow>
