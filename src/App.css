@@ -106,9 +106,19 @@ a {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Ensure sheet content is visible */
+/* Ensure sheet content is visible and properly layered */
 [data-radix-sheet-content] {
   display: block !important;
   visibility: visible !important;
   z-index: 999 !important;
+}
+
+/* Prevent sheet from letting clicks through to underlying elements */
+[data-radix-root] {
+  isolation: isolate;
+}
+
+/* Fix for Sheet component overlay */
+[data-radix-popper-content-wrapper] {
+  z-index: 1000 !important;
 }

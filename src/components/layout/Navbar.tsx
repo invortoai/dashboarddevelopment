@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -15,6 +16,7 @@ const Navbar: React.FC = () => {
   const isMobile = useIsMobile();
   const [collapsed, setCollapsed] = React.useState(false);
   const [isNavigating, setIsNavigating] = React.useState(false);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
   const { toast } = useToast();
 
   const isActive = (path: string) => {
@@ -25,8 +27,19 @@ const Navbar: React.FC = () => {
     setCollapsed(!collapsed);
   };
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Close sheet if it's open
+    if (sheetOpen) {
+      setSheetOpen(false);
+    }
+    
+    // Perform logout with slight delay to ensure UI updates first
+    setTimeout(() => {
+      signOut();
+    }, 100);
   };
 
   // Conditionally render logo based on sidebar state
@@ -50,24 +63,33 @@ const Navbar: React.FC = () => {
     
     const handleClick = (e: React.MouseEvent) => {
       e.preventDefault(); // Prevent default behavior
+      e.stopPropagation();
       
       // Prevent multiple navigation attempts
       if (isNavigating) return;
       
       setIsNavigating(true);
       
+      // Close sheet if it's open
+      if (sheetOpen) {
+        setSheetOpen(false);
+      }
+      
       // Navigate only if we're not already on this route
       if (!active) {
-        navigate(to);
-        
-        // Show toast notification on mobile
-        if (isMobile) {
-          toast({
-            title: "Navigating",
-            description: `Going to ${label}`,
-            duration: 2000
-          });
-        }
+        // Short timeout to allow sheet to close first
+        setTimeout(() => {
+          navigate(to);
+          
+          // Show toast notification on mobile
+          if (isMobile) {
+            toast({
+              title: "Navigating",
+              description: `Going to ${label}`,
+              duration: 2000
+            });
+          }
+        }, 100);
       }
       
       // Reset navigation state after a short delay
@@ -95,7 +117,7 @@ const Navbar: React.FC = () => {
     return (
       <>
         <div className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border flex items-center px-4 z-40">
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button 
                 variant="ghost" 
