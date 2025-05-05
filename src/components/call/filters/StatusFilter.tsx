@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface StatusFilterProps {
   statusOptions: string[];
@@ -19,15 +20,17 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
   selectedStatus,
   onStatusChange
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <Select value={selectedStatus} onValueChange={onStatusChange}>
-      <SelectTrigger className="w-[150px] h-10">
-        <SelectValue placeholder="Status Filter" />
+      <SelectTrigger className={`h-10 ${isMobile ? 'flex-1 min-w-[110px]' : 'w-[150px]'}`}>
+        <SelectValue placeholder={isMobile ? 'Status' : 'Status Filter'} />
       </SelectTrigger>
       <SelectContent>
         {statusOptions.map((status) => (
           <SelectItem key={status} value={status}>
-            {status === 'all' ? 'All Statuses' : 
+            {status === 'all' ? (isMobile ? 'All' : 'All Statuses') : 
               status.charAt(0).toUpperCase() + status.slice(1)}
           </SelectItem>
         ))}

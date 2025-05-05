@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import SearchFilter from './SearchFilter';
 import DateFilter from './DateFilter';
 import StatusFilter from './StatusFilter';
-import { DateRange } from 'react-day-picker';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterBarProps {
   searchTerm: string;
@@ -29,11 +29,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onResetFilters,
   hasActiveFilters
 }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="flex flex-col sm:flex-row gap-2 justify-between mb-4">
       <SearchFilter searchTerm={searchTerm} onSearchChange={onSearchChange} />
       
-      <div className="flex gap-2">
+      <div className={`flex ${isMobile ? 'flex-wrap' : ''} gap-2`}>
         <DateFilter selectedDate={selectedDate} onDateSelect={onDateSelect} />
         
         <StatusFilter 
@@ -43,7 +45,12 @@ const FilterBar: React.FC<FilterBarProps> = ({
         />
         
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={onResetFilters} className="h-10">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onResetFilters} 
+            className={`h-10 ${isMobile ? 'w-auto' : ''}`}
+          >
             Clear
           </Button>
         )}
