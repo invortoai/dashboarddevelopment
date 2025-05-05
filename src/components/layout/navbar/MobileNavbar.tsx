@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu, X, BarChart2, History, User } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -36,6 +36,7 @@ const MobileNavbar: React.FC<MobileNavbarProps> = ({ handleLogout }) => {
           <SheetContent 
             side="left" 
             className="p-0 bg-sidebar w-[250px] max-w-[80vw] overflow-auto z-[100]"
+            hideCloseButton={true} // Hide the default close button
           >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-4 border-b border-border">
