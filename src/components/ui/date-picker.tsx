@@ -10,21 +10,47 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { DateRange } from "react-day-picker"
 
 interface DatePickerProps {
-  selected?: Date
-  onSelect?: (date: Date | undefined) => void
+  selected?: Date | DateRange
+  onSelect?: (date: Date | DateRange | undefined) => void
+  mode?: "single" | "range" | "multiple" | "default"
 }
 
-export function DatePicker({ selected, onSelect }: DatePickerProps) {
-  const [date, setDate] = React.useState<Date | undefined>(selected)
+export function DatePicker({ 
+  selected, 
+  onSelect, 
+  mode = "single" 
+}: DatePickerProps) {
+  const [date, setDate] = React.useState<Date | DateRange | undefined>(selected)
 
-  const handleSelect = (newDate: Date | undefined) => {
+  const handleSelect = (newDate: Date | DateRange | undefined) => {
     setDate(newDate)
     if (onSelect) {
       onSelect(newDate)
     }
   }
+
+  // Format the display based on the selected date type
+  const getFormattedDate = () => {
+    if (!date) return <span>Pick a date</span>;
+    
+    if (date instanceof Date) {
+      return format(date, "PPP");
+    } 
+    
+    if ('from' in date) {
+      return (
+        <>
+          {date.from ? format(date.from, "PPP") : ""}
+          {date.to ? ` - ${format(date.to, "PPP")}` : ""}
+        </>
+      );
+    }
+    
+    return <span>Pick a date</span>;
+  };
 
   return (
     <Popover>
@@ -37,16 +63,32 @@ export function DatePicker({ selected, onSelect }: DatePickerProps) {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {getFormattedDate()}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleSelect}
-          initialFocus
-        />
+        {mode === "range" ? (
+          <Calendar
+            mode="range"
+            selected={date as DateRange}
+            onSelect={handleSelect as (range: DateRange | undefined) => void}
+            initialFocus
+          />
+        ) : mode === "multiple" ? (
+          <Calendar
+            mode="multiple"
+            selected={date as Date[]}
+            onSelect={handleSelect as (dates: Date[] | undefined) => void}
+            initialFocus
+          />
+        ) : (
+          <Calendar
+            mode="single"
+            selected={date as Date}
+            onSelect={handleSelect as (date: Date | undefined) => void}
+            initialFocus
+          />
+        )}
       </PopoverContent>
     </Popover>
   )
