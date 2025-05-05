@@ -35,19 +35,21 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 
   return (
     <div className="space-y-4">
-      <ScrollArea className="w-full">
+      <ScrollArea className="h-full w-full">
         <CallHistoryTable calls={calls} />
       </ScrollArea>
       
-      {/* Pagination controls */}
-      <CallHistoryPagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
-      />
-      
-      <div className="text-center text-sm text-muted-foreground">
-        Showing page {currentPage} of {totalPages} ({calls.length} calls)
+      <div className="pt-2">
+        {/* Pagination controls */}
+        <CallHistoryPagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+        />
+        
+        <div className="text-center text-sm text-muted-foreground mt-2">
+          Showing page {currentPage} of {totalPages} ({calls.length} calls)
+        </div>
       </div>
     </div>
   );

@@ -25,8 +25,8 @@ const CallHistoryPagination: React.FC<CallHistoryPaginationProps> = ({
   if (totalPages <= 1) return null;
   
   return (
-    <Pagination className="mt-4">
-      <PaginationContent>
+    <Pagination className="flex justify-center">
+      <PaginationContent className="flex flex-wrap justify-center gap-1">
         {/* Previous button */}
         {currentPage > 1 ? (
           <PaginationItem>
