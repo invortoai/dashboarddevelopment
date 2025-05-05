@@ -1,224 +1,140 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, subDays } from 'date-fns';
-import { useAuth } from '@/context/AuthContext';
 import AnalyticsChart from '@/components/analytics/AnalyticsChart';
-import { Button } from '@/components/ui/button';
-import { Phone } from 'lucide-react';
-import { getDailyCallStats } from '@/services/call/analytics';
-import { useToast } from '@/hooks/use-toast';
-
-interface DailyCallData {
-  date: string;
-  count: number;
-  duration: number;
-  credits: number;
-}
+import CallStatusChart from '@/components/analytics/CallStatusChart';
+import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getCallVolumeAnalytics, getCallDurationAnalytics, getCreditsUsedAnalytics } from '@/services/call/analytics';
+import { getCallStatusAnalytics } from '@/services/call/analytics';
 
 const Analytics: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [timeRange, setTimeRange] = useState('7days');
-  const [chartData, setChartData] = useState<DailyCallData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [timeframe, setTimeframe] = useState<'7d' | '30d' | '90d'>('7d');
+  const [callVolumeData, setCallVolumeData] = useState<any[]>([]);
+  const [callDurationData, setCallDurationData] = useState<any[]>([]);
+  const [creditsUsedData, setCreditsUsedData] = useState<any[]>([]);
+  const [callStatusData, setCallStatusData] = useState<any[]>([]);
+  const [loading, setLoading] = useState({
+    volume: true,
+    duration: true,
+    credits: true,
+    status: true
+  });
   
   useEffect(() => {
-    if (!user) return;
-    
-    // Set loading state
-    setIsLoading(true);
-    
-    const fetchCallData = async () => {
-      try {
-        // Get actual call data from getDailyCallStats service
-        const result = await getDailyCallStats(user.id);
-        
-        if (result.success && result.stats) {
-          // Filter data based on the selected time range
-          const days = timeRange === '30days' ? 30 : timeRange === '90days' ? 90 : 7;
-          const cutoffDate = subDays(new Date(), days);
-          
-          const filteredStats = filterStatsByDateRange(result.stats, cutoffDate);
-          setChartData(filteredStats);
-          
-          console.log('Analytics chart data:', filteredStats);
-        } else {
-          toast({
-            title: 'Error',
-            description: result.message || 'Failed to fetch call data',
-            variant: 'destructive',
-          });
-        }
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error in data processing:', err);
-        toast({
-          title: 'Error',
-          description: 'Failed to process call data',
-          variant: 'destructive',
-        });
-        setIsLoading(false);
+    const fetchAnalytics = async () => {
+      if (!user) return;
+      
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+      
+      // Fetch call volume analytics
+      setLoading(prev => ({ ...prev, volume: true }));
+      const volumeResult = await getCallVolumeAnalytics(user.id, days);
+      if (volumeResult.success && volumeResult.data) {
+        setCallVolumeData(volumeResult.data);
       }
+      setLoading(prev => ({ ...prev, volume: false }));
+      
+      // Fetch call duration analytics
+      setLoading(prev => ({ ...prev, duration: true }));
+      const durationResult = await getCallDurationAnalytics(user.id, days);
+      if (durationResult.success && durationResult.data) {
+        setCallDurationData(durationResult.data);
+      }
+      setLoading(prev => ({ ...prev, duration: false }));
+      
+      // Fetch credits used analytics
+      setLoading(prev => ({ ...prev, credits: true }));
+      const creditsResult = await getCreditsUsedAnalytics(user.id, days);
+      if (creditsResult.success && creditsResult.data) {
+        setCreditsUsedData(creditsResult.data);
+      }
+      setLoading(prev => ({ ...prev, credits: false }));
+
+      // Fetch call status analytics
+      setLoading(prev => ({ ...prev, status: true }));
+      const statusResult = await getCallStatusAnalytics(user.id, days);
+      if (statusResult.success && statusResult.data) {
+        setCallStatusData(statusResult.data);
+      }
+      setLoading(prev => ({ ...prev, status: false }));
     };
     
-    fetchCallData();
-  }, [timeRange, user, toast]);
-  
-  // Function to filter stats by date range
-  const filterStatsByDateRange = (stats: DailyCallData[], cutoffDate: Date): DailyCallData[] => {
-    // Create date objects for comparison
-    return stats.filter(stat => {
-      // Convert "MMM dd" format to a date object in the current year
-      const currentYear = new Date().getFullYear();
-      const [month, day] = stat.date.split(' ');
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const monthIndex = monthNames.indexOf(month);
-      
-      if (monthIndex === -1) return false;
-      
-      const statDate = new Date(currentYear, monthIndex, parseInt(day));
-      return statDate >= cutoffDate;
-    });
-  };
-  
-  const getTotalCalls = (): number => {
-    return chartData.reduce((total, day) => total + day.count, 0);
-  };
-  
-  const getTotalDuration = (): number => {
-    return chartData.reduce((total, day) => total + day.duration, 0);
-  };
-  
-  const getTotalCredits = (): number => {
-    return chartData.reduce((total, day) => total + day.credits, 0);
-  };
-
-  const handleMakeCallsClick = () => {
-    navigate('/dashboard');
-  };
+    fetchAnalytics();
+  }, [user, timeframe]);
   
   return (
     <DashboardLayout>
-      <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-3 md:space-y-0">
-          <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name || 'User'}</h1>
-          
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
-            <Button 
-              onClick={handleMakeCallsClick}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
-            >
-              <Phone size={16} />
-              Make Calls
-            </Button>
-            
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-full md:w-32">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7days">7 Days</SelectItem>
-                <SelectItem value="30days">30 Days</SelectItem>
-                <SelectItem value="90days">90 Days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Call Analytics</h1>
+        
+        {/* Time frame selector */}
+        <div className="flex justify-end mb-4">
+          <Tabs defaultValue="7d" value={timeframe} onValueChange={(value) => setTimeframe(value as any)}>
+            <TabsList>
+              <TabsTrigger value="7d">Last 7 Days</TabsTrigger>
+              <TabsTrigger value="30d">Last 30 Days</TabsTrigger>
+              <TabsTrigger value="90d">Last 90 Days</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        {/* Analytics Charts */}
+        <div className="grid grid-cols-1 gap-6">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Calls</CardTitle>
-              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalCalls()}</CardDescription>
+            <CardHeader>
+              <CardTitle>Call Volume</CardTitle>
             </CardHeader>
+            <CardContent>
+              <AnalyticsChart 
+                data={callVolumeData} 
+                isLoading={loading.volume} 
+              />
+            </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Duration</CardTitle>
-              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalDuration()} secs</CardDescription>
+            <CardHeader>
+              <CardTitle>Call Status Distribution</CardTitle>
             </CardHeader>
+            <CardContent>
+              <CallStatusChart 
+                data={callStatusData} 
+                isLoading={loading.status} 
+              />
+            </CardContent>
           </Card>
           
-          <Card className="sm:col-span-2 md:col-span-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Credits Used</CardTitle>
-              <CardDescription className="text-xl md:text-2xl font-bold">{getTotalCredits()}</CardDescription>
+          <Card>
+            <CardHeader>
+              <CardTitle>Call Duration</CardTitle>
             </CardHeader>
+            <CardContent>
+              <AnalyticsChart 
+                data={callDurationData} 
+                isLoading={loading.duration}
+                dataKey="duration"
+                color="#6366f1"
+              />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Credits Used</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AnalyticsChart 
+                data={creditsUsedData} 
+                isLoading={loading.credits}
+                dataKey="credits"
+                color="#f59e0b"
+              />
+            </CardContent>
           </Card>
         </div>
-        
-        <Tabs defaultValue="calls" className="w-full">
-          <TabsList className="w-full md:w-auto">
-            <TabsTrigger value="calls" className="flex-1 md:flex-none">Calls</TabsTrigger>
-            <TabsTrigger value="duration" className="flex-1 md:flex-none">Duration</TabsTrigger>
-            <TabsTrigger value="credits" className="flex-1 md:flex-none">Credits</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="calls" className="pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Volume</CardTitle>
-                <CardDescription>
-                  Number of calls over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 md:p-4">
-                <AnalyticsChart 
-                  data={chartData} 
-                  isLoading={isLoading}
-                  dataKey="count"
-                  color="#8854d0"
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="duration" className="pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Call Duration</CardTitle>
-                <CardDescription>
-                  Total call duration in seconds
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 md:p-4">
-                <AnalyticsChart 
-                  data={chartData} 
-                  isLoading={isLoading}
-                  dataKey="duration"
-                  color="#3b82f6"
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="credits" className="pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Credits Used</CardTitle>
-                <CardDescription>
-                  Total credits consumed
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 md:p-4">
-                <AnalyticsChart 
-                  data={chartData} 
-                  isLoading={isLoading}
-                  dataKey="credits"
-                  color="#ef4444"
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </DashboardLayout>
   );

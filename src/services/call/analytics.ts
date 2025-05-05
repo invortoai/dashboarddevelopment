@@ -1,78 +1,73 @@
 
-import { supabase } from '../supabaseClient';
-import { format } from 'date-fns';
-
-export const getDailyCallStats = async (userId: string): Promise<{ 
+// Add this new function to the existing file
+export const getCallStatusAnalytics = async (userId: string, days = 7): Promise<{ 
   success: boolean; 
   message: string; 
-  stats?: Array<{ date: string; count: number; duration: number; credits: number }> 
+  data?: any[]; 
 }> => {
   try {
-    // Get call details with duration and credits information
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    
+    // Format dates for Supabase query
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+    
     const { data, error } = await supabase
       .from('call_details')
-      .select('created_at, call_duration, credits_consumed')
-      .eq('user_id', userId);
+      .select('created_at, call_status')
+      .eq('user_id', userId)
+      .gte('created_at', `${startDateStr}T00:00:00Z`)
+      .lte('created_at', `${endDateStr}T23:59:59Z`)
+      .order('created_at', { ascending: true });
       
     if (error) throw error;
     
-    console.log('Retrieved call details for analytics:', data);
+    // Generate list of dates in the range
+    const dateList: string[] = [];
+    const currentDate = new Date(startDate);
     
-    // Group calls by day
-    const dailyCounts: Record<string, { count: number; duration: number; credits: number }> = {};
+    while (currentDate <= endDate) {
+      dateList.push(currentDate.toISOString().split('T')[0]);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
     
+    // Initialize result array with dates and zero counts
+    const result = dateList.map(date => ({
+      date,
+      answered: 0,
+      noAnswer: 0,
+      busy: 0,
+      failed: 0,
+      pending: 0,
+    }));
+    
+    // Count calls by date and status
     data.forEach(call => {
-      try {
-        // Parse the date and format it to get just the day (format: MMM dd)
-        const dateObj = new Date(call.created_at);
-        const dateKey = format(dateObj, 'MMM dd');
+      const callDate = call.created_at.split('T')[0];
+      const dateIndex = dateList.indexOf(callDate);
+      
+      if (dateIndex !== -1) {
+        const status = call.call_status?.toLowerCase() || 'pending';
         
-        // Initialize the day's data if it doesn't exist
-        if (!dailyCounts[dateKey]) {
-          dailyCounts[dateKey] = { count: 0, duration: 0, credits: 0 };
+        if (status.includes('answer') && !status.includes('no')) {
+          result[dateIndex].answered++;
+        } else if (status.includes('no answer') || status.includes('not answered')) {
+          result[dateIndex].noAnswer++;
+        } else if (status.includes('busy')) {
+          result[dateIndex].busy++;
+        } else if (status.includes('fail') || status.includes('error')) {
+          result[dateIndex].failed++;
+        } else {
+          result[dateIndex].pending++;
         }
-        
-        // Add this call's data to the accumulated totals
-        dailyCounts[dateKey].count += 1;
-        dailyCounts[dateKey].duration += call.call_duration || 0;
-        // FIXED: Ensure we count credits properly, with a default value of 10 if missing
-        dailyCounts[dateKey].credits += call.credits_consumed || (call.call_duration > 0 ? 10 : 0);
-      } catch (err) {
-        console.error('Error processing call record for analytics:', err, call);
       }
     });
     
-    // Convert to array format for charting
-    const stats = Object.keys(dailyCounts).map(date => ({
-      date,
-      count: dailyCounts[date].count,
-      duration: dailyCounts[date].duration,
-      credits: dailyCounts[date].credits
-    })).sort((a, b) => {
-      // Sort by date ascending - parse the MMM dd format correctly
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const [aMonth, aDay] = a.date.split(' ');
-      const [bMonth, bDay] = b.date.split(' ');
-      
-      const aMonthIndex = monthNames.indexOf(aMonth);
-      const bMonthIndex = monthNames.indexOf(bMonth);
-      
-      if (aMonthIndex !== bMonthIndex) return aMonthIndex - bMonthIndex;
-      return parseInt(aDay) - parseInt(bDay);
-    });
-    
-    console.log('Processed analytics stats:', stats);
-    
-    // Record analytics view activity
-    await supabase.from('user_activity').insert({
-      user_id: userId,
-      activity_type: 'view_analytics',
-      timestamp: new Date().toISOString(),
-    });
-    
-    return { success: true, message: 'Daily call stats retrieved successfully', stats };
+    return { success: true, message: 'Call status analytics retrieved successfully', data: result };
   } catch (error) {
-    console.error('Get daily call stats error:', error);
-    return { success: false, message: 'Failed to retrieve daily call stats' };
+    console.error('Error fetching call status analytics:', error);
+    return { success: false, message: 'Failed to retrieve call status analytics' };
   }
 };

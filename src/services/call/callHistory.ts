@@ -75,3 +75,55 @@ export const getCallHistory = async (
     return { success: false, message: 'Failed to retrieve call history' };
   }
 };
+
+// New function to fetch all unique call statuses for a user
+export const getAllCallStatuses = async (userId: string): Promise<{
+  success: boolean;
+  message: string;
+  statuses?: string[];
+}> => {
+  try {
+    const { data, error } = await supabase
+      .from('call_details')
+      .select('call_status')
+      .eq('user_id', userId)
+      .not('call_status', 'is', null);
+      
+    if (error) throw error;
+    
+    // Extract and normalize status values
+    const statusSet = new Set<string>();
+    statusSet.add('all'); // Always include 'all' option
+    
+    data.forEach(item => {
+      if (item.call_status) {
+        // Extract the basic status type for better categorization
+        let normalizedStatus = item.call_status.toLowerCase();
+        
+        if (normalizedStatus.includes('answer') && !normalizedStatus.includes('no')) {
+          statusSet.add('answered');
+        } else if (normalizedStatus.includes('complete')) {
+          statusSet.add('completed');
+        } else if (normalizedStatus.includes('no answer') || normalizedStatus.includes('not answered')) {
+          statusSet.add('no answer');
+        } else if (normalizedStatus.includes('busy')) {
+          statusSet.add('busy');
+        } else if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
+          statusSet.add('failed');
+        } else if (normalizedStatus) {
+          // Add any other unique status
+          statusSet.add(normalizedStatus);
+        }
+      }
+    });
+    
+    return {
+      success: true,
+      message: 'Call statuses retrieved successfully',
+      statuses: Array.from(statusSet)
+    };
+  } catch (error) {
+    console.error('Get call statuses error:', error);
+    return { success: false, message: 'Failed to retrieve call statuses' };
+  }
+};
