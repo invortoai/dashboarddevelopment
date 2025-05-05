@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -111,6 +110,14 @@ const Analytics: React.FC = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Welcome, {user?.name || 'User'}</h1>
           
           <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
+            <Button 
+              onClick={handleMakeCallsClick}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
+            >
+              <Phone size={16} />
+              Make Calls
+            </Button>
+            
             <Select value={timeRange} onValueChange={setTimeRange}>
               <SelectTrigger className="w-full md:w-32">
                 <SelectValue placeholder="Time Range" />
@@ -121,14 +128,6 @@ const Analytics: React.FC = () => {
                 <SelectItem value="90days">90 Days</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Button 
-              onClick={handleMakeCallsClick}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 w-full md:w-auto"
-            >
-              <Phone size={16} />
-              Make Calls
-            </Button>
           </div>
         </div>
         
