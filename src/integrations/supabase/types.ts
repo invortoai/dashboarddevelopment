@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      auth_error_logs: {
+        Row: {
+          attempt_time: string | null
+          attempt_type: string
+          error_code: string | null
+          error_details: string | null
+          error_message: string
+          id: string
+          ip_address: string | null
+          location: string | null
+          password_hash: string | null
+          phone_number: string
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_time?: string | null
+          attempt_type: string
+          error_code?: string | null
+          error_details?: string | null
+          error_message: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          password_hash?: string | null
+          phone_number: string
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_time?: string | null
+          attempt_type?: string
+          error_code?: string | null
+          error_details?: string | null
+          error_message?: string
+          id?: string
+          ip_address?: string | null
+          location?: string | null
+          password_hash?: string | null
+          phone_number?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       call_details: {
         Row: {
           call_attempted: boolean | null
@@ -258,6 +300,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      hash_password: {
+        Args: { plain_password: string }
+        Returns: string
+      }
       update_user_credits: {
         Args: { user_id_param: string; credits_to_deduct: number }
         Returns: undefined

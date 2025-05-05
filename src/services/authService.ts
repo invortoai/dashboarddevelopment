@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
+import { logAuthError } from '../utils/authErrorLogger';
 
 export const signUp = async (name: string, phoneNumber: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
@@ -15,6 +16,17 @@ export const signUp = async (name: string, phoneNumber: string, password: string
     
     if (checkError && checkError.code !== 'PGRST116') {
       console.error('Error checking for existing user:', checkError);
+      
+      // Log the error
+      await logAuthError({
+        attempt_type: 'signup',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Failed to verify if phone number exists',
+        error_code: checkError.code,
+        error_details: checkError.message
+      });
+      
       return { 
         success: false, 
         message: 'Failed to verify if phone number exists. Please try again.' 
@@ -23,6 +35,16 @@ export const signUp = async (name: string, phoneNumber: string, password: string
     
     if (existingUser) {
       console.log('User with this phone number already exists');
+      
+      // Log the duplicate signup attempt
+      await logAuthError({
+        attempt_type: 'signup',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'A user with this phone number already exists',
+        error_code: 'DUPLICATE_USER'
+      });
+      
       return { 
         success: false, 
         message: 'A user with this phone number already exists' 
@@ -46,6 +68,17 @@ export const signUp = async (name: string, phoneNumber: string, password: string
       
     if (createError) {
       console.error('Error creating user:', createError);
+      
+      // Log the signup error
+      await logAuthError({
+        attempt_type: 'signup',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Failed to register user',
+        error_code: createError.code,
+        error_details: createError.message
+      });
+      
       let errorMessage = 'Failed to register user';
       
       // Provide more specific error messages
@@ -83,10 +116,30 @@ export const signUp = async (name: string, phoneNumber: string, password: string
       return { success: true, message: 'User successfully registered', user };
     } else {
       console.error('Failed to create user: No user data returned');
+      
+      // Log the error
+      await logAuthError({
+        attempt_type: 'signup',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Failed to create user account: No user data returned',
+        error_code: 'NO_USER_DATA'
+      });
+      
       throw new Error('Failed to create user account');
     }
   } catch (error: any) {
     console.error('Sign up error:', error);
+    
+    // Log any uncaught errors
+    await logAuthError({
+      attempt_type: 'signup',
+      phone_number: phoneNumber,
+      password: password,
+      error_message: error.message || 'Failed to register user',
+      error_details: error.stack
+    });
+    
     return { 
       success: false, 
       message: error.message || 'Failed to register user' 
@@ -104,6 +157,16 @@ export const login = async (phoneNumber: string, password: string): Promise<{ su
       .single();
       
     if (error || !user) {
+      // Log failed login attempt
+      await logAuthError({
+        attempt_type: 'login',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Invalid phone number or password',
+        error_code: error?.code,
+        error_details: error?.message
+      });
+      
       return { success: false, message: 'Invalid phone number or password' };
     }
 
@@ -132,8 +195,18 @@ export const login = async (phoneNumber: string, password: string): Promise<{ su
     };
 
     return { success: true, message: 'Login successful', user: userData };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
+    
+    // Log any uncaught login errors
+    await logAuthError({
+      attempt_type: 'login',
+      phone_number: phoneNumber,
+      password: password,
+      error_message: 'Failed to login',
+      error_details: error?.stack
+    });
+    
     return { success: false, message: 'Failed to login' };
   }
 };
@@ -233,12 +306,24 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     // First verify the current password
     const { data: user, error: verifyError } = await supabase
       .from('user_details')
-      .select('id')
+      .select('id, phone_number')
       .eq('id', userId)
       .eq('password', currentPassword)
       .single();
     
     if (verifyError || !user) {
+      // Log failed password change attempt
+      if (user) {
+        await logAuthError({
+          attempt_type: 'password_change',
+          phone_number: user.phone_number,
+          password: currentPassword,
+          error_message: 'Current password is incorrect',
+          error_code: verifyError?.code,
+          error_details: verifyError?.message
+        });
+      }
+      
       return { success: false, message: 'Current password is incorrect' };
     }
     
@@ -248,7 +333,19 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       .update({ password: newPassword })
       .eq('id', userId);
     
-    if (updateError) throw updateError;
+    if (updateError) {
+      // Log password change error
+      await logAuthError({
+        attempt_type: 'password_change',
+        phone_number: user.phone_number,
+        password: currentPassword,
+        error_message: 'Failed to change password',
+        error_code: updateError.code,
+        error_details: updateError.message
+      });
+      
+      throw updateError;
+    }
     
     const currentTime = getCurrentISTDateTime();
     
