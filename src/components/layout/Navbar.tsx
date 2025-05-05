@@ -6,6 +6,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BarChart2, User, History, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
 import Logo from '@/components/Logo';
+import { useToast } from '@/hooks/use-toast';
 
 const Navbar: React.FC = () => {
   const { signOut } = useAuth();
@@ -15,6 +16,7 @@ const Navbar: React.FC = () => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [isNavigating, setIsNavigating] = React.useState(false);
+  const { toast } = useToast();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -91,11 +93,12 @@ const Navbar: React.FC = () => {
   if (isMobile) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 h-14 bg-sidebar border-b border-border flex items-center px-4 z-20">
+        <div className="fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border flex items-center px-4 z-30">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => setMobileOpen(true)}
+            className="focus:outline-none"
           >
             <Menu size={24} />
           </Button>
@@ -105,7 +108,7 @@ const Navbar: React.FC = () => {
         </div>
         
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw]">
+          <SheetContent side="left" className="p-0 bg-sidebar w-[250px] max-w-[80vw] z-50">
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-center p-4 border-b border-border">
                 <NavIcon />
@@ -145,7 +148,7 @@ const Navbar: React.FC = () => {
         </Sheet>
         
         {/* Add top margin to content */}
-        <div className="h-14"></div>
+        <div className="h-16"></div>
       </>
     );
   }

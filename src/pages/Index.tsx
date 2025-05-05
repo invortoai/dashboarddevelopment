@@ -17,11 +17,11 @@ const Index = () => {
           <Logo className="h-16 sm:h-20 w-auto mx-auto" />
         </div>
         
-        <h1 className="text-3xl md:text-5xl font-bold mb-4 text-white">
+        <h1 className="text-2xl md:text-5xl font-bold mb-4 text-white">
           Invorto AI
         </h1>
         
-        <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto px-2">
+        <p className="text-base md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto px-2">
           Connect with developers instantly and track all your communications in one place
         </p>
         

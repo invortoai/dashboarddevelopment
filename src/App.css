@@ -47,3 +47,22 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Add mobile responsive styles */
+body, html {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Fix for mobile menu */
+.mobile-menu-open {
+  overflow: hidden;
+}
+
+/* Improve touch targets on mobile */
+button, 
+a {
+  touch-action: manipulation;
+}

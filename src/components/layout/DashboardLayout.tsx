@@ -35,8 +35,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Navbar />
-      <main className={`flex-1 overflow-auto p-3 md:p-6 ${isMobile ? 'pt-16' : ''}`}>
-        <div className="container mx-auto max-w-7xl">
+      <main className={`flex-1 overflow-y-auto p-3 md:p-6 ${isMobile ? 'pt-20' : ''}`}>
+        <div className="container mx-auto max-w-7xl min-h-full pb-20">
           {children}
         </div>
       </main>
