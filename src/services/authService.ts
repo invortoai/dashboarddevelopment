@@ -1,25 +1,38 @@
-
 import { supabase } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
 
 export const signUp = async (name: string, phoneNumber: string, password: string): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
+    console.log(`Attempting to create user with phone: ${phoneNumber.substring(0, 3)}***${phoneNumber.substring(7)}`);
+    
     // Check if user with this phone number already exists
-    const { data: existingUser } = await supabase
+    const { data: existingUser, error: checkError } = await supabase
       .from('user_details')
       .select('id')
       .eq('phone_number', phoneNumber)
       .single();
     
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking for existing user:', checkError);
+      return { 
+        success: false, 
+        message: 'Failed to verify if phone number exists. Please try again.' 
+      };
+    }
+    
     if (existingUser) {
-      return { success: false, message: 'A user with this phone number already exists' };
+      console.log('User with this phone number already exists');
+      return { 
+        success: false, 
+        message: 'A user with this phone number already exists' 
+      };
     }
 
     const currentTime = getCurrentISTDateTime();
     
     // Create the user
-    const { data: newUser, error } = await supabase
+    const { data: newUser, error: createError } = await supabase
       .from('user_details')
       .insert({
         name,
@@ -31,15 +44,32 @@ export const signUp = async (name: string, phoneNumber: string, password: string
       .select()
       .single();
       
-    if (error) throw error;
+    if (createError) {
+      console.error('Error creating user:', createError);
+      let errorMessage = 'Failed to register user';
+      
+      // Provide more specific error messages
+      if (createError.code === '23505') {
+        errorMessage = 'This phone number is already registered';
+      }
+      
+      throw new Error(errorMessage);
+    }
 
     // Record user signup activity
     if (newUser) {
-      await supabase.from('user_activity').insert({
-        user_id: newUser.id,
-        activity_type: 'signup',
-        timestamp: currentTime,
-      });
+      try {
+        await supabase.from('user_activity').insert({
+          user_id: newUser.id,
+          activity_type: 'signup',
+          timestamp: currentTime,
+        });
+
+        console.log('User activity recorded successfully');
+      } catch (activityError) {
+        console.error('Failed to record signup activity:', activityError);
+        // Non-critical error, continue with signup process
+      }
 
       const user: User = {
         id: newUser.id,
@@ -49,13 +79,18 @@ export const signUp = async (name: string, phoneNumber: string, password: string
         signupTime: newUser.signup_time,
       };
 
+      console.log('User successfully registered');
       return { success: true, message: 'User successfully registered', user };
     } else {
-      throw new Error('Failed to create user');
+      console.error('Failed to create user: No user data returned');
+      throw new Error('Failed to create user account');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sign up error:', error);
-    return { success: false, message: 'Failed to register user' };
+    return { 
+      success: false, 
+      message: error.message || 'Failed to register user' 
+    };
   }
 };
 
