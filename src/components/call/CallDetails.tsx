@@ -64,6 +64,9 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
                   callDetails.callTime ? formatToIST(callDetails.callTime) : '-'
                 } 
               />
+              {callDetails.callLogId && (
+                <InfoItem label="Call Log ID" value={callDetails.callLogId} />
+              )}
             </div>
             <div className="space-y-4">
               <InfoItem label="Project Name" value={callDetails.project} />
@@ -106,19 +109,6 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
         </CardContent>
       </Card>
       
-      {callDetails.summary && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl">Call Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="p-4 bg-muted/50 rounded-md border border-border whitespace-pre-wrap">
-              {callDetails.summary}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
       {/* Transcript display with in-window behavior */}
       {showTranscript && callDetails.transcript && (
         <Card className="shadow-sm">
@@ -131,6 +121,19 @@ const CallDetailsComponent: React.FC<CallDetailsProps> = ({
           <CardContent>
             <div className="p-4 bg-muted/50 rounded-md border border-border whitespace-pre-wrap max-h-96 overflow-auto">
               {callDetails.transcript}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {callDetails.summary && (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">Call Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-muted/50 rounded-md border border-border whitespace-pre-wrap">
+              {callDetails.summary}
             </div>
           </CardContent>
         </Card>

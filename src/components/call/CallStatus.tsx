@@ -222,7 +222,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
             )}
           </div>
 
-          {/* Call Log ID - smaller, more compact */}
+          {/* Call Log ID - smaller, more compact - ALWAYS display if available */}
           {callLogId && (
             <div className="text-center p-1.5 md:p-2 bg-muted/50 rounded-md border border-border">
               <p className="text-xs md:text-sm font-medium break-all">Call Log ID: {callLogId}</p>
@@ -365,6 +365,13 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     <p className="text-muted-foreground">Credits Used</p>
                     <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
                   </div>
+                  
+                  {callLogId && (
+                    <div className="space-y-0.5 text-xs md:text-sm">
+                      <p className="text-muted-foreground">Call Log ID</p>
+                      <p className="font-medium">{callLogId}</p>
+                    </div>
+                  )}
                 </div>
 
                 {callResult?.summary && (
