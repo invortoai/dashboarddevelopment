@@ -1,7 +1,7 @@
-
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { formatPhoneNumber } from '@/utils/phoneUtils';
 import { formatToIST } from '@/utils/dateUtils';
 import { CallDetails } from '@/types';
@@ -23,7 +23,20 @@ import {
   PaginationNext,
   PaginationPrevious
 } from '@/components/ui/pagination';
-import { Check, PhoneOff, PhoneMissed, X } from 'lucide-react';
+import { Check, PhoneOff, PhoneMissed, X, Search, Calendar, Filter } from 'lucide-react';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger 
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface CallHistoryListProps {
   calls: CallDetails[];
@@ -47,6 +60,53 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   const isMobile = useIsMobile();
   const bottomRef = useRef<HTMLDivElement>(null);
   
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  
+  // Filtered calls
+  const [filteredCalls, setFilteredCalls] = useState<CallDetails[]>(calls);
+  
+  // Update filtered calls when filters change
+  useEffect(() => {
+    let result = [...calls];
+    
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(call => 
+        call.number.toLowerCase().includes(term) || 
+        call.developer.toLowerCase().includes(term) ||
+        call.project.toLowerCase().includes(term)
+      );
+    }
+    
+    // Apply date filter
+    if (selectedDate) {
+      const dateString = selectedDate.toDateString();
+      result = result.filter(call => {
+        const callDate = call.createdAt 
+          ? new Date(call.createdAt).toDateString() 
+          : call.callTime 
+            ? new Date(call.callTime).toDateString() 
+            : '';
+        return callDate === dateString;
+      });
+    }
+    
+    // Apply status filter
+    if (selectedStatus) {
+      result = result.filter(call => {
+        const status = (call.callStatus || '').toLowerCase();
+        return status.includes(selectedStatus.toLowerCase());
+      });
+    }
+    
+    setFilteredCalls(result);
+  }, [calls, searchTerm, selectedDate, selectedStatus]);
+  
+  // Intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -67,6 +127,13 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       }
     };
   }, [onLoadMore, isLoading, isMobile]);
+
+  // Reset filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedDate(undefined);
+    setSelectedStatus('');
+  };
 
   if (isLoading && calls.length === 0) {
     return (
@@ -167,6 +234,56 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Search and Filter Controls */}
+      <div className="flex flex-col sm:flex-row gap-2 justify-between mb-4">
+        <div className="relative w-full sm:w-1/3">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by number, developer or project..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8"
+          />
+        </div>
+        
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 gap-1">
+                <Calendar className="h-4 w-4" />
+                {selectedDate ? formatToIST(selectedDate).split(' ')[0] : 'Date Filter'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <DatePicker
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-[150px] h-10">
+              <SelectValue placeholder="Status Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="answered">Answered</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="no answer">No Answer</SelectItem>
+              <SelectItem value="busy">Busy</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {(searchTerm || selectedDate || selectedStatus) && (
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-10">
+              Clear
+            </Button>
+          )}
+        </div>
+      </div>
+      
       {/* Display total count for mobile */}
       {isMobile && totalCalls !== undefined && (
         <div className="text-sm text-muted-foreground mb-2">
@@ -184,6 +301,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                   <TableRow>
                     <TableHead>Date & Time</TableHead>
                     <TableHead>Developer</TableHead>
+                    <TableHead>Project</TableHead>
                     <TableHead>Number</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
@@ -191,13 +309,14 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {calls.map((call) => (
+                  {filteredCalls.map((call) => (
                     <TableRow key={call.id} className="hover:bg-muted/50">
                       <TableCell>
                         {call.createdAt ? formatToIST(call.createdAt) : 
                          call.callTime ? formatToIST(call.callTime) : '-'}
                       </TableCell>
                       <TableCell>{call.developer}</TableCell>
+                      <TableCell>{call.project}</TableCell>
                       <TableCell>{formatPhoneNumber(call.number)}</TableCell>
                       <TableCell>
                         {call.callDuration ? `${call.callDuration} seconds` : '-'}
@@ -225,6 +344,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Developer</TableHead>
+                  <TableHead>Project</TableHead>
                   <TableHead>Number</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
@@ -232,13 +352,14 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {calls.map((call) => (
+                {filteredCalls.map((call) => (
                   <TableRow key={call.id} className="hover:bg-muted/50">
                     <TableCell>
                       {call.createdAt ? formatToIST(call.createdAt) : 
                        call.callTime ? formatToIST(call.callTime) : '-'}
                     </TableCell>
                     <TableCell>{call.developer}</TableCell>
+                    <TableCell>{call.project}</TableCell>
                     <TableCell>{formatPhoneNumber(call.number)}</TableCell>
                     <TableCell>
                       {call.callDuration ? `${call.callDuration} seconds` : '-'}
