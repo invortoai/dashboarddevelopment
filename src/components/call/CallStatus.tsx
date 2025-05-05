@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -199,10 +198,10 @@ const CallStatus: React.FC<CallStatusProps> = ({
           <X className="h-5 w-5" />
         </button>
       )}
-      <CardContent className="p-3 md:p-4 overflow-y-auto">
-        <div className="flex flex-col space-y-3">
+      <CardContent className="p-3 md:p-5 overflow-y-auto">
+        <div className="flex flex-col space-y-3 md:space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Call Status</h3>
+            <h3 className="text-lg md:text-xl font-bold">Call Status</h3>
             {status === 'in-progress' && !hasError && (
               <span className="inline-flex items-center">
                 <span className="w-2 h-2 rounded-full bg-purple mr-2 animate-pulse"></span>
@@ -225,18 +224,18 @@ const CallStatus: React.FC<CallStatusProps> = ({
 
           {/* Call Log ID - smaller, more compact */}
           {callLogId && (
-            <div className="text-center p-1.5 bg-muted/50 rounded-md border border-border">
-              <p className="text-xs font-medium break-all">Call Log ID: {callLogId}</p>
+            <div className="text-center p-1.5 md:p-2 bg-muted/50 rounded-md border border-border">
+              <p className="text-xs md:text-sm font-medium break-all">Call Log ID: {callLogId}</p>
             </div>
           )}
 
           {/* Main content area with call details - more compact */}
-          <div className="p-3 border border-border rounded-md bg-muted overflow-y-auto max-h-[35vh]">
+          <div className="p-3 md:p-4 border border-border rounded-md bg-muted overflow-y-auto max-h-[35vh] md:max-h-[40vh]">
             {status === 'initiating' && (
               <div className="flex flex-col items-center justify-center space-y-3">
                 <div className="flex items-center space-x-2">
                   <div className="h-4 w-4 rounded-full border-2 border-t-transparent border-purple animate-spin"></div>
-                  <p>Initiating call...</p>
+                  <p className="md:text-base">Initiating call...</p>
                 </div>
 
                 {showRefreshButton && (
@@ -248,16 +247,16 @@ const CallStatus: React.FC<CallStatusProps> = ({
                         </div>
                         <div className="ml-2">
                           <h3 className="text-sm font-medium text-yellow-800">Wait for call completion</h3>
-                          <div className="mt-1 text-xs text-yellow-700">
+                          <div className="mt-1 text-xs md:text-sm text-yellow-700">
                             <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and then click the button below</p>
                           </div>
                           <div className="mt-2">
                             <Button 
                               variant="outline" 
-                              className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 text-xs h-8 px-2"
+                              className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 text-xs md:text-sm h-8 md:h-9 px-2 md:px-3"
                               onClick={handleRefreshCheck}
                             >
-                              <RefreshCw className="mr-1 h-3 w-3" />
+                              <RefreshCw className="mr-1 h-3 w-3 md:h-4 md:w-4" />
                               Check Status
                             </Button>
                           </div>
@@ -271,7 +270,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
             
             {status === 'in-progress' && !hasError && (
               <div>
-                <p className="text-sm">
+                <p className="text-sm md:text-base">
                   Call in progress with <span className="font-bold">{developer}</span> on{' '}
                   <span className="font-bold">{number}</span>. Status updates when finished.
                 </p>
@@ -283,17 +282,17 @@ const CallStatus: React.FC<CallStatusProps> = ({
                         <AlertCircle className="h-4 w-4 text-yellow-400" aria-hidden="true" />
                       </div>
                       <div className="ml-2">
-                        <h3 className="text-xs font-medium text-yellow-800">Wait for call completion</h3>
-                        <div className="mt-1 text-xs text-yellow-700">
+                        <h3 className="text-xs md:text-sm font-medium text-yellow-800">Wait for call completion</h3>
+                        <div className="mt-1 text-xs md:text-sm text-yellow-700">
                           <p>After your call has completed, <span className="font-bold text-yellow-900">please wait for 30 seconds</span> and click below</p>
                         </div>
                         <div className="mt-2">
                           <Button 
                             variant="outline" 
-                            className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 h-8 px-2 text-xs"
+                            className="bg-white hover:bg-yellow-50 border-yellow-300 text-yellow-800 h-8 md:h-9 px-2 md:px-3 text-xs md:text-sm"
                             onClick={handleRefreshCheck}
                           >
-                            <RefreshCw className="mr-1 h-3 w-3" />
+                            <RefreshCw className="mr-1 h-3 w-3 md:h-4 md:w-4" />
                             Check Status
                           </Button>
                         </div>
@@ -303,7 +302,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                 )}
                 
                 {lastPolled && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs md:text-sm text-muted-foreground mt-2">
                     Last checked: {formatTimeAgo(lastPolled)}
                   </p>
                 )}
@@ -312,19 +311,19 @@ const CallStatus: React.FC<CallStatusProps> = ({
             
             {status === 'in-progress' && hasError && (
               <div>
-                <p className="text-amber-500 font-medium mb-2 text-sm">
+                <p className="text-amber-500 font-medium mb-2 text-sm md:text-base">
                   Call connection issue detected
                 </p>
-                <p className="text-sm">
+                <p className="text-sm md:text-base">
                   There was a problem connecting the call to <span className="font-bold">{developer}</span> on{' '}
                   <span className="font-bold">{number}</span>.
                 </p>
                 {rawStatus && (
-                  <p className="text-xs text-muted-foreground mt-1 break-all">
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1 break-all">
                     Error: {rawStatus}
                   </p>
                 )}
-                <p className="text-xs mt-1">
+                <p className="text-xs md:text-sm mt-1">
                   Please try again in a few minutes or contact support if the issue persists.
                 </p>
               </div>
@@ -336,18 +335,18 @@ const CallStatus: React.FC<CallStatusProps> = ({
                   <CallStatusBadge status={rawStatus || 'Completed'} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="space-y-0.5 text-xs">
+                <div className="grid grid-cols-2 gap-2 md:gap-4 mb-3 md:mb-4">
+                  <div className="space-y-0.5 text-xs md:text-sm">
                     <p className="text-muted-foreground">Developer</p>
                     <p className="font-medium break-all">{developer}</p>
                   </div>
                   
-                  <div className="space-y-0.5 text-xs">
+                  <div className="space-y-0.5 text-xs md:text-sm">
                     <p className="text-muted-foreground">Phone Number</p>
                     <p className="font-medium break-all">{number}</p>
                   </div>
                   
-                  <div className="space-y-0.5 text-xs">
+                  <div className="space-y-0.5 text-xs md:text-sm">
                     <p className="text-muted-foreground">Call Date & Time</p>
                     <p className="font-medium">
                       {callResult?.createdAt ? formatToIST(callResult.createdAt) :
@@ -356,13 +355,13 @@ const CallStatus: React.FC<CallStatusProps> = ({
                   </div>
                   
                   {callResult?.callDuration !== undefined && (
-                    <div className="space-y-0.5 text-xs">
+                    <div className="space-y-0.5 text-xs md:text-sm">
                       <p className="text-muted-foreground">Call Duration</p>
                       <p className="font-medium">{callResult.callDuration} seconds</p>
                     </div>
                   )}
 
-                  <div className="space-y-0.5 text-xs">
+                  <div className="space-y-0.5 text-xs md:text-sm">
                     <p className="text-muted-foreground">Credits Used</p>
                     <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
                   </div>
@@ -370,8 +369,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
 
                 {callResult?.summary && (
                   <div>
-                    <h4 className="font-medium mb-1 text-xs">Call Summary</h4>
-                    <div className="p-2 bg-muted/50 rounded border border-border text-xs whitespace-pre-wrap max-h-20 overflow-y-auto">
+                    <h4 className="font-medium mb-1 text-xs md:text-sm">Call Summary</h4>
+                    <div className="p-2 md:p-3 bg-muted/50 rounded border border-border text-xs md:text-sm whitespace-pre-wrap max-h-20 md:max-h-28 overflow-y-auto">
                       {callResult.summary}
                     </div>
                   </div>
@@ -382,20 +381,20 @@ const CallStatus: React.FC<CallStatusProps> = ({
 
           {status === 'completed' && (
             <form onSubmit={handleFeedbackSubmit} className="mt-1">
-              <div className="space-y-2">
+              <div className="space-y-2 md:space-y-3">
                 <div className="flex items-center gap-1">
                   <MessageSquare className="h-4 w-4 text-purple" />
-                  <h4 className="font-medium text-sm">Share Your Feedback</h4>
+                  <h4 className="font-medium text-sm md:text-base">Share Your Feedback</h4>
                 </div>
                 <Textarea
                   placeholder="Add your feedback here (max 1000 characters)"
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   maxLength={1000}
-                  className="min-h-16 resize-none text-sm"
+                  className="min-h-16 md:min-h-24 resize-none text-sm md:text-base"
                 />
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs md:text-sm text-muted-foreground">
                     {feedback.length}/1000 characters
                   </div>
                   
@@ -403,7 +402,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                     <Button 
                       type="submit" 
                       disabled={!feedback.trim() || isSubmitting}
-                      className="h-8 text-xs"
+                      className="h-8 md:h-10 text-xs md:text-sm"
                       size="sm"
                     >
                       {isSubmitting ? 'Sending...' : 'Send Feedback'}
@@ -413,7 +412,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                       type="button"
                       variant="outline"
                       onClick={onViewDetails}
-                      className="h-8 text-xs whitespace-nowrap"
+                      className="h-8 md:h-10 text-xs md:text-sm whitespace-nowrap"
                       size="sm"
                     >
                       View Details
@@ -432,7 +431,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
   if (isPopup) {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-hidden">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md md:max-w-lg lg:max-w-xl">
           {content}
         </div>
       </div>
@@ -473,8 +472,8 @@ const CallStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium ${bgColor} ${textColor}`}>
-      {Icon && <Icon size={12} />}
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs md:text-sm font-medium ${bgColor} ${textColor}`}>
+      {Icon && <Icon size={12} className="md:w-3 md:h-3" />}
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
