@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DateFilterProps {
   selectedDate: Date | undefined;
@@ -20,6 +21,8 @@ const DateFilter: React.FC<DateFilterProps> = ({
   selectedDate, 
   onDateSelect 
 }) => {
+  const isMobile = useIsMobile();
+  
   // Handle date selection with DateRange support
   const handleDateSelect = (date: Date | DateRange | undefined) => {
     // We're only interested in single date selection in this component
@@ -32,11 +35,13 @@ const DateFilter: React.FC<DateFilterProps> = ({
   };
 
   return (
-    <DatePicker
-      selected={selectedDate}
-      onSelect={handleDateSelect}
-      mode="single"
-    />
+    <div className={isMobile ? "w-full" : "w-auto"}>
+      <DatePicker
+        selected={selectedDate}
+        onSelect={handleDateSelect}
+        mode="single"
+      />
+    </div>
   );
 };
 

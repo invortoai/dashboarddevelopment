@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import SearchFilter from './SearchFilter';
 import DateFilter from './DateFilter';
 import StatusFilter from './StatusFilter';
-import { DateRange } from 'react-day-picker';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface FilterBarProps {
   searchTerm: string;
@@ -30,11 +30,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onResetFilters,
   hasActiveFilters
 }) => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3 justify-between mb-4">
+    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3 justify-between mb-4`}>
       <SearchFilter searchTerm={searchTerm} onSearchChange={onSearchChange} />
       
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className={`flex ${isMobile ? 'flex-wrap' : 'flex-row'} gap-2 items-center`}>
         <DateFilter selectedDate={selectedDate} onDateSelect={onDateSelect} />
         
         <StatusFilter 
