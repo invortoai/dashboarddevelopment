@@ -1,11 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import SearchFilter from './SearchFilter';
 import DateFilter from './DateFilter';
 import StatusFilter from './StatusFilter';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { DateRange } from 'react-day-picker';
 
 interface FilterBarProps {
   searchTerm: string;
@@ -30,13 +29,11 @@ const FilterBar: React.FC<FilterBarProps> = ({
   onResetFilters,
   hasActiveFilters
 }) => {
-  const isMobile = useIsMobile();
-
   return (
-    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-3 justify-between mb-4`}>
+    <div className="flex flex-col sm:flex-row gap-2 justify-between mb-4">
       <SearchFilter searchTerm={searchTerm} onSearchChange={onSearchChange} />
       
-      <div className={`flex ${isMobile ? 'flex-wrap' : 'flex-row'} gap-2 items-center`}>
+      <div className="flex gap-2">
         <DateFilter selectedDate={selectedDate} onDateSelect={onDateSelect} />
         
         <StatusFilter 
@@ -46,13 +43,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
         />
         
         {hasActiveFilters && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onResetFilters} 
-            className="h-10 px-3 flex items-center gap-1 border-dashed"
-          >
-            <X className="h-4 w-4" />
+          <Button variant="ghost" size="sm" onClick={onResetFilters} className="h-10">
             Clear
           </Button>
         )}

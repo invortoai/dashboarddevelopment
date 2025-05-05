@@ -3,11 +3,10 @@ import React from 'react';
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
-  PaginationPrevious,
+  PaginationPrevious
 } from '@/components/ui/pagination';
 
 interface CallPaginationProps {
@@ -23,95 +22,78 @@ const CallPagination: React.FC<CallPaginationProps> = ({
   onPageChange,
   isMobile
 }) => {
-  if (isMobile || totalPages <= 1) {
-    return null;
-  }
-
-  // Function to generate page links efficiently
-  const generatePageLinks = () => {
-    const pageLinks = [];
-    
-    // Always show first page
-    pageLinks.push(
-      <PaginationItem key="page-1">
-        <PaginationLink 
-          onClick={() => onPageChange(1)}
-          isActive={currentPage === 1}
-        >
-          1
-        </PaginationLink>
-      </PaginationItem>
-    );
-
-    // Show ellipsis if needed
-    if (currentPage > 3) {
-      pageLinks.push(
-        <PaginationItem key="ellipsis-1">
-          <PaginationEllipsis />
-        </PaginationItem>
-      );
-    }
-
-    // Show current page and surrounding pages
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      if (i === 1 || i === totalPages) continue; // Skip first and last page as they're always shown
-      
-      pageLinks.push(
-        <PaginationItem key={`page-${i}`}>
-          <PaginationLink 
-            onClick={() => onPageChange(i)}
-            isActive={currentPage === i}
-          >
-            {i}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-
-    // Show ellipsis if needed
-    if (currentPage < totalPages - 2) {
-      pageLinks.push(
-        <PaginationItem key="ellipsis-2">
-          <PaginationEllipsis />
-        </PaginationItem>
-      );
-    }
-
-    // Always show last page if more than 1 page
-    if (totalPages > 1) {
-      pageLinks.push(
-        <PaginationItem key={`page-${totalPages}`}>
-          <PaginationLink 
-            onClick={() => onPageChange(totalPages)}
-            isActive={currentPage === totalPages}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-
-    return pageLinks;
-  };
-
+  // Don't show pagination if there's only 1 page or on mobile (where we use infinite scroll)
+  if (totalPages <= 1 || isMobile) return null;
+  
   return (
-    <Pagination>
+    <Pagination className="mt-4">
       <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious 
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-            className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-          />
-        </PaginationItem>
+        {/* Previous button */}
+        {currentPage > 1 ? (
+          <PaginationItem>
+            <PaginationPrevious 
+              onClick={() => onPageChange(currentPage - 1)} 
+              className="cursor-pointer"
+              aria-label="Go to previous page" 
+            />
+          </PaginationItem>
+        ) : (
+          <PaginationItem>
+            <PaginationPrevious 
+              className="opacity-50 cursor-not-allowed" 
+              aria-disabled="true" 
+              aria-label="No previous page available"
+            />
+          </PaginationItem>
+        )}
         
-        {generatePageLinks()}
+        {/* Page numbers - only shown on desktop */}
+        {!isMobile && Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+          // Show pages around current page
+          let pageNum: number;
+          
+          if (totalPages <= 5) {
+            pageNum = i + 1;
+          } else if (currentPage <= 3) {
+            pageNum = i + 1;
+          } else if (currentPage >= totalPages - 2) {
+            pageNum = totalPages - 4 + i;
+          } else {
+            pageNum = currentPage - 2 + i;
+          }
+          
+          return (
+            <PaginationItem key={pageNum}>
+              <PaginationLink
+                isActive={pageNum === currentPage}
+                onClick={() => onPageChange(pageNum)}
+                className="cursor-pointer"
+                aria-label={`Page ${pageNum}`}
+              >
+                {pageNum}
+              </PaginationLink>
+            </PaginationItem>
+          );
+        })}
         
-        <PaginationItem>
-          <PaginationNext 
-            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-          />
-        </PaginationItem>
+        {/* Next button */}
+        {currentPage < totalPages ? (
+          <PaginationItem>
+            <PaginationNext 
+              onClick={() => onPageChange(currentPage + 1)} 
+              className="cursor-pointer"
+              aria-label="Go to next page" 
+            />
+          </PaginationItem>
+        ) : (
+          <PaginationItem>
+            <PaginationNext 
+              className="opacity-50 cursor-not-allowed" 
+              aria-disabled="true"
+              aria-label="No next page available" 
+            />
+          </PaginationItem>
+        )}
       </PaginationContent>
     </Pagination>
   );

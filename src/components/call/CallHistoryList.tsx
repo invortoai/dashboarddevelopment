@@ -155,19 +155,17 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
   return (
     <div className="space-y-4">
       {/* Search and Filter Controls */}
-      <div className="bg-card/50 rounded-md p-4 border border-border/50">
-        <FilterBar
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          statusOptions={statusOptions}
-          selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
-          onResetFilters={resetFilters}
-          hasActiveFilters={hasActiveFilters}
-        />
-      </div>
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedDate={selectedDate}
+        onDateSelect={setSelectedDate}
+        statusOptions={statusOptions}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        onResetFilters={resetFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
       
       {/* Display total count for mobile */}
       {isMobile && totalCalls !== undefined && (
@@ -177,7 +175,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       )}
       
       {/* Table Implementation */}
-      <div className="w-full overflow-hidden border border-border rounded-md">
+      <div className="w-full">
         {isMobile ? (
           <div className="overflow-auto">
             <div className="min-w-[800px]">
@@ -192,14 +190,12 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       </div>
       
       {/* Pagination controls */}
-      <div className="mt-4">
-        <CallPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          isMobile={isMobile}
-        />
-      </div>
+      <CallPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        isMobile={isMobile}
+      />
       
       {/* Loading indicator for mobile infinite scroll */}
       {isMobile && isLoading && calls.length > 0 && <LoadingState initialLoad={false} />}
@@ -208,7 +204,7 @@ const CallHistoryList: React.FC<CallHistoryListProps> = ({
       <div ref={bottomRef} className="h-4" />
       
       {!isMobile && totalCalls !== undefined && (
-        <div className="text-center text-sm text-muted-foreground mt-2">
+        <div className="text-center text-sm text-muted-foreground">
           Showing page {currentPage} of {totalPages} ({totalCalls} total records)
         </div>
       )}
