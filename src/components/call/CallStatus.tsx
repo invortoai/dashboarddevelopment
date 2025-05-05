@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { formatTimeAgo, formatToIST } from '@/utils/dateUtils';
 import { Check, PhoneOff, PhoneMissed, X, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { recalculateUserCredits } from '@/services/userCredits';
 import { useAuth } from '@/context/AuthContext';
 
@@ -26,7 +26,7 @@ interface CallStatusProps {
   onFeedbackSubmit?: (feedback: string) => Promise<void>;
   onViewDetails?: () => void;
   onClose?: () => void;
-  isPopup?: boolean; // New prop to determine if it should render as a popup
+  isPopup?: boolean; // Prop to determine if it should render as a popup
 }
 
 const CallStatus: React.FC<CallStatusProps> = ({ 
@@ -188,20 +188,20 @@ const CallStatus: React.FC<CallStatusProps> = ({
   // Only render as a popup if isPopup is true
   if (isPopup) {
     return (
-      <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div className="w-full max-w-2xl">
-          <Card className="bg-card border-2 border-purple relative">
-            {/* Only show close button for error states or when feedback form is active */}
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-md md:max-w-lg">
+          <Card className="bg-card border-2 border-purple shadow-xl relative">
+            {/* Improved close button positioning */}
             {((hasError || showCloseButton) && onClose) && (
               <button 
                 onClick={onClose} 
-                className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-10"
+                className="absolute -right-3 -top-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors z-10"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
               </button>
             )}
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="flex flex-col space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold">Call Status</h3>
@@ -228,11 +228,12 @@ const CallStatus: React.FC<CallStatusProps> = ({
                 {/* Call Log ID */}
                 {callLogId && (
                   <div className="text-center p-2 bg-muted/50 rounded-md border border-border">
-                    <p className="text-sm font-medium">Call Log ID: {callLogId}</p>
+                    <p className="text-sm font-medium break-all">Call Log ID: {callLogId}</p>
                   </div>
                 )}
 
-                <div className="p-4 border border-border rounded-md bg-muted">
+                {/* Main content area with call details */}
+                <div className="p-4 border border-border rounded-md bg-muted overflow-hidden">
                   {status === 'initiating' && (
                     <div className="flex flex-col items-center justify-center space-y-4">
                       <div className="flex items-center space-x-2">
@@ -343,15 +344,15 @@ const CallStatus: React.FC<CallStatusProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Developer</p>
-                          <p className="font-medium">{developer}</p>
+                          <p className="font-medium break-all">{developer}</p>
                         </div>
                         
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Phone Number</p>
-                          <p className="font-medium">{number}</p>
+                          <p className="font-medium break-all">{number}</p>
                         </div>
                         
-                        {/* Date and Time section - prioritize createdAt, then fallback to callTime */}
+                        {/* Date and Time section */}
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Call Date & Time</p>
                           <p className="font-medium">
@@ -367,7 +368,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                           </div>
                         )}
 
-                        {/* Always show Credits Used section */}
+                        {/* Credits Used section */}
                         <div className="space-y-1">
                           <p className="text-sm text-muted-foreground">Credits Used</p>
                           <p className="font-medium">{callResult?.creditsConsumed !== undefined ? callResult.creditsConsumed : '0'}</p>
@@ -387,7 +388,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
                 </div>
 
                 {status === 'completed' && (
-                  <form onSubmit={handleFeedbackSubmit} className="mt-4">
+                  <form onSubmit={handleFeedbackSubmit} className="mt-2">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 text-purple" />
@@ -398,17 +399,19 @@ const CallStatus: React.FC<CallStatusProps> = ({
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
                         maxLength={1000}
-                        className="min-h-24"
+                        className="min-h-24 resize-none"
                       />
-                      <div className="flex justify-between items-center">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                         <div className="text-sm text-muted-foreground">
                           {feedback.length}/1000 characters
                         </div>
                         
-                        <div className="flex space-x-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <Button 
                             type="submit" 
                             disabled={!feedback.trim() || isSubmitting}
+                            className="w-full sm:w-auto"
+                            size="sm"
                           >
                             {isSubmitting ? 'Sending...' : 'Send Feedback'}
                           </Button>
@@ -417,6 +420,8 @@ const CallStatus: React.FC<CallStatusProps> = ({
                             type="button"
                             variant="outline"
                             onClick={onViewDetails}
+                            className="w-full sm:w-auto"
+                            size="sm"
                           >
                             View Full Details
                           </Button>
@@ -432,7 +437,7 @@ const CallStatus: React.FC<CallStatusProps> = ({
       </div>
     );
   } else {
-    // When not in popup mode, render as a regular component (empty as requested)
+    // When not in popup mode, render as a regular component
     return null;
   }
 };
