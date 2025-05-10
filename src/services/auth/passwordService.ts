@@ -24,15 +24,17 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     
     try {
       // Check if we're using the new format with explicit salt and hash
-      if ('password_hash' in user && user.password_hash) {
+      if (user && 'password_hash' in user && user.password_hash) {
         // New approach: separate salt and hash
+        const salt = user.password_salt as string;
+        const hash = user.password_hash as string;
         isPasswordValid = await verifyPassword(
           currentPassword, 
-          `${user.password_salt}:${user.password_hash}`
+          `${salt}:${hash}`
         );
-      } else {
+      } else if (user && user.password_salt) {
         // Legacy approach: use just the password_salt field
-        isPasswordValid = await verifyPassword(currentPassword, user.password_salt);
+        isPasswordValid = await verifyPassword(currentPassword, user.password_salt as string);
       }
     } catch (err) {
       console.error('Error in password verification:', err);
@@ -43,7 +45,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       // Log failed password change attempt
       await logAuthError({
         attempt_type: 'password_change',
-        phone_number: user.phone_number,
+        phone_number: user.phone_number as string,
         password: currentPassword,
         error_message: 'Current password is incorrect',
         ip_address: clientIP,
@@ -91,7 +93,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       // Log password change error
       await logAuthError({
         attempt_type: 'password_change',
-        phone_number: sanitizeInput(user.phone_number),
+        phone_number: user.phone_number as string,
         password: currentPassword,
         error_message: 'Failed to change password',
         error_code: updateError.code,

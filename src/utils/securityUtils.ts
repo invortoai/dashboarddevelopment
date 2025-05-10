@@ -109,3 +109,28 @@ export const generateCSRFToken = (): string => {
   secureTokenStorage.setToken('csrf_token', token, 60); // 60 minutes expiry
   return token;
 };
+
+// Add requireAuth function that was missing
+export const requireAuth = async (): Promise<boolean> => {
+  try {
+    // Check if we have a valid session info in secure storage
+    const sessionInfo = localStorage.getItem('sessionInfo');
+    if (!sessionInfo) return false;
+    
+    const session = JSON.parse(sessionInfo);
+    
+    // Check for session expiry
+    const expiresAt = new Date(session.expiresAt);
+    if (expiresAt < new Date()) {
+      // Session expired, clear it
+      localStorage.removeItem('sessionInfo');
+      localStorage.removeItem('csrf_token');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Auth check error:', error);
+    return false;
+  }
+};

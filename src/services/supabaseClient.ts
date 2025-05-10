@@ -8,10 +8,10 @@ import {
 // Import security utilities from our new module
 import {
   sanitizeInput,
-  requireAuth,
   secureCompare,
   validateCSRFToken,
-  generateCSRFToken
+  generateCSRFToken,
+  requireAuth
 } from '@/utils/securityUtils';
 
 // Export all the functionality from our integrations directory and security utilities

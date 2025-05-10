@@ -7,8 +7,8 @@ export { changePassword } from './passwordService';
 // Export security helpers from our new security utilities
 export { 
   sanitizeInput, 
-  requireAuth, 
-  secureCompare, 
   validateCSRFToken, 
-  generateCSRFToken 
+  secureCompare, 
+  generateCSRFToken,
+  requireAuth 
 } from '@/utils/securityUtils';

@@ -1,5 +1,5 @@
 
-import { supabase, sanitizeInput, requireAuth, validateCsrfToken } from '../supabaseClient';
+import { supabase, sanitizeInput, requireAuth, validateCSRFToken } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError, recordFailedAttempt } from '../../utils/authErrorLogger';
