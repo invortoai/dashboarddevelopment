@@ -21,17 +21,27 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Add a custom function to check if a column exists in a table
-// This is needed because we might be working with a database schema that doesn't have password_salt yet
+// Add a safer approach to check if a column exists in a table without relying on database functions
 export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
+    // We'll use a safe query to check column existence by querying information_schema
     const { data, error } = await supabase
-      .rpc('check_column_exists', { table_name: tableName, column_name: columnName });
+      .from('information_schema.columns')
+      .select('column_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName)
+      .eq('column_name', columnName)
+      .maybeSingle();
       
-    if (error) throw error;
+    if (error) {
+      console.error(`Error checking if column ${columnName} exists in ${tableName}:`, error);
+      return false;
+    }
+    
     return !!data;
   } catch (error) {
     console.error(`Error checking if column ${columnName} exists in ${tableName}:`, error);
     return false;
   }
 };
+

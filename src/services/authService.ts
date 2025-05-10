@@ -1,5 +1,4 @@
-
-import { supabase } from './supabaseClient';
+import { supabase, checkColumnExists } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
 import { 
@@ -76,20 +75,8 @@ export const signUp = async (
     
     const currentTime = getCurrentISTDateTime();
     
-    // Create the user with secure password storage
-    // Note: We need to check if password_salt column exists first
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('user_details')
-      .select()
-      .limit(1);
-      
-    if (tableError) {
-      console.error('Error checking table schema:', tableError);
-      throw new Error('Could not verify database schema');
-    }
-      
-    // Check if password_salt exists in the returned data structure
-    const hasSaltColumn = tableInfo && tableInfo[0] && 'password_salt' in tableInfo[0];
+    // Check if the password_salt column exists before trying to use it
+    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
     
     let userInsertData: any = {
       name,
@@ -233,46 +220,28 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
-    // Check if the user object has a password_salt property
-    const hasSaltColumn = user && 'password_salt' in user;
+    // Check if the password_salt column exists
+    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
     let isPasswordValid = false;
     
-    if (hasSaltColumn && user.password_salt) {
-      // New secure method: verify password using salt
-      isPasswordValid = verifyPassword(password, user.password, user.password_salt);
-    } else {
-      // Legacy method: direct password comparison
-      isPasswordValid = user.password === password;
-      
-      // If using legacy method but valid, try to upgrade the user's password to hashed version
-      // First check if the password_salt column exists
-      if (isPasswordValid) {
-        try {
-          const { data: columnInfo, error: columnError } = await supabase
-            .rpc('check_column_exists', { table_name: 'user_details', column_name: 'password_salt' });
-            
-          // If column exists, update with new hashed password
-          if (!columnError && columnInfo) {
-            const salt = generateSalt();
-            const hashedPassword = hashPassword(password, salt);
-            
-            await supabase
-              .from('user_details')
-              .update({ 
-                password: hashedPassword,
-                password_salt: salt 
-              })
-              .eq('id', user.id);
-              
-            console.log('User password upgraded to secure storage');
-          } else {
-            console.log('Cannot upgrade password - password_salt column does not exist');
-          }
-        } catch (upgradeErr) {
-          // Non-critical error, continue with login process
-          console.error('Failed to upgrade user password:', upgradeErr);
-        }
+    if (hasSaltColumn) {
+      // If salt column exists, we need to fetch the user again to include the column
+      const { data: userWithSalt, error: saltError } = await supabase
+        .from('user_details')
+        .select('password, password_salt')
+        .eq('id', user.id)
+        .single();
+        
+      if (!saltError && userWithSalt && 'password_salt' in userWithSalt) {
+        // Verify using salt
+        isPasswordValid = verifyPassword(password, String(userWithSalt.password), String(userWithSalt.password_salt));
+      } else {
+        // Fallback to direct comparison
+        isPasswordValid = user.password === password;
       }
+    } else {
+      // No salt column, use direct comparison
+      isPasswordValid = user.password === password;
     }
     
     if (!isPasswordValid) {
@@ -445,12 +414,10 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     }
 
     // Check if the password_salt column exists
-    const { data: columnExists, error: columnError } = await supabase
-      .rpc('check_column_exists', { table_name: 'user_details', column_name: 'password_salt' });
-      
+    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
     let isPasswordValid = false;
       
-    if (!columnError && columnExists) {
+    if (hasSaltColumn) {
       // Get the user with salt
       const { data: userWithSalt, error: saltError } = await supabase
         .from('user_details')
@@ -458,9 +425,9 @@ export const changePassword = async (userId: string, currentPassword: string, ne
         .eq('id', userId)
         .single();
         
-      if (!saltError && userWithSalt && userWithSalt.password_salt) {
+      if (!saltError && userWithSalt && 'password_salt' in userWithSalt) {
         // Verify using salt
-        isPasswordValid = verifyPassword(currentPassword, userWithSalt.password, userWithSalt.password_salt);
+        isPasswordValid = verifyPassword(currentPassword, String(userWithSalt.password), String(userWithSalt.password_salt));
       } else {
         // Fallback to direct comparison
         isPasswordValid = user.password === currentPassword;
@@ -494,7 +461,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     };
     
     // Only add salt if the column exists
-    if (!columnError && columnExists) {
+    if (hasSaltColumn) {
       updateData.password_salt = salt;
     }
     

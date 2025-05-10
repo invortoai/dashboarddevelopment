@@ -1,5 +1,5 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkColumnExists } from '@/integrations/supabase/client';
 
-// Export the client from our integrations directory
-export { supabase };
+// Export all the functionality from our integrations directory
+export { supabase, checkColumnExists };
