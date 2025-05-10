@@ -8,4 +8,3 @@ verify_jwt = true
 # Individual functions can override this setting
 [functions]
 verify_jwt = true
-

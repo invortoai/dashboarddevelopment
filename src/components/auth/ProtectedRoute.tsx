@@ -9,8 +9,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+  
+  // Try to get auth context, but don't crash if it's not available
+  let isAuthenticated = false;
+  let isLoading = true;
+  let authError = false;
+  
+  try {
+    const auth = useAuth();
+    isAuthenticated = auth.isAuthenticated;
+    isLoading = auth.isLoading;
+  } catch (error) {
+    console.error("Auth context not available:", error);
+    authError = true;
+  }
+
+  if (authError) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
   if (isLoading) {
     return (

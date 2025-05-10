@@ -17,15 +17,21 @@ interface SecurityProviderProps {
  */
 const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
   // Safely access auth context with fallback values
-  let user = null;
-  let isAuthenticated = false;
+  const [user, setUser] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [sessionTimeoutCleanup, setSessionTimeoutCleanup] = useState<(() => void) | null>(null);
   
   // Try to get auth context, but don't crash if it's not available
   try {
     const auth = useAuth();
-    user = auth?.user;
-    isAuthenticated = auth?.isAuthenticated || false;
+    
+    // Only update state if auth context is available to prevent unnecessary re-renders
+    useEffect(() => {
+      if (auth) {
+        setUser(auth.user);
+        setIsAuthenticated(auth.isAuthenticated || false);
+      }
+    }, [auth?.user, auth?.isAuthenticated]);
   } catch (error) {
     console.warn("Auth context not available for SecurityProvider, using default values");
   }
