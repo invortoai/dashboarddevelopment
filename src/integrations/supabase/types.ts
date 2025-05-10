@@ -300,6 +300,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      execute_sql: {
+        Args: { query_text: string }
+        Returns: Json
+      }
       hash_password: {
         Args: { plain_password: string }
         Returns: string

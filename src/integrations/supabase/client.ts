@@ -28,7 +28,9 @@ export const checkColumnExists = async (tableName: string, columnName: string): 
     // we'll use a safer approach by attempting to select the specific column
     // and checking if the query succeeds
     const query = `SELECT "${columnName}" FROM "${tableName}" LIMIT 0`;
-    const { error } = await supabase.rpc('execute_sql', { query_text: query });
+    const { data, error } = await supabase.functions.invoke('execute_sql', {
+      body: { query_text: query }
+    });
     
     // If there's no error, the column exists
     return !error;

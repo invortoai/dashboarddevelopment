@@ -249,13 +249,22 @@ export const login = async (
           .eq('id', user.id)
           .single();
           
-        if (!saltError && userWithSalt && userWithSalt.password_salt) {
-          // Verify using salt
-          isPasswordValid = verifyPassword(
-            password, 
-            String(userWithSalt.password),
-            String(userWithSalt.password_salt)
-          );
+        if (!saltError && userWithSalt) {
+          // Safely check if password_salt property exists before accessing it
+          const userPass = userWithSalt.password;
+          const userSalt = userWithSalt.password_salt;
+          
+          if (userPass !== undefined && userSalt !== undefined) {
+            // Verify using salt
+            isPasswordValid = verifyPassword(
+              password, 
+              String(userPass),
+              String(userSalt)
+            );
+          } else {
+            // Fallback to direct comparison if we couldn't get salt
+            isPasswordValid = user.password === password;
+          }
         } else {
           // Fallback to direct comparison if we couldn't get the salt
           isPasswordValid = user.password === password;
@@ -459,13 +468,22 @@ export const changePassword = async (userId: string, currentPassword: string, ne
           .eq('id', userId)
           .single();
           
-        if (!saltError && userWithSalt && userWithSalt.password_salt) {
-          // Verify using salt
-          isPasswordValid = verifyPassword(
-            currentPassword, 
-            String(userWithSalt.password), 
-            String(userWithSalt.password_salt)
-          );
+        if (!saltError && userWithSalt) {
+          // Safely check if password_salt property exists before accessing it
+          const userPass = userWithSalt.password;
+          const userSalt = userWithSalt.password_salt;
+          
+          if (userPass !== undefined && userSalt !== undefined) {
+            // Verify using salt
+            isPasswordValid = verifyPassword(
+              currentPassword, 
+              String(userPass), 
+              String(userSalt)
+            );
+          } else {
+            // Fallback to direct comparison if we couldn't get the salt
+            isPasswordValid = user.password === currentPassword;
+          }
         } else {
           // Fallback to direct comparison if we couldn't get the salt
           isPasswordValid = user.password === currentPassword;
