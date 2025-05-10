@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +11,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { getClientIP, getLocationFromIP } from '@/utils/authErrorLogger';
 
 // Password regex patterns
 const hasUppercase = /[A-Z]/;
@@ -60,10 +60,13 @@ type FormData = z.infer<typeof formSchema>;
 
 const SignUpForm: React.FC = () => {
   const { signUp } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [passwordStrength, setPasswordStrength] = useState<{ score: number, label: string, color: string }>({ score: 0, label: '', color: 'bg-gray-300' });
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [clientIP, setClientIP] = useState<string | null>(null);
+  const [clientLocation, setClientLocation] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -86,6 +89,26 @@ const SignUpForm: React.FC = () => {
     }
   }, [watchPassword]);
 
+  // Fetch client IP on component mount
+  React.useEffect(() => {
+    const fetchClientDetails = async () => {
+      try {
+        const ip = await getClientIP();
+        setClientIP(ip);
+        
+        if (ip && ip !== 'unknown') {
+          const location = await getLocationFromIP(ip);
+          setClientLocation(location);
+          console.log(`Signup attempted from: ${location}`);
+        }
+      } catch (error) {
+        console.error("Failed to fetch client details:", error);
+      }
+    };
+    
+    fetchClientDetails();
+  }, []);
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setSignupError(null);
@@ -95,12 +118,17 @@ const SignUpForm: React.FC = () => {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       
-      // Empty email since we're not using email authentication
-      const dummyEmail = '';
-      
-      await signUp(cleanPhone, data.password, dummyEmail, data.name);
+      // Call signUp with correctly ordered parameters (name, phoneNumber, password, clientIP, clientLocation)
+      await signUp(
+        data.name,          // name
+        cleanPhone,         // phoneNumber
+        data.password,      // password  
+        clientIP,           // clientIP
+        clientLocation      // clientLocation
+      );
       
       console.log("Signup successful for:", data.name);
+      navigate('/analytics');
     } catch (error: any) {
       console.error('Sign up error details:', {
         message: error.message, 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,7 +30,9 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const LoginForm = () => {
-  const { signIn } = useAuth();
+  const { signIn, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [clientIP, setClientIP] = useState<string | null>(null);
@@ -39,6 +41,14 @@ const LoginForm = () => {
     limited: false,
     remainingSeconds: 0
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/analytics';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
 
   // Fetch client IP on component mount
   useEffect(() => {
@@ -112,6 +122,8 @@ const LoginForm = () => {
       
       // If we get here, login was successful
       console.log("Login successful");
+      const from = location.state?.from?.pathname || '/analytics';
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");
@@ -174,6 +186,11 @@ const LoginForm = () => {
                       maxLength={10}
                       inputMode="numeric"
                       disabled={rateLimited.limited}
+                      onChange={(e) => {
+                        // Only allow numbers
+                        const value = e.target.value.replace(/\D/g, '');
+                        field.onChange(value);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

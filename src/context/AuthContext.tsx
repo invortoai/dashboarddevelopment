@@ -17,7 +17,7 @@ interface AuthContextProps {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signUp: (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null, clientLocation?: string | null) => Promise<void>;
+  signUp: (name: string, phoneNumber: string, password: string, clientIP?: string | null, clientLocation?: string | null) => Promise<void>;
   signIn: (phoneNumber: string, password: string, clientIP?: string | null, clientLocation?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
@@ -130,7 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [isAuthenticated]);
 
-  const signUp = async (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null, clientLocation?: string | null): Promise<void> => {
+  // Updated signUp function with correctly ordered parameters
+  const signUp = async (name: string, phoneNumber: string, password: string, clientIP?: string | null, clientLocation?: string | null): Promise<void> => {
     try {
       console.log("Signing up with phone number:", phoneNumber);
       
@@ -242,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

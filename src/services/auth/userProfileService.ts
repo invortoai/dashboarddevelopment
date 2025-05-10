@@ -12,6 +12,7 @@ export const getUserDetails = async (userId: string): Promise<{ success: boolean
       .single();
     
     if (error || !user) {
+      console.error('Error getting user details:', error);
       return { success: false, message: 'User not found' };
     }
     
@@ -55,6 +56,7 @@ export const updateUserProfile = async (
       .single();
     
     if (error) {
+      console.error('Error updating user profile:', error);
       throw error;
     }
     
@@ -90,49 +92,88 @@ export const getUserLoginHistory = async (
   }> 
 }> => {
   try {
-    // Fetch login activity records for the user
-    const { data, error } = await supabase
-      .from('user_activity')
-      .select('timestamp')
-      .eq('user_id', userId)
-      .eq('activity_type', 'login')
-      .order('timestamp', { ascending: false })
-      .limit(10);
+    // First try to fetch from auth_error_logs if it exists
+    let loginHistory: Array<{timestamp: string; location?: string | null; ip_address?: string | null;}> = [];
     
-    if (error) {
-      console.error('Error fetching login history:', error);
-      return { 
-        success: false, 
-        message: 'Failed to fetch login history' 
-      };
-    }
-    
-    // Check if data exists and has the expected format
-    if (data && Array.isArray(data)) {
-      // Map the data to the expected format - only timestamp is available
-      const loginHistory = data.map(record => ({
-        timestamp: record.timestamp,
-        location: null,  // These fields don't exist in the table
-        ip_address: null
-      }));
+    try {
+      // Try to get login data from user_activity table (our main source)
+      const { data: activityData, error: activityError } = await supabase
+        .from('user_activity')
+        .select('timestamp')
+        .eq('user_id', userId)
+        .eq('activity_type', 'login')
+        .order('timestamp', { ascending: false })
+        .limit(10);
       
-      return {
-        success: true,
-        message: 'Login history fetched successfully',
-        history: loginHistory
-      };
+      if (activityError) {
+        console.warn('Error fetching login activity, trying fallback:', activityError);
+      } else if (activityData && Array.isArray(activityData)) {
+        // Map the data to the expected format
+        loginHistory = activityData.map(record => ({
+          timestamp: record.timestamp,
+          location: null,  // These fields don't exist in the activity table
+          ip_address: null
+        }));
+        
+        if (loginHistory.length > 0) {
+          return {
+            success: true,
+            message: 'Login history fetched successfully',
+            history: loginHistory
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching login activity:', err);
     }
     
+    // If we have no data yet, try fallback to auth_error_logs
+    try {
+      // This is a fallback to get at least some data from auth_error_logs
+      const { data: logsData, error: logsError } = await supabase
+        .from('auth_error_logs')
+        .select('attempt_time, location, ip_address')
+        .eq('phone_number', (await getUserDetails(userId)).user?.phoneNumber || '')
+        .eq('attempt_type', 'login')
+        .order('attempt_time', { ascending: false })
+        .limit(10);
+        
+      if (!logsError && logsData && Array.isArray(logsData)) {
+        // If we got data, merge it with any existing data
+        const logsHistory = logsData.map(record => ({
+          timestamp: record.attempt_time || new Date().toISOString(),
+          location: record.location,
+          ip_address: record.ip_address
+        }));
+        
+        // Combine with any existing data
+        loginHistory = [...loginHistory, ...logsHistory];
+        
+        if (loginHistory.length > 0) {
+          return {
+            success: true,
+            message: 'Login history fetched successfully (fallback)',
+            history: loginHistory
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Error in auth_error_logs fallback:', err);
+    }
+    
+    // If we still have no data, return empty array
     return {
       success: true,
       message: 'No login history found',
       history: []
     };
+    
   } catch (error: any) {
     console.error('Error in getUserLoginHistory:', error);
     return { 
       success: false, 
-      message: error.message || 'An error occurred while fetching login history'
+      message: error.message || 'An error occurred while fetching login history',
+      history: []
     };
   }
 };
