@@ -155,12 +155,13 @@ export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
       data.location = await getLocationFromIP(data.ip_address);
     }
     
+    // Use type casting to avoid TypeScript errors with Supabase column typing
     // Insert error log
     const { error } = await supabase
       .from('auth_error_logs')
       .insert({
-        attempt_type: data.attempt_type,
-        phone_number: data.phone_number,
+        attempt_type: data.attempt_type as any,
+        phone_number: data.phone_number as any,
         password_hash: passwordHash,
         attempt_time: istTime,
         error_message: data.error_message,
@@ -169,7 +170,7 @@ export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
         ip_address: data.ip_address || null,
         user_agent: data.user_agent || null,
         location: data.location || null
-      });
+      } as any);
       
     if (error) {
       console.error('Failed to log authentication error:', error);

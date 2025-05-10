@@ -81,8 +81,4 @@ export const upgradePasswordStorage = async (userId: string, legacyPassword: str
   }
 };
 
-// Export these functions so they can be called on application startup
-export { 
-  validateDatabaseSecurity,
-  upgradePasswordStorage
-};
+// Note: Removed the second export statement that was causing duplicate exports
