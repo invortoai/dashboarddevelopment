@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
@@ -14,7 +13,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
 import { 
   getClientIP, 
-  getLocationFromIP
+  getLocationFromIP,
+  checkRateLimit
 } from '@/utils/authErrorLogger';
 import { supabase } from '@/services/supabaseClient';
 
@@ -93,17 +93,24 @@ const LoginForm = () => {
   }, [rateLimited.limited, rateLimited.remainingSeconds]);
 
   // Check server-side rate limiting before submission
-  const checkRateLimit = async (phone: string): Promise<boolean> => {
+  const checkServerRateLimit = async (phone: string): Promise<boolean> => {
     try {
-      const { data: isLimited, error } = await supabase
-        .rpc('check_login_rate_limit', { phone_number: phone });
+      // Instead of using the RPC function directly, we'll query the auth_error_logs table
+      const { data, error } = await supabase
+        .from('auth_error_logs')
+        .select('attempt_time')
+        .eq('phone_number', phone)
+        .eq('attempt_type', 'login')
+        .gte('attempt_time', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+        .order('attempt_time', { ascending: false });
       
       if (error) {
         console.error("Error checking rate limit:", error);
         return false;
       }
       
-      if (isLimited) {
+      // If there are 5 or more failed attempts in the last hour, rate limit
+      if (data && data.length >= 5) {
         setRateLimited({
           limited: true,
           remainingSeconds: 3600 // 1 hour in seconds
@@ -127,7 +134,7 @@ const LoginForm = () => {
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       
       // Check if this phone number has been rate limited on server
-      const isRateLimited = await checkRateLimit(cleanPhone);
+      const isRateLimited = await checkServerRateLimit(cleanPhone);
       if (isRateLimited) {
         setLoginError(`Too many failed attempts. Please try again later.`);
         setIsSubmitting(false);

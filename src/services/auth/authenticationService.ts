@@ -1,4 +1,3 @@
-
 import { supabase } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
@@ -72,86 +71,77 @@ export const signUp = async (
     
     const currentTime = getCurrentISTDateTime();
     
-    // Create the user with separate salt and hash fields
-    const { data: newUser, error: createError } = await supabase
-      .from('user_details')
-      .insert({
-        name,
-        phone_number: phoneNumber,
-        password_salt: saltPart, // Store just the salt 
-        password_hash: hashPart, // Store just the hash
-        signup_time: currentTime,
-        credit: 1000
-      })
-      .select()
-      .single();
+    // Check if password_hash column exists
+    const { data: columnExists } = await supabase.rpc('execute_sql', {
+      query_text: "SELECT column_name FROM information_schema.columns WHERE table_name = 'user_details' AND column_name = 'password_hash'"
+    });
+    
+    let userData;
+    
+    if (columnExists && Array.isArray(columnExists) && columnExists.length > 0) {
+      // Create the user with separate salt and hash fields
+      const { data: newUser, error: createError } = await supabase
+        .from('user_details')
+        .insert({
+          name,
+          phone_number: phoneNumber,
+          password_salt: saltPart, // Store just the salt
+          // @ts-ignore - The column exists in DB but not in TypeScript types
+          password_hash: hashPart, // Store just the hash
+          signup_time: currentTime,
+          credit: 1000
+        })
+        .select()
+        .single();
+        
+      if (createError) throw createError;
+      userData = newUser;
+    } else {
+      // Fallback: store the combined hash in password_salt
+      const { data: newUser, error: createError } = await supabase
+        .from('user_details')
+        .insert({
+          name,
+          phone_number: phoneNumber,
+          password_salt: hashedPassword, // Store the complete hash including salt
+          signup_time: currentTime,
+          credit: 1000
+        })
+        .select()
+        .single();
+        
+      if (createError) throw createError;
+      userData = newUser;
+    }
       
-    if (createError) {
-      console.error('Error creating user:', createError);
-      
-      // Log the signup error
-      await logAuthError({
-        attempt_type: 'signup',
-        phone_number: phoneNumber,
-        password: password,
-        error_message: 'Failed to register user',
-        error_code: createError.code,
-        error_details: createError.message,
-        ip_address: clientIP || undefined,
-        location: clientLocation || undefined
-      });
-      
-      let errorMessage = 'Failed to register user';
-      
-      // Provide more specific error messages
-      if (createError.code === '23505') {
-        errorMessage = 'This phone number is already registered';
-      }
-      
-      throw new Error(errorMessage);
+    if (!userData) {
+      throw new Error('Failed to create user account');
     }
 
     // Record user signup activity
-    if (newUser) {
-      try {
-        await supabase.from('user_activity').insert({
-          user_id: newUser.id,
-          activity_type: 'signup',
-          timestamp: currentTime,
-        });
-
-        console.log('User activity recorded successfully');
-      } catch (activityError) {
-        console.error('Failed to record signup activity:', activityError);
-        // Non-critical error, continue with signup process
-      }
-
-      const user: User = {
-        id: newUser.id,
-        name: newUser.name,
-        phoneNumber: newUser.phone_number,
-        credit: newUser.credit,
-        signupTime: newUser.signup_time,
-      };
-
-      console.log('User successfully registered');
-      return { success: true, message: 'User successfully registered', user };
-    } else {
-      console.error('Failed to create user: No user data returned');
-      
-      // Log the error
-      await logAuthError({
-        attempt_type: 'signup',
-        phone_number: phoneNumber,
-        password: password,
-        error_message: 'Failed to create user account: No user data returned',
-        error_code: 'NO_USER_DATA',
-        ip_address: clientIP || undefined,
-        location: clientLocation || undefined
+    try {
+      await supabase.from('user_activity').insert({
+        user_id: userData.id,
+        activity_type: 'signup',
+        timestamp: currentTime,
       });
-      
-      throw new Error('Failed to create user account');
+
+      console.log('User activity recorded successfully');
+    } catch (activityError) {
+      console.error('Failed to record signup activity:', activityError);
+      // Non-critical error, continue with signup process
     }
+
+    const user: User = {
+      id: userData.id,
+      name: userData.name,
+      phoneNumber: userData.phone_number,
+      credit: userData.credit,
+      signupTime: userData.signup_time,
+    };
+
+    console.log('User successfully registered');
+    return { success: true, message: 'User successfully registered', user };
   } catch (error: any) {
     console.error('Sign up error:', error);
     
@@ -180,12 +170,20 @@ export const login = async (
   clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
-    // First check server-side rate limiting
-    const { data: rateLimitCheck } = await supabase
-      .rpc('check_login_rate_limit', { phone_number: phoneNumber });
-    
-    if (rateLimitCheck === true) {
-      // Record the rate-limited attempt
+    // Check for rate limiting by directly querying auth_error_logs
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: failedAttempts, error: rateError } = await supabase
+      .from('auth_error_logs')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .eq('attempt_type', 'login')
+      .gte('attempt_time', hourAgo);
+      
+    if (rateError) {
+      console.error("Error checking rate limit:", rateError);
+      // Continue with login process even if rate check fails
+    } else if (failedAttempts && failedAttempts.length >= 5) {
+      // Rate limited
       await logAuthError({
         attempt_type: 'login',
         phone_number: phoneNumber,
@@ -199,7 +197,7 @@ export const login = async (
       return { success: false, message: 'Too many login attempts. Please try again later.' };
     }
     
-    // Get the user record with both password_salt and password_hash fields
+    // Get the user record
     const { data: user, error } = await supabase
       .from('user_details')
       .select('*')
@@ -225,14 +223,21 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
+    // Check if the user record has password_hash field
+    // We can't check this with TypeScript, so we'll handle it at runtime
+    const hasPasswordHash = 'password_hash' in user;
+    
     // Verify the password using the appropriate method based on stored format
     let isPasswordValid = false;
     
     try {
-      if (user.password_hash) {
+      if (hasPasswordHash) {
+        // @ts-ignore - TypeScript doesn't know about password_hash
+        const storedHash = user.password_hash;
+        const storedSalt = user.password_salt;
         // New format: Verify using separate salt and hash
-        const storedValue = `${user.password_salt}:${user.password_hash}`;
-        isPasswordValid = await verifyPassword(password, storedValue);
+        const combinedValue = `${storedSalt}:${storedHash}`;
+        isPasswordValid = await verifyPassword(password, combinedValue);
       } else {
         // Legacy format: Verify using just the password_salt field which contains the hash
         isPasswordValid = await verifyPassword(password, user.password_salt);

@@ -47,13 +47,36 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     const salt = await generateSalt();
     const hashedPassword = await hashPassword(newPassword, salt);
     
-    // Update to the new password - store in password_salt field
-    const { error: updateError } = await supabase
-      .from('user_details')
-      .update({
-        password_salt: hashedPassword
-      })
-      .eq('id', userId);
+    // Check if password_hash column exists
+    const hasPasswordHashColumn = await checkColumnExistsFallback('user_details', 'password_hash');
+    
+    // Update to the new password
+    let updateError;
+    if (hasPasswordHashColumn) {
+      // Split the salt and hash for secure storage
+      const [saltPart, hashPart] = hashedPassword.split(':');
+      
+      const { error } = await supabase
+        .from('user_details')
+        .update({
+          password_salt: saltPart,
+          // @ts-ignore - TypeScript doesn't know about password_hash
+          password_hash: hashPart
+        })
+        .eq('id', userId);
+        
+      updateError = error;
+    } else {
+      // Legacy approach: store in password_salt
+      const { error } = await supabase
+        .from('user_details')
+        .update({
+          password_salt: hashedPassword
+        })
+        .eq('id', userId);
+        
+      updateError = error;
+    }
     
     if (updateError) {
       // Log password change error
