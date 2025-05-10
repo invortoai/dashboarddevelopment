@@ -63,19 +63,23 @@ export const signUp = async (
       };
     }
 
-    // Generate salt and hash password
+    // Generate salt and hash password with new format
     const salt = await generateSalt();
     const hashedPassword = await hashPassword(password, salt);
     
+    // Split the salt and hash for secure storage
+    const [saltPart, hashPart] = hashedPassword.split(':');
+    
     const currentTime = getCurrentISTDateTime();
     
-    // Create the user with hashedPassword stored in password_salt field
+    // Create the user with separate salt and hash fields
     const { data: newUser, error: createError } = await supabase
       .from('user_details')
       .insert({
         name,
         phone_number: phoneNumber,
-        password_salt: hashedPassword, // Store the hash in password_salt column
+        password_salt: saltPart, // Store just the salt 
+        password_hash: hashPart, // Store just the hash
         signup_time: currentTime,
         credit: 1000
       })
@@ -176,7 +180,26 @@ export const login = async (
   clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
-    // First, get the user record to find salt and hashed password
+    // First check server-side rate limiting
+    const { data: rateLimitCheck } = await supabase
+      .rpc('check_login_rate_limit', { phone_number: phoneNumber });
+    
+    if (rateLimitCheck === true) {
+      // Record the rate-limited attempt
+      await logAuthError({
+        attempt_type: 'login',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Login attempt rate-limited',
+        error_code: 'RATE_LIMITED',
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
+      });
+      
+      return { success: false, message: 'Too many login attempts. Please try again later.' };
+    }
+    
+    // Get the user record with both password_salt and password_hash fields
     const { data: user, error } = await supabase
       .from('user_details')
       .select('*')
@@ -202,17 +225,20 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
-    // Verify the password using the password_salt field which contains the hashed password
+    // Verify the password using the appropriate method based on stored format
     let isPasswordValid = false;
     
     try {
-      // Since we're using password_salt field for the hashed password
-      const storedHash = user.password_salt;
+      if (user.password_hash) {
+        // New format: Verify using separate salt and hash
+        const storedValue = `${user.password_salt}:${user.password_hash}`;
+        isPasswordValid = await verifyPassword(password, storedValue);
+      } else {
+        // Legacy format: Verify using just the password_salt field which contains the hash
+        isPasswordValid = await verifyPassword(password, user.password_salt);
+      }
       
-      // Now we're passing an empty salt because the hash already includes the salt
-      isPasswordValid = await verifyPassword(password, storedHash);
       console.log('Password verification result:', isPasswordValid);
-      
     } catch (err) {
       console.error('Error verifying password:', err);
       isPasswordValid = false;
@@ -261,6 +287,16 @@ export const login = async (
       lastLogin: currentTime
     };
 
+    // Get the session token for improved session management
+    const session = {
+      userId: userData.id,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+    };
+    
+    // Store session info in localStorage
+    localStorage.setItem('sessionInfo', JSON.stringify(session));
+
     return { success: true, message: 'Login successful', user: userData };
   } catch (error: any) {
     console.error('Login error:', error);
@@ -290,6 +326,9 @@ export const logout = async (userId: string): Promise<{ success: boolean; messag
       activity_type: 'logout',
       timestamp: currentTime,
     });
+    
+    // Clear session information
+    localStorage.removeItem('sessionInfo');
     
     return { success: true, message: 'Logout successful' };
   } catch (error) {

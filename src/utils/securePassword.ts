@@ -27,19 +27,37 @@ export const hashPassword = async (password: string, salt: string): Promise<stri
   
   // Convert to hex string
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  // Return salt:hash format for more secure storage
+  return `${salt}:${hashHex}`;
 };
 
-// Verify password by comparing hashes directly
+// Verify password by comparing hashes
 export const verifyPassword = async (
   plainPassword: string, 
-  hashedPassword: string, 
-  salt: string = ""
+  storedValue: string
 ): Promise<boolean> => {
-  // If no salt is provided, we assume the hash already includes the salt
-  // This is for compatibility with the existing stored passwords
-  const newHash = await hashPassword(plainPassword, salt);
-  return secureCompare(newHash, hashedPassword);
+  // Check if we're using the new format with explicit salt
+  if (storedValue.includes(':')) {
+    // New format: salt:hash
+    const [salt, storedHash] = storedValue.split(':');
+    
+    // Generate hash with the provided salt
+    const combinedString = plainPassword + salt;
+    const msgBuffer = new TextEncoder().encode(combinedString);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const newHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Compare hashes
+    return secureCompare(newHash, storedHash);
+  } 
+  
+  // Legacy format - the whole string is the hash (hash already includes the salt)
+  // Generate hash using empty salt and compare directly
+  const newHash = await hashPassword(plainPassword, "");
+  return secureCompare(newHash.split(':')[1], storedValue);
 };
 
 // For securely comparing strings (helps prevent timing attacks)

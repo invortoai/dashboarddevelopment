@@ -40,6 +40,12 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
+export interface SessionInfo {
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export interface DateFormatOptions {
   day?: 'numeric' | '2-digit';
   month?: 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';

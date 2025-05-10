@@ -14,9 +14,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
 import { 
   getClientIP, 
-  getLocationFromIP, 
-  checkRateLimit 
+  getLocationFromIP
 } from '@/utils/authErrorLogger';
+import { supabase } from '@/services/supabaseClient';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -92,11 +92,30 @@ const LoginForm = () => {
     return () => clearInterval(timer);
   }, [rateLimited.limited, rateLimited.remainingSeconds]);
 
-  // Check rate limiting before submission
-  const checkPhoneRateLimit = (phone: string) => {
-    const rateStatus = checkRateLimit(phone);
-    setRateLimited(rateStatus);
-    return rateStatus;
+  // Check server-side rate limiting before submission
+  const checkRateLimit = async (phone: string): Promise<boolean> => {
+    try {
+      const { data: isLimited, error } = await supabase
+        .rpc('check_login_rate_limit', { phone_number: phone });
+      
+      if (error) {
+        console.error("Error checking rate limit:", error);
+        return false;
+      }
+      
+      if (isLimited) {
+        setRateLimited({
+          limited: true,
+          remainingSeconds: 3600 // 1 hour in seconds
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error("Failed to check server-side rate limiting:", err);
+      return false;
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -107,10 +126,10 @@ const LoginForm = () => {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
       
-      // Check if this phone number has been rate limited
-      const rateStatus = checkPhoneRateLimit(cleanPhone);
-      if (rateStatus.limited) {
-        setLoginError(`Too many failed attempts. Please try again in ${rateStatus.remainingSeconds} seconds.`);
+      // Check if this phone number has been rate limited on server
+      const isRateLimited = await checkRateLimit(cleanPhone);
+      if (isRateLimited) {
+        setLoginError(`Too many failed attempts. Please try again later.`);
         setIsSubmitting(false);
         return;
       }

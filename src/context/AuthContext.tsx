@@ -23,6 +23,12 @@ interface AuthContextProps {
   refreshUserData: () => Promise<void>;
 }
 
+interface SessionInfo {
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn("Failed to refresh user data, clearing auth state");
         // If we couldn't get the user, clear authentication state
         localStorage.removeItem('userId');
+        localStorage.removeItem('sessionInfo');
         setIsAuthenticated(false);
         setUser(null);
       }
@@ -59,35 +66,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Error refreshing user data:", error.message);
       // On error, clear authentication state
       localStorage.removeItem('userId');
+      localStorage.removeItem('sessionInfo');
       setIsAuthenticated(false);
       setUser(null);
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    // Check if there's a user ID stored in local storage
-    const storedUserId = localStorage.getItem('userId');
+  // Check session validity
+  const checkSession = useCallback(() => {
+    const sessionInfoStr = localStorage.getItem('sessionInfo');
     
-    if (storedUserId) {
-      console.log("Found stored user ID, refreshing user data:", storedUserId);
-      // If there's a stored user ID, fetch user details
-      refreshUserData(storedUserId)
-        .then(() => {
-          setIsAuthenticated(true);
-        })
-        .catch(error => {
-          console.error("Error refreshing user data:", error);
-          // Clear invalid stored user ID
-          localStorage.removeItem('userId');
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+    if (!sessionInfoStr) return false;
+    
+    try {
+      const sessionInfo: SessionInfo = JSON.parse(sessionInfoStr);
+      const now = new Date();
+      const expiresAt = new Date(sessionInfo.expiresAt);
+      
+      // Check if session has expired
+      if (now > expiresAt) {
+        console.log("Session expired");
+        localStorage.removeItem('userId');
+        localStorage.removeItem('sessionInfo');
+        return false;
+      }
+      
+      // Session is valid, but if it's close to expiring (within 1 hour), extend it
+      if (expiresAt.getTime() - now.getTime() < 60 * 60 * 1000) {
+        console.log("Extending session");
+        const newExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+        const updatedSessionInfo = {
+          ...sessionInfo,
+          expiresAt: newExpiresAt.toISOString()
+        };
+        localStorage.setItem('sessionInfo', JSON.stringify(updatedSessionInfo));
+      }
+      
+      return true;
+    } catch (e) {
+      console.error("Error parsing session info:", e);
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    // Check if there's a valid session
+    const isValid = checkSession();
+    
+    if (isValid) {
+      // Get user ID from session
+      const sessionInfoStr = localStorage.getItem('sessionInfo');
+      if (sessionInfoStr) {
+        const sessionInfo: SessionInfo = JSON.parse(sessionInfoStr);
+        const storedUserId = sessionInfo.userId;
+        
+        console.log("Found valid session for user ID:", storedUserId);
+        // If there's a stored user ID, fetch user details
+        refreshUserData(storedUserId)
+          .then(() => {
+            setIsAuthenticated(true);
+          })
+          .catch(error => {
+            console.error("Error refreshing user data:", error);
+            // Clear invalid stored session
+            localStorage.removeItem('userId');
+            localStorage.removeItem('sessionInfo');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
     } else {
-      console.log("No stored user ID found, setting not authenticated");
+      console.log("No valid session found, setting not authenticated");
       setIsLoading(false);
     }
-  }, [refreshUserData]);
+  }, [refreshUserData, checkSession]);
 
   // Security enhancement: Implement session timeout
   useEffect(() => {
@@ -146,6 +201,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store the user ID for future sessions
       localStorage.setItem('userId', newUser.id);
       
+      // Create session info
+      const sessionInfo: SessionInfo = {
+        userId: newUser.id,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      };
+      
+      localStorage.setItem('sessionInfo', JSON.stringify(sessionInfo));
+      
       // Set the user in state
       setUser(newUser);
       setIsAuthenticated(true);
@@ -183,6 +247,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Store the user ID for future sessions
       localStorage.setItem('userId', userData.id);
       
+      // Session info is now stored in the login function
+      
       // Set the user in state
       setUser(userData);
       setIsAuthenticated(true);
@@ -213,6 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Clear stored user ID
       localStorage.removeItem('userId');
+      localStorage.removeItem('sessionInfo');
       
       setIsAuthenticated(false);
       setUser(null);

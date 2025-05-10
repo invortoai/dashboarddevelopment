@@ -1,3 +1,4 @@
+
 import { supabase } from '../services/supabaseClient';
 import { getCurrentISTDateTime } from './dateUtils';
 
@@ -15,7 +16,7 @@ export interface AuthErrorLogData {
   location?: string;
 }
 
-// Track failed login attempts to implement rate limiting
+// This map is now only used for client-side fallback
 const failedAttempts = new Map<string, { count: number, lastAttempt: number }>();
 
 // Helper function to get client's IP address
@@ -52,7 +53,7 @@ export const getLocationFromIP = async (ip: string): Promise<string> => {
   }
 };
 
-// Check if login attempts should be rate limited
+// Client-side fallback rate limiting (used if server-side check fails)
 export const checkRateLimit = (phoneNumber: string): { limited: boolean, remainingSeconds: number } => {
   const key = `auth_${phoneNumber}`;
   const now = Date.now();
@@ -86,7 +87,7 @@ export const checkRateLimit = (phoneNumber: string): { limited: boolean, remaini
   return { limited: false, remainingSeconds: 0 };
 };
 
-// Record failed attempt for rate limiting
+// Record failed attempt for client-side fallback rate limiting
 export const recordFailedAttempt = (phoneNumber: string): void => {
   const key = `auth_${phoneNumber}`;
   const now = Date.now();
