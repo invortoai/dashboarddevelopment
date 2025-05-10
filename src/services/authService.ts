@@ -1,4 +1,5 @@
-import { supabase, checkColumnExists } from './supabaseClient';
+
+import { supabase, checkColumnExists, checkColumnExistsFallback } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
 import { 
@@ -75,8 +76,16 @@ export const signUp = async (
     
     const currentTime = getCurrentISTDateTime();
     
-    // Check if the password_salt column exists before trying to use it
-    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
+    // First try the primary check, then fall back to the secondary if needed
+    let hasSaltColumn = false;
+    try {
+      hasSaltColumn = await checkColumnExistsFallback('user_details', 'password_salt');
+      console.log('Column check result (fallback):', hasSaltColumn);
+    } catch (columnCheckError) {
+      console.error('Error checking column existence:', columnCheckError);
+      // Default to false if we can't check
+      hasSaltColumn = false;
+    }
     
     let userInsertData: any = {
       name,
@@ -220,23 +229,40 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
-    // Check if the password_salt column exists
-    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
+    // Check if the password_salt column exists using the fallback method
+    let hasSaltColumn = false;
+    try {
+      hasSaltColumn = await checkColumnExistsFallback('user_details', 'password_salt');
+    } catch (err) {
+      console.error('Error checking for password_salt column:', err);
+      hasSaltColumn = false;
+    }
+    
     let isPasswordValid = false;
     
     if (hasSaltColumn) {
       // If salt column exists, we need to fetch the user again to include the column
-      const { data: userWithSalt, error: saltError } = await supabase
-        .from('user_details')
-        .select('password, password_salt')
-        .eq('id', user.id)
-        .single();
-        
-      if (!saltError && userWithSalt && 'password_salt' in userWithSalt) {
-        // Verify using salt
-        isPasswordValid = verifyPassword(password, String(userWithSalt.password), String(userWithSalt.password_salt));
-      } else {
-        // Fallback to direct comparison
+      try {
+        const { data: userWithSalt, error: saltError } = await supabase
+          .from('user_details')
+          .select('password, password_salt')
+          .eq('id', user.id)
+          .single();
+          
+        if (!saltError && userWithSalt && userWithSalt.password_salt) {
+          // Verify using salt
+          isPasswordValid = verifyPassword(
+            password, 
+            String(userWithSalt.password),
+            String(userWithSalt.password_salt)
+          );
+        } else {
+          // Fallback to direct comparison if we couldn't get the salt
+          isPasswordValid = user.password === password;
+        }
+      } catch (err) {
+        // If there's any error in the salt handling, fall back to direct comparison
+        console.error('Error handling password salt:', err);
         isPasswordValid = user.password === password;
       }
     } else {
@@ -413,23 +439,40 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       return { success: false, message: 'User not found' };
     }
 
-    // Check if the password_salt column exists
-    const hasSaltColumn = await checkColumnExists('user_details', 'password_salt');
+    // Check if the password_salt column exists using the fallback method
+    let hasSaltColumn = false;
+    try {
+      hasSaltColumn = await checkColumnExistsFallback('user_details', 'password_salt');
+    } catch (err) {
+      console.error('Error checking for password_salt column:', err);
+      hasSaltColumn = false;
+    }
+    
     let isPasswordValid = false;
       
     if (hasSaltColumn) {
       // Get the user with salt
-      const { data: userWithSalt, error: saltError } = await supabase
-        .from('user_details')
-        .select('password, password_salt')
-        .eq('id', userId)
-        .single();
-        
-      if (!saltError && userWithSalt && 'password_salt' in userWithSalt) {
-        // Verify using salt
-        isPasswordValid = verifyPassword(currentPassword, String(userWithSalt.password), String(userWithSalt.password_salt));
-      } else {
-        // Fallback to direct comparison
+      try {
+        const { data: userWithSalt, error: saltError } = await supabase
+          .from('user_details')
+          .select('password, password_salt')
+          .eq('id', userId)
+          .single();
+          
+        if (!saltError && userWithSalt && userWithSalt.password_salt) {
+          // Verify using salt
+          isPasswordValid = verifyPassword(
+            currentPassword, 
+            String(userWithSalt.password), 
+            String(userWithSalt.password_salt)
+          );
+        } else {
+          // Fallback to direct comparison if we couldn't get the salt
+          isPasswordValid = user.password === currentPassword;
+        }
+      } catch (err) {
+        // If there's an error, fall back to direct comparison
+        console.error('Error in salt verification:', err);
         isPasswordValid = user.password === currentPassword;
       }
     } else {

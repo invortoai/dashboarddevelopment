@@ -21,27 +21,45 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Add a safer approach to check if a column exists in a table without relying on database functions
+// Add a safer approach to check if a column exists in a table without accessing information_schema directly
 export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
-    // We'll use a safe query to check column existence by querying information_schema
-    const { data, error } = await supabase
-      .from('information_schema.columns')
-      .select('column_name')
-      .eq('table_schema', 'public')
-      .eq('table_name', tableName)
-      .eq('column_name', columnName)
-      .maybeSingle();
-      
-    if (error) {
-      console.error(`Error checking if column ${columnName} exists in ${tableName}:`, error);
-      return false;
-    }
+    // Instead of querying information_schema which causes type errors,
+    // we'll use a safer approach by attempting to select the specific column
+    // and checking if the query succeeds
+    const query = `SELECT "${columnName}" FROM "${tableName}" LIMIT 0`;
+    const { error } = await supabase.rpc('execute_sql', { query_text: query });
     
-    return !!data;
+    // If there's no error, the column exists
+    return !error;
   } catch (error) {
     console.error(`Error checking if column ${columnName} exists in ${tableName}:`, error);
     return false;
   }
 };
 
+// Fallback function if the RPC function doesn't exist
+export const checkColumnExistsFallback = async (tableName: string, columnName: string): Promise<boolean> => {
+  try {
+    // Try to select just that one column from the table with a limit of 1 row
+    // If the column doesn't exist, this will error out
+    const { error } = await supabase
+      .from(tableName as any)
+      .select(columnName)
+      .limit(1);
+    
+    // If we got an error containing "column" and "does not exist", the column doesn't exist
+    if (error && error.message && 
+        (error.message.includes(`column "${columnName}" does not exist`) || 
+         error.message.includes(`column ${columnName} does not exist`))) {
+      return false;
+    }
+    
+    // For other errors, we can't be sure, but we'll assume the column exists
+    // as this is more graceful than failing
+    return true;
+  } catch (error) {
+    console.error(`Error in fallback check for column ${columnName} in ${tableName}:`, error);
+    return false;
+  }
+};
