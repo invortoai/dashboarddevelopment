@@ -24,7 +24,9 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     
     try {
       // Check if we're using the new format with explicit salt and hash
-      if (user && 'password_hash' in user && user.password_hash) {
+      const hasPasswordHash = user && 'password_hash' in user && user.password_hash;
+      
+      if (hasPasswordHash) {
         // New approach: separate salt and hash
         const salt = user.password_salt as string;
         const hash = user.password_hash as string;
@@ -32,7 +34,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
           currentPassword, 
           `${salt}:${hash}`
         );
-      } else if (user && user.password_salt) {
+      } else if (user.password_salt) {
         // Legacy approach: use just the password_salt field
         isPasswordValid = await verifyPassword(currentPassword, user.password_salt as string);
       }
