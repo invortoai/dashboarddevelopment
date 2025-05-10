@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
-import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
 import { 
@@ -142,10 +141,10 @@ const LoginForm = () => {
         return;
       }
       
-      // Security enhancement: Log login location
+      // Log login location for security purposes
       console.log(`Login attempt from ${clientLocation || 'unknown location'}`);
       
-      // Try to sign in - let the AuthContext handle displaying the error toast
+      // Try to sign in - the AuthContext handles displaying any error toast
       await signIn(cleanPhone, data.password, clientIP, clientLocation);
       
       // If we get here, login was successful
@@ -153,9 +152,8 @@ const LoginForm = () => {
       const from = location.state?.from?.pathname || '/analytics';
       navigate(from, { replace: true });
     } catch (error: any) {
-      // Instead of showing both an error state and a toast, just set the error state
+      // Only show the error in the form, we don't need a toast as well
       setLoginError(error.message || "Could not log in with these credentials");
-      // Don't display a toast here, as AuthContext will already display one
     } finally {
       setIsSubmitting(false);
     }
