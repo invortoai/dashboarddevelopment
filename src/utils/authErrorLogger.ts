@@ -126,10 +126,18 @@ export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
     // Hash password if provided (for security)
     let passwordHash = null;
     if (data.password) {
-      const { data: hashResult } = await supabase.rpc('hash_password', {
-        plain_password: data.password
-      });
-      passwordHash = hashResult;
+      try {
+        const { data: hashResult, error } = await supabase.rpc('hash_password', {
+          plain_password: data.password
+        });
+        
+        if (!error) {
+          passwordHash = hashResult;
+        }
+      } catch (err) {
+        console.error('Failed to hash password for logging:', err);
+        // Continue without the hashed password
+      }
     }
     
     // If IP address wasn't provided, try to get it

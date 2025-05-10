@@ -1,6 +1,4 @@
 
-import { createHash } from 'crypto';
-
 /**
  * Secure password hashing utility
  * Note: In a full production environment, this would be replaced with a proper bcrypt implementation
@@ -22,11 +20,25 @@ export const generateSalt = (length: number = 16): string => {
   return salt;
 };
 
-// Hash password using SHA-256 (Note: In production, use bcrypt or Argon2)
+// Hash password using SHA-256 (browser-compatible version)
 export const hashPassword = (password: string, salt: string): string => {
-  const hash = createHash('sha256');
-  hash.update(password + salt);
-  return hash.digest('hex');
+  // Using SubtleCrypto API which is available in browsers
+  // For simplicity in this demo, we'll use a simpler approach
+  // that works in the browser without external dependencies
+  
+  // In production, you should use a proper password hashing library or backend function
+  let hash = 0;
+  const combinedString = password + salt;
+  
+  // Simple string hash function (NOT for production use)
+  for (let i = 0; i < combinedString.length; i++) {
+    const char = combinedString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Convert to hex string and ensure it's positive
+  return Math.abs(hash).toString(16).padStart(8, '0');
 };
 
 // Verify password

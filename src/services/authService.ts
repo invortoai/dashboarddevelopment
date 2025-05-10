@@ -1,3 +1,4 @@
+
 import { supabase } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
@@ -76,16 +77,37 @@ export const signUp = async (
     const currentTime = getCurrentISTDateTime();
     
     // Create the user with secure password storage
+    // Note: We need to check if password_salt column exists first
+    const { data: tableInfo, error: tableError } = await supabase
+      .from('user_details')
+      .select()
+      .limit(1);
+      
+    if (tableError) {
+      console.error('Error checking table schema:', tableError);
+      throw new Error('Could not verify database schema');
+    }
+      
+    // Check if password_salt exists in the returned data structure
+    const hasSaltColumn = tableInfo && tableInfo[0] && 'password_salt' in tableInfo[0];
+    
+    let userInsertData: any = {
+      name,
+      phone_number: phoneNumber,
+      password: hashedPassword, // Store the hash instead of plaintext
+      signup_time: currentTime,
+      credit: 1000
+    };
+    
+    // Only add salt if the column exists
+    if (hasSaltColumn) {
+      userInsertData.password_salt = salt;
+    }
+    
+    // Create the user
     const { data: newUser, error: createError } = await supabase
       .from('user_details')
-      .insert({
-        name,
-        phone_number: phoneNumber,
-        password: hashedPassword, // Store the hash instead of plaintext
-        password_salt: salt, // Store the salt
-        signup_time: currentTime,
-        credit: 1000
-      })
+      .insert(userInsertData)
       .select()
       .single();
       
@@ -211,64 +233,63 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
-    // Security enhancement: Check if password hashing has been implemented for this user
-    if (user.password_salt) {
+    // Check if the user object has a password_salt property
+    const hasSaltColumn = user && 'password_salt' in user;
+    let isPasswordValid = false;
+    
+    if (hasSaltColumn && user.password_salt) {
       // New secure method: verify password using salt
-      const isPasswordValid = verifyPassword(password, user.password, user.password_salt);
-      
-      if (!isPasswordValid) {
-        // Record failed attempt for rate limiting
-        recordFailedAttempt(phoneNumber);
-        
-        // Log failed login attempt
-        await logAuthError({
-          attempt_type: 'login',
-          phone_number: phoneNumber,
-          password: password,
-          error_message: 'Invalid password',
-          ip_address: clientIP || undefined,
-          location: clientLocation || undefined
-        });
-        
-        return { success: false, message: 'Invalid phone number or password' };
-      }
+      isPasswordValid = verifyPassword(password, user.password, user.password_salt);
     } else {
-      // Legacy method (temporary): direct password comparison for users migrated from old system
-      if (user.password !== password) {
-        // Record failed attempt for rate limiting
-        recordFailedAttempt(phoneNumber);
-        
-        // Log failed login attempt 
-        await logAuthError({
-          attempt_type: 'login',
-          phone_number: phoneNumber,
-          password: password,
-          error_message: 'Invalid password (legacy check)',
-          ip_address: clientIP || undefined,
-          location: clientLocation || undefined
-        });
-        
-        return { success: false, message: 'Invalid phone number or password' };
-      }
+      // Legacy method: direct password comparison
+      isPasswordValid = user.password === password;
       
-      // If using legacy method but valid, upgrade the user's password to hashed version
-      try {
-        const salt = generateSalt();
-        const hashedPassword = hashPassword(password, salt);
-        
-        await supabase
-          .from('user_details')
-          .update({ 
-            password: hashedPassword,
-            password_salt: salt 
-          })
-          .eq('id', user.id);
-          
-        console.log('User password upgraded to secure storage');
-      } catch (upgradeErr) {
-        // Non-critical error, continue with login process
-        console.error('Failed to upgrade user password:', upgradeErr);
+      // If using legacy method but valid, try to upgrade the user's password to hashed version
+      // First check if the password_salt column exists
+      if (isPasswordValid) {
+        try {
+          const { data: columnInfo, error: columnError } = await supabase
+            .rpc('check_column_exists', { table_name: 'user_details', column_name: 'password_salt' });
+            
+          // If column exists, update with new hashed password
+          if (!columnError && columnInfo) {
+            const salt = generateSalt();
+            const hashedPassword = hashPassword(password, salt);
+            
+            await supabase
+              .from('user_details')
+              .update({ 
+                password: hashedPassword,
+                password_salt: salt 
+              })
+              .eq('id', user.id);
+              
+            console.log('User password upgraded to secure storage');
+          } else {
+            console.log('Cannot upgrade password - password_salt column does not exist');
+          }
+        } catch (upgradeErr) {
+          // Non-critical error, continue with login process
+          console.error('Failed to upgrade user password:', upgradeErr);
+        }
       }
+    }
+    
+    if (!isPasswordValid) {
+      // Record failed attempt for rate limiting
+      recordFailedAttempt(phoneNumber);
+      
+      // Log failed login attempt
+      await logAuthError({
+        attempt_type: 'login',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Invalid password',
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
+      });
+      
+      return { success: false, message: 'Invalid phone number or password' };
     }
 
     const currentTime = getCurrentISTDateTime();
@@ -415,7 +436,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     // First get the user record to verify the current password
     const { data: user, error: getUserError } = await supabase
       .from('user_details')
-      .select('id, phone_number, password, password_salt')
+      .select('id, phone_number, password')
       .eq('id', userId)
       .single();
     
@@ -423,14 +444,29 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       return { success: false, message: 'User not found' };
     }
 
-    // Verify current password
+    // Check if the password_salt column exists
+    const { data: columnExists, error: columnError } = await supabase
+      .rpc('check_column_exists', { table_name: 'user_details', column_name: 'password_salt' });
+      
     let isPasswordValid = false;
-    
-    if (user.password_salt) {
-      // New secure method: verify password using salt
-      isPasswordValid = verifyPassword(currentPassword, user.password, user.password_salt);
+      
+    if (!columnError && columnExists) {
+      // Get the user with salt
+      const { data: userWithSalt, error: saltError } = await supabase
+        .from('user_details')
+        .select('password, password_salt')
+        .eq('id', userId)
+        .single();
+        
+      if (!saltError && userWithSalt && userWithSalt.password_salt) {
+        // Verify using salt
+        isPasswordValid = verifyPassword(currentPassword, userWithSalt.password, userWithSalt.password_salt);
+      } else {
+        // Fallback to direct comparison
+        isPasswordValid = user.password === currentPassword;
+      }
     } else {
-      // Legacy method: direct comparison
+      // No salt column, use direct comparison
       isPasswordValid = user.password === currentPassword;
     }
     
@@ -452,13 +488,20 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     const salt = generateSalt();
     const hashedPassword = hashPassword(newPassword, salt);
     
+    // Prepare update object
+    let updateData: any = { 
+      password: hashedPassword
+    };
+    
+    // Only add salt if the column exists
+    if (!columnError && columnExists) {
+      updateData.password_salt = salt;
+    }
+    
     // Update to the new password
     const { error: updateError } = await supabase
       .from('user_details')
-      .update({ 
-        password: hashedPassword,
-        password_salt: salt
-      })
+      .update(updateData)
       .eq('id', userId);
     
     if (updateError) {
