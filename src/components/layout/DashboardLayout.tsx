@@ -10,8 +10,27 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  // Wrap the useAuth call in a try/catch to avoid crashing the app
+  // if AuthProvider is not available
+  let isAuthenticated = false;
+  let isLoading = true;
+  let authError = false;
+  
+  try {
+    const auth = useAuth();
+    isAuthenticated = auth.isAuthenticated;
+    isLoading = auth.isLoading;
+  } catch (error) {
+    console.error("Auth context not available:", error);
+    authError = true;
+  }
+  
   const isMobile = useIsMobile();
+
+  // If we couldn't access the auth context, redirect to login
+  if (authError) {
+    return <Navigate to="/login" />;
+  }
 
   // Show loading state
   if (isLoading) {

@@ -7,25 +7,28 @@ import './index.css'
 // Add security imports
 import { initializeAppSecurity } from './services/security/initializeAppSecurity';
 
-// Initialize security features
-if (typeof window !== 'undefined') {
-  initializeAppSecurity()
-    .then(({ success, message }) => {
+// Initialize security features before rendering the app
+async function initAndRender() {
+  if (typeof window !== 'undefined') {
+    try {
+      const { success, message } = await initializeAppSecurity();
       if (success) {
         console.log('Security initialized:', message);
       } else {
         console.error('Security initialization failed:', message);
       }
-    })
-    .catch(error => {
+    } catch (error) {
       console.error('Error during security initialization:', error);
-    });
+    }
+  }
+  
+  // Render app after security initialization
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
 }
 
-// In main.tsx we don't need the SecurityProvider
-// since it will be properly placed within App.tsx after AuthProvider
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+// Start initialization and rendering
+initAndRender();

@@ -10,7 +10,20 @@ import DesktopNavbar from './navbar/DesktopNavbar';
  * based on the viewport size
  */
 const Navbar: React.FC = () => {
-  const { signOut } = useAuth();
+  // Wrap the useAuth call in a try/catch to avoid crashing the app
+  let signOut = () => {
+    console.warn("Auth context not available for logout");
+    // Fallback: redirect to login page
+    window.location.href = '/login';
+  };
+  
+  try {
+    const auth = useAuth();
+    signOut = auth.signOut;
+  } catch (error) {
+    console.error("Auth context not available in Navbar:", error);
+  }
+  
   const isMobile = useIsMobile();
 
   const handleLogout = (e: React.MouseEvent) => {
