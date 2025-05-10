@@ -17,6 +17,7 @@ import {
   checkRateLimit
 } from '@/utils/authErrorLogger';
 import { supabase } from '@/services/supabaseClient';
+import { checkPhoneExists } from '@/services/auth';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -34,6 +35,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [clientIP, setClientIP] = useState<string | null>(null);
   const [clientLocation, setClientLocation] = useState<string | null>(null);
@@ -77,6 +79,36 @@ const LoginForm = () => {
       password: '',
     },
   });
+
+  // Add a phone validation checker
+  const validatePhoneExists = async (phone: string) => {
+    if (!validatePhoneNumber(phone)) return;
+    
+    setIsCheckingPhone(true);
+    setLoginError(null);
+    
+    try {
+      // Clean phone number of any spaces or special characters
+      const cleanPhone = phone.replace(/\D/g, '');
+      const { exists, message } = await checkPhoneExists(cleanPhone);
+      
+      if (!exists) {
+        setLoginError(message);
+      }
+    } catch (error) {
+      console.error("Error checking phone number:", error);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  // Add blur handler to phone input to check existence when user finishes typing
+  const handlePhoneBlur = () => {
+    const phoneValue = form.getValues("phoneNumber");
+    if (phoneValue && phoneValue.length === 10) {
+      validatePhoneExists(phoneValue);
+    }
+  };
 
   // Create countdown timer for rate limiting
   useEffect(() => {
@@ -132,6 +164,14 @@ const LoginForm = () => {
     try {
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
+      
+      // First validate if the phone exists
+      const { exists, message } = await checkPhoneExists(cleanPhone);
+      if (!exists) {
+        setLoginError(message);
+        setIsSubmitting(false);
+        return;
+      }
       
       // Check if this phone number has been rate limited on server
       const isRateLimited = await checkServerRateLimit(cleanPhone);
@@ -207,11 +247,14 @@ const LoginForm = () => {
                       type="tel"
                       maxLength={10}
                       inputMode="numeric"
-                      disabled={rateLimited.limited}
+                      disabled={rateLimited.limited || isCheckingPhone}
+                      onBlur={() => handlePhoneBlur()}
                       onChange={(e) => {
                         // Only allow numbers
                         const value = e.target.value.replace(/\D/g, '');
                         field.onChange(value);
+                        // Clear any previous errors when user starts typing again
+                        if (loginError) setLoginError(null);
                       }}
                     />
                   </FormControl>
@@ -232,6 +275,11 @@ const LoginForm = () => {
                       placeholder="Enter your password" 
                       {...field} 
                       disabled={rateLimited.limited}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        // Clear any previous errors when user starts typing again
+                        if (loginError) setLoginError(null);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
@@ -242,9 +290,11 @@ const LoginForm = () => {
             <Button 
               type="submit" 
               className="w-full bg-purple hover:bg-purple-dark" 
-              disabled={isSubmitting || rateLimited.limited}
+              disabled={isSubmitting || isCheckingPhone || rateLimited.limited}
             >
-              {isSubmitting ? 'Logging in...' : rateLimited.limited ? `Try again in ${rateLimited.remainingSeconds}s` : 'Login'}
+              {isSubmitting ? 'Logging in...' : 
+               isCheckingPhone ? 'Checking phone...' :
+               rateLimited.limited ? `Try again in ${rateLimited.remainingSeconds}s` : 'Login'}
             </Button>
           </form>
         </Form>

@@ -4,6 +4,31 @@ import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError, recordFailedAttempt } from '../../utils/authErrorLogger';
 import { hashPassword, generateSalt, verifyPassword } from '../../utils/securePassword';
 
+// Add a new function to check if a phone number exists
+export const checkPhoneExists = async (phoneNumber: string): Promise<{ exists: boolean; message: string }> => {
+  try {
+    // Check if user with this phone number exists
+    const { data, error } = await supabase
+      .from('user_details')
+      .select('id')
+      .eq('phone_number', phoneNumber)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking for phone number:', error);
+      return { exists: false, message: 'Failed to verify phone number. Please try again.' };
+    }
+    
+    return { 
+      exists: !!data, 
+      message: data ? 'Phone number exists' : 'No account found with this phone number. Please sign up first.' 
+    };
+  } catch (err: any) {
+    console.error('Error in checkPhoneExists:', err);
+    return { exists: false, message: 'Failed to verify phone number. Please try again.' };
+  }
+};
+
 export const signUp = async (
   name: string, 
   phoneNumber: string, 
@@ -170,6 +195,24 @@ export const login = async (
   clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
+    // First check if the phone number exists
+    const { exists, message } = await checkPhoneExists(phoneNumber);
+    
+    if (!exists) {
+      // Phone doesn't exist in the system - no need to check password or rate limiting
+      await logAuthError({
+        attempt_type: 'login',
+        phone_number: phoneNumber,
+        password: password,
+        error_message: 'Phone number not found',
+        error_code: 'PHONE_NOT_FOUND',
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
+      });
+      
+      return { success: false, message };
+    }
+    
     // Check for rate limiting by directly querying auth_error_logs
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: failedAttempts, error: rateError } = await supabase
@@ -205,6 +248,7 @@ export const login = async (
       .single();
       
     if (error || !user) {
+      // This shouldn't happen since we already checked existence, but just in case
       // Record failed attempt for rate limiting
       recordFailedAttempt(phoneNumber);
       
@@ -260,7 +304,7 @@ export const login = async (
         password: password,
         error_message: 'Invalid password',
         ip_address: clientIP || undefined,
-        location: clientLocation || undefined
+        location?: clientLocation || undefined
       });
       
       return { success: false, message: 'Invalid phone number or password' };
