@@ -1,13 +1,22 @@
 import { supabase } from './supabaseClient';
 import { User } from '../types';
 import { getCurrentISTDateTime } from '../utils/dateUtils';
-import { logAuthError } from '../utils/authErrorLogger';
+import { 
+  logAuthError, 
+  recordFailedAttempt 
+} from '../utils/authErrorLogger';
+import { 
+  hashPassword, 
+  generateSalt, 
+  verifyPassword 
+} from '../utils/securePassword';
 
 export const signUp = async (
   name: string, 
   phoneNumber: string, 
   password: string,
-  clientIP?: string | null
+  clientIP?: string | null,
+  clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
     console.log(`Attempting to create user with phone: ${phoneNumber.substring(0, 3)}***${phoneNumber.substring(7)}`);
@@ -30,7 +39,8 @@ export const signUp = async (
         error_message: 'Failed to verify if phone number exists',
         error_code: checkError.code,
         error_details: checkError.message,
-        ip_address: clientIP || undefined
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
       });
       
       return { 
@@ -49,7 +59,8 @@ export const signUp = async (
         password: password,
         error_message: 'A user with this phone number already exists',
         error_code: 'DUPLICATE_USER',
-        ip_address: clientIP || undefined
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
       });
       
       return { 
@@ -58,15 +69,20 @@ export const signUp = async (
       };
     }
 
+    // Generate salt and hash password (security enhancement)
+    const salt = generateSalt();
+    const hashedPassword = hashPassword(password, salt);
+    
     const currentTime = getCurrentISTDateTime();
     
-    // Create the user
+    // Create the user with secure password storage
     const { data: newUser, error: createError } = await supabase
       .from('user_details')
       .insert({
         name,
         phone_number: phoneNumber,
-        password: password, // In a real app, this would be hashed by Supabase Auth
+        password: hashedPassword, // Store the hash instead of plaintext
+        password_salt: salt, // Store the salt
         signup_time: currentTime,
         credit: 1000
       })
@@ -84,7 +100,8 @@ export const signUp = async (
         error_message: 'Failed to register user',
         error_code: createError.code,
         error_details: createError.message,
-        ip_address: clientIP || undefined
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
       });
       
       let errorMessage = 'Failed to register user';
@@ -104,6 +121,8 @@ export const signUp = async (
           user_id: newUser.id,
           activity_type: 'signup',
           timestamp: currentTime,
+          ip_address: clientIP || null,
+          location: clientLocation || null
         });
 
         console.log('User activity recorded successfully');
@@ -132,7 +151,8 @@ export const signUp = async (
         password: password,
         error_message: 'Failed to create user account: No user data returned',
         error_code: 'NO_USER_DATA',
-        ip_address: clientIP || undefined
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
       });
       
       throw new Error('Failed to create user account');
@@ -147,7 +167,8 @@ export const signUp = async (
       password: password,
       error_message: error.message || 'Failed to register user',
       error_details: error.stack,
-      ip_address: clientIP || undefined
+      ip_address: clientIP || undefined,
+      location: clientLocation || undefined
     });
     
     return { 
@@ -160,17 +181,21 @@ export const signUp = async (
 export const login = async (
   phoneNumber: string, 
   password: string,
-  clientIP?: string | null
+  clientIP?: string | null,
+  clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
+    // First, get the user record to find salt and hashed password
     const { data: user, error } = await supabase
       .from('user_details')
       .select('*')
       .eq('phone_number', phoneNumber)
-      .eq('password', password) // In a real app, this would be handled by Supabase Auth
       .single();
       
     if (error || !user) {
+      // Record failed attempt for rate limiting
+      recordFailedAttempt(phoneNumber);
+      
       // Log failed login attempt
       await logAuthError({
         attempt_type: 'login',
@@ -179,25 +204,92 @@ export const login = async (
         error_message: 'Invalid phone number or password',
         error_code: error?.code,
         error_details: error?.message,
-        ip_address: clientIP || undefined
+        ip_address: clientIP || undefined,
+        location: clientLocation || undefined
       });
       
       return { success: false, message: 'Invalid phone number or password' };
     }
+    
+    // Security enhancement: Check if password hashing has been implemented for this user
+    if (user.password_salt) {
+      // New secure method: verify password using salt
+      const isPasswordValid = verifyPassword(password, user.password, user.password_salt);
+      
+      if (!isPasswordValid) {
+        // Record failed attempt for rate limiting
+        recordFailedAttempt(phoneNumber);
+        
+        // Log failed login attempt
+        await logAuthError({
+          attempt_type: 'login',
+          phone_number: phoneNumber,
+          password: password,
+          error_message: 'Invalid password',
+          ip_address: clientIP || undefined,
+          location: clientLocation || undefined
+        });
+        
+        return { success: false, message: 'Invalid phone number or password' };
+      }
+    } else {
+      // Legacy method (temporary): direct password comparison for users migrated from old system
+      if (user.password !== password) {
+        // Record failed attempt for rate limiting
+        recordFailedAttempt(phoneNumber);
+        
+        // Log failed login attempt 
+        await logAuthError({
+          attempt_type: 'login',
+          phone_number: phoneNumber,
+          password: password,
+          error_message: 'Invalid password (legacy check)',
+          ip_address: clientIP || undefined,
+          location: clientLocation || undefined
+        });
+        
+        return { success: false, message: 'Invalid phone number or password' };
+      }
+      
+      // If using legacy method but valid, upgrade the user's password to hashed version
+      try {
+        const salt = generateSalt();
+        const hashedPassword = hashPassword(password, salt);
+        
+        await supabase
+          .from('user_details')
+          .update({ 
+            password: hashedPassword,
+            password_salt: salt 
+          })
+          .eq('id', user.id);
+          
+        console.log('User password upgraded to secure storage');
+      } catch (upgradeErr) {
+        // Non-critical error, continue with login process
+        console.error('Failed to upgrade user password:', upgradeErr);
+      }
+    }
 
     const currentTime = getCurrentISTDateTime();
 
-    // Update the last login time
+    // Update the last login time and location data
     await supabase
       .from('user_details')
-      .update({ last_login: currentTime })
+      .update({ 
+        last_login: currentTime,
+        last_login_ip: clientIP || null,
+        last_login_location: clientLocation || null
+      })
       .eq('id', user.id);
 
-    // Record login activity
+    // Record login activity with location
     await supabase.from('user_activity').insert({
       user_id: user.id,
       activity_type: 'login',
       timestamp: currentTime,
+      ip_address: clientIP || null,
+      location: clientLocation || null
     });
 
     const userData: User = {
@@ -220,7 +312,8 @@ export const login = async (
       password: password,
       error_message: 'Failed to login',
       error_details: error?.stack,
-      ip_address: clientIP || undefined
+      ip_address: clientIP || undefined,
+      location: clientLocation || undefined
     });
     
     return { success: false, message: 'Failed to login' };
@@ -317,36 +410,55 @@ export const updateUserProfile = async (
   }
 };
 
-export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string, clientIP?: string, clientLocation?: string): Promise<{ success: boolean; message: string }> => {
   try {
-    // First verify the current password
-    const { data: user, error: verifyError } = await supabase
+    // First get the user record to verify the current password
+    const { data: user, error: getUserError } = await supabase
       .from('user_details')
-      .select('id, phone_number')
+      .select('id, phone_number, password, password_salt')
       .eq('id', userId)
-      .eq('password', currentPassword)
       .single();
     
-    if (verifyError || !user) {
+    if (getUserError || !user) {
+      return { success: false, message: 'User not found' };
+    }
+
+    // Verify current password
+    let isPasswordValid = false;
+    
+    if (user.password_salt) {
+      // New secure method: verify password using salt
+      isPasswordValid = verifyPassword(currentPassword, user.password, user.password_salt);
+    } else {
+      // Legacy method: direct comparison
+      isPasswordValid = user.password === currentPassword;
+    }
+    
+    if (!isPasswordValid) {
       // Log failed password change attempt
-      if (user) {
-        await logAuthError({
-          attempt_type: 'password_change',
-          phone_number: user.phone_number,
-          password: currentPassword,
-          error_message: 'Current password is incorrect',
-          error_code: verifyError?.code,
-          error_details: verifyError?.message
-        });
-      }
+      await logAuthError({
+        attempt_type: 'password_change',
+        phone_number: user.phone_number,
+        password: currentPassword,
+        error_message: 'Current password is incorrect',
+        ip_address: clientIP,
+        location: clientLocation
+      });
       
       return { success: false, message: 'Current password is incorrect' };
     }
     
+    // Generate new salt and hash new password
+    const salt = generateSalt();
+    const hashedPassword = hashPassword(newPassword, salt);
+    
     // Update to the new password
     const { error: updateError } = await supabase
       .from('user_details')
-      .update({ password: newPassword })
+      .update({ 
+        password: hashedPassword,
+        password_salt: salt
+      })
       .eq('id', userId);
     
     if (updateError) {
@@ -357,7 +469,9 @@ export const changePassword = async (userId: string, currentPassword: string, ne
         password: currentPassword,
         error_message: 'Failed to change password',
         error_code: updateError.code,
-        error_details: updateError.message
+        error_details: updateError.message,
+        ip_address: clientIP,
+        location: clientLocation
       });
       
       throw updateError;
@@ -370,6 +484,8 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       user_id: userId,
       activity_type: 'change_password',
       timestamp: currentTime,
+      ip_address: clientIP || null,
+      location: clientLocation || null
     });
     
     return { success: true, message: 'Password changed successfully' };

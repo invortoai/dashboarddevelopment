@@ -11,8 +11,12 @@ import { validatePhoneNumber } from '@/utils/phoneUtils';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { getClientIP } from '@/utils/authErrorLogger';
+import { AlertTriangle, Info } from 'lucide-react';
+import { 
+  getClientIP, 
+  getLocationFromIP, 
+  checkRateLimit 
+} from '@/utils/authErrorLogger';
 
 const formSchema = z.object({
   phoneNumber: z.string().refine(validatePhoneNumber, {
@@ -30,19 +34,30 @@ const LoginForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [clientIP, setClientIP] = useState<string | null>(null);
+  const [clientLocation, setClientLocation] = useState<string | null>(null);
+  const [rateLimited, setRateLimited] = useState<{limited: boolean, remainingSeconds: number}>({
+    limited: false,
+    remainingSeconds: 0
+  });
 
   // Fetch client IP on component mount
   useEffect(() => {
-    const fetchClientIP = async () => {
+    const fetchClientDetails = async () => {
       try {
         const ip = await getClientIP();
         setClientIP(ip);
+        
+        if (ip && ip !== 'unknown') {
+          const location = await getLocationFromIP(ip);
+          setClientLocation(location);
+          console.log(`Login attempted from: ${location}`);
+        }
       } catch (error) {
-        console.error("Failed to fetch client IP:", error);
+        console.error("Failed to fetch client details:", error);
       }
     };
     
-    fetchClientIP();
+    fetchClientDetails();
   }, []);
 
   const form = useForm<FormData>({
@@ -53,14 +68,50 @@ const LoginForm = () => {
     },
   });
 
+  // Create countdown timer for rate limiting
+  useEffect(() => {
+    if (!rateLimited.limited || rateLimited.remainingSeconds <= 0) return;
+    
+    const timer = setInterval(() => {
+      setRateLimited(prev => ({
+        ...prev,
+        remainingSeconds: prev.remainingSeconds - 1
+      }));
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [rateLimited.limited, rateLimited.remainingSeconds]);
+
+  // Check rate limiting before submission
+  const checkPhoneRateLimit = (phone: string) => {
+    const rateStatus = checkRateLimit(phone);
+    setRateLimited(rateStatus);
+    return rateStatus;
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setLoginError(null); // Reset any previous errors
+    
     try {
-      console.log("Attempting login with phone:", data.phoneNumber);
       // Clean phone number of any spaces or special characters
       const cleanPhone = data.phoneNumber.replace(/\D/g, '');
-      await signIn(cleanPhone, data.password, clientIP);
+      
+      // Check if this phone number has been rate limited
+      const rateStatus = checkPhoneRateLimit(cleanPhone);
+      if (rateStatus.limited) {
+        setLoginError(`Too many failed attempts. Please try again in ${rateStatus.remainingSeconds} seconds.`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Security enhancement: Log login location
+      console.log(`Login attempt from ${clientLocation || 'unknown location'}`);
+      
+      await signIn(cleanPhone, data.password, clientIP, clientLocation);
+      
+      // If we get here, login was successful
+      console.log("Login successful");
     } catch (error: any) {
       console.error("Login failed:", error);
       setLoginError(error.message || "Could not log in with these credentials");
@@ -92,6 +143,21 @@ const LoginForm = () => {
           </Alert>
         )}
         
+        {rateLimited.limited && (
+          <Alert variant="warning" className="bg-yellow-100 border-yellow-300">
+            <Info className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-700">
+              Account temporarily locked for security. Try again in {rateLimited.remainingSeconds} seconds.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {clientLocation && (
+          <div className="text-center text-sm text-muted-foreground">
+            <p>Signing in from {clientLocation}</p>
+          </div>
+        )}
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -107,6 +173,7 @@ const LoginForm = () => {
                       type="tel"
                       maxLength={10}
                       inputMode="numeric"
+                      disabled={rateLimited.limited}
                     />
                   </FormControl>
                   <FormMessage />
@@ -121,7 +188,12 @@ const LoginForm = () => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Enter your password" {...field} />
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password" 
+                      {...field} 
+                      disabled={rateLimited.limited}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -131,9 +203,9 @@ const LoginForm = () => {
             <Button 
               type="submit" 
               className="w-full bg-purple hover:bg-purple-dark" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || rateLimited.limited}
             >
-              {isSubmitting ? 'Logging in...' : 'Login'}
+              {isSubmitting ? 'Logging in...' : rateLimited.limited ? `Try again in ${rateLimited.remainingSeconds}s` : 'Login'}
             </Button>
           </form>
         </Form>

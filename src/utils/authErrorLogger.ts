@@ -16,10 +16,12 @@ export interface AuthErrorLogData {
   location?: string;
 }
 
+// Track failed login attempts to implement rate limiting
+const failedAttempts = new Map<string, { count: number, lastAttempt: number }>();
+
 // Helper function to get client's IP address
 export const getClientIP = async (): Promise<string> => {
   try {
-    // Use a public IP address API to get the client's IP address
     const response = await fetch('https://api.ipify.org?format=json');
     const data = await response.json();
     return data.ip;
@@ -27,6 +29,93 @@ export const getClientIP = async (): Promise<string> => {
     console.error('Failed to get IP address:', err);
     return 'unknown';
   }
+};
+
+// Helper function to get location from IP
+export const getLocationFromIP = async (ip: string): Promise<string> => {
+  try {
+    if (ip === 'unknown' || ip === 'localhost' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+      return 'Local Network';
+    }
+    
+    // Using free IP geolocation API (no API key required)
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.reason || 'IP location lookup failed');
+    }
+    
+    return `${data.city || ''}, ${data.region || ''}, ${data.country_name || 'Unknown'}`.trim().replace(/(^, )|(, $)/g, '');
+  } catch (err) {
+    console.error('Failed to get location from IP:', err);
+    return 'Unknown Location';
+  }
+};
+
+// Check if login attempts should be rate limited
+export const checkRateLimit = (phoneNumber: string): { limited: boolean, remainingSeconds: number } => {
+  const key = `auth_${phoneNumber}`;
+  const now = Date.now();
+  const attempt = failedAttempts.get(key);
+  
+  if (!attempt) {
+    return { limited: false, remainingSeconds: 0 };
+  }
+  
+  // Implement progressive backoff: 
+  // - 3 failures: 30 second timeout
+  // - 5 failures: 2 minute timeout
+  // - 10+ failures: 10 minute timeout
+  let waitTime = 0;
+  
+  if (attempt.count >= 10) {
+    waitTime = 10 * 60 * 1000; // 10 minutes
+  } else if (attempt.count >= 5) {
+    waitTime = 2 * 60 * 1000; // 2 minutes
+  } else if (attempt.count >= 3) {
+    waitTime = 30 * 1000; // 30 seconds
+  }
+  
+  const elapsedTime = now - attempt.lastAttempt;
+  
+  if (waitTime > 0 && elapsedTime < waitTime) {
+    const remainingSeconds = Math.ceil((waitTime - elapsedTime) / 1000);
+    return { limited: true, remainingSeconds };
+  }
+  
+  return { limited: false, remainingSeconds: 0 };
+};
+
+// Record failed attempt for rate limiting
+export const recordFailedAttempt = (phoneNumber: string): void => {
+  const key = `auth_${phoneNumber}`;
+  const now = Date.now();
+  const attempt = failedAttempts.get(key);
+  
+  if (attempt) {
+    attempt.count += 1;
+    attempt.lastAttempt = now;
+  } else {
+    failedAttempts.set(key, { count: 1, lastAttempt: now });
+  }
+  
+  // Clean up old entries every 100 attempts to prevent memory leaks
+  if (failedAttempts.size % 100 === 0) {
+    const twoHoursAgo = now - 2 * 60 * 60 * 1000;
+    
+    failedAttempts.forEach((value, key) => {
+      if (value.lastAttempt < twoHoursAgo) {
+        failedAttempts.delete(key);
+      }
+    });
+  }
+};
+
+// Reset failed attempts counter after successful login
+export const resetFailedAttempts = (phoneNumber: string): void => {
+  const key = `auth_${phoneNumber}`;
+  failedAttempts.delete(key);
 };
 
 export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
@@ -51,6 +140,11 @@ export const logAuthError = async (data: AuthErrorLogData): Promise<void> => {
     // Get user agent if available and not provided
     if (!data.user_agent && typeof window !== 'undefined') {
       data.user_agent = window.navigator.userAgent;
+    }
+    
+    // Get location from IP if not provided
+    if (!data.location && data.ip_address && data.ip_address !== 'unknown') {
+      data.location = await getLocationFromIP(data.ip_address);
     }
     
     // Insert error log

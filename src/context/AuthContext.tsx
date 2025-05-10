@@ -1,15 +1,24 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { User } from '@/types';
 import { toast } from '@/components/ui/use-toast';
-import { signUp as serviceSignUp, login as serviceLogin, logout as serviceLogout, getUserDetails } from '@/services/authService';
+import { 
+  signUp as serviceSignUp, 
+  login as serviceLogin, 
+  logout as serviceLogout, 
+  getUserDetails 
+} from '@/services/authService';
 import { supabase } from '@/services/supabaseClient';
+import { 
+  resetFailedAttempts
+} from '@/utils/authErrorLogger';
 
 interface AuthContextProps {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signUp: (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null) => Promise<void>;
-  signIn: (phoneNumber: string, password: string, clientIP?: string | null) => Promise<void>;
+  signUp: (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null, clientLocation?: string | null) => Promise<void>;
+  signIn: (phoneNumber: string, password: string, clientIP?: string | null, clientLocation?: string | null) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -80,11 +89,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [refreshUserData]);
 
-  const signUp = async (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null): Promise<void> => {
+  // Security enhancement: Implement session timeout
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    // Automatically log out after 24 hours of inactivity
+    const inactivityTimeout = 24 * 60 * 60 * 1000; // 24 hours in ms
+    let logoutTimer: NodeJS.Timeout;
+    
+    const resetTimer = () => {
+      if (logoutTimer) clearTimeout(logoutTimer);
+      logoutTimer = setTimeout(() => {
+        console.log("Session expired due to inactivity");
+        signOut();
+        toast({
+          title: "Session Expired",
+          description: "You've been logged out due to inactivity",
+          variant: "warning"
+        });
+      }, inactivityTimeout);
+    };
+    
+    // Set initial timer
+    resetTimer();
+    
+    // Reset timer on user activity
+    const events = ['mousedown', 'keypress', 'scroll', 'touchstart'];
+    const activityHandler = () => resetTimer();
+    
+    events.forEach(event => {
+      window.addEventListener(event, activityHandler);
+    });
+    
+    return () => {
+      // Clean up
+      if (logoutTimer) clearTimeout(logoutTimer);
+      events.forEach(event => {
+        window.removeEventListener(event, activityHandler);
+      });
+    };
+  }, [isAuthenticated]);
+
+  const signUp = async (phoneNumber: string, password: string, email: string, name: string, clientIP?: string | null, clientLocation?: string | null): Promise<void> => {
     try {
       console.log("Signing up with phone number:", phoneNumber);
       
-      const { success, message, user: newUser } = await serviceSignUp(name, phoneNumber, password, clientIP);
+      const { success, message, user: newUser } = await serviceSignUp(name, phoneNumber, password, clientIP, clientLocation);
 
       if (!success || !newUser) {
         throw new Error(message);
@@ -114,17 +164,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (phoneNumber: string, password: string, clientIP?: string | null): Promise<void> => {
+  const signIn = async (phoneNumber: string, password: string, clientIP?: string | null, clientLocation?: string | null): Promise<void> => {
     try {
       console.log("Signing in with phone number:", phoneNumber);
       
-      const { success, message, user: userData } = await serviceLogin(phoneNumber, password, clientIP);
+      const { success, message, user: userData } = await serviceLogin(phoneNumber, password, clientIP, clientLocation);
 
       if (!success || !userData) {
         throw new Error(message || "Invalid credentials");
       }
 
       console.log("Sign in response:", userData);
+
+      // Reset failed attempts on successful login
+      resetFailedAttempts(phoneNumber);
 
       // Store the user ID for future sessions
       localStorage.setItem('userId', userData.id);
