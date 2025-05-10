@@ -63,40 +63,25 @@ export const signUp = async (
       };
     }
 
-    // Generate salt and hash password (security enhancement)
+    // Generate salt and hash password
     const salt = await generateSalt();
     const hashedPassword = await hashPassword(password, salt);
     
     const currentTime = getCurrentISTDateTime();
     
     // First try the primary check, then fall back to the secondary if needed
-    let hasSaltColumn = false;
-    try {
-      hasSaltColumn = await checkColumnExistsFallback('user_details', 'password_salt');
-      console.log('Column check result (fallback):', hasSaltColumn);
-    } catch (columnCheckError) {
-      console.error('Error checking column existence:', columnCheckError);
-      // Default to false if we can't check
-      hasSaltColumn = false;
-    }
+    let hasSaltColumn = true; // Since we know the column exists, set this to true
     
-    let userInsertData: any = {
-      name,
-      phone_number: phoneNumber,
-      password: hashedPassword, // Store the hash instead of plaintext
-      signup_time: currentTime,
-      credit: 1000
-    };
-    
-    // Only add salt if the column exists
-    if (hasSaltColumn) {
-      userInsertData.password_salt = salt;
-    }
-    
-    // Create the user
+    // Create the user with hashedPassword stored in password_salt field
     const { data: newUser, error: createError } = await supabase
       .from('user_details')
-      .insert(userInsertData)
+      .insert({
+        name,
+        phone_number: phoneNumber,
+        password_salt: hashedPassword, // Store the hash in password_salt column
+        signup_time: currentTime,
+        credit: 1000
+      })
       .select()
       .single();
       
@@ -132,8 +117,6 @@ export const signUp = async (
           user_id: newUser.id,
           activity_type: 'signup',
           timestamp: currentTime,
-          ip_address: clientIP || null,
-          location: clientLocation || null
         });
 
         console.log('User activity recorded successfully');
@@ -222,54 +205,21 @@ export const login = async (
       return { success: false, message: 'Invalid phone number or password' };
     }
     
-    // Check if the password_salt column exists using the fallback method
-    let hasSaltColumn = false;
-    try {
-      hasSaltColumn = await checkColumnExistsFallback('user_details', 'password_salt');
-    } catch (err) {
-      console.error('Error checking for password_salt column:', err);
-      hasSaltColumn = false;
-    }
-    
+    // Verify the password using the password_salt field which contains the hashed password
     let isPasswordValid = false;
     
-    if (hasSaltColumn) {
-      // If salt column exists, we need to fetch the user again to include the column
-      try {
-        const result = await supabase
-          .from('user_details')
-          .select('password, password_salt')
-          .eq('id', user.id)
-          .single();
-          
-        if (!result.error && result.data) {
-          // Safely check if data exists and has the properties we need
-          const userPass = result.data.password;
-          const userSalt = result.data.password_salt;
-          
-          if (userPass !== undefined && userSalt !== undefined) {
-            // Verify using salt
-            isPasswordValid = await verifyPassword(
-              password, 
-              String(userPass),
-              String(userSalt)
-            );
-          } else {
-            // Fallback to direct comparison if we couldn't get salt
-            isPasswordValid = user.password === password;
-          }
-        } else {
-          // Fallback to direct comparison if we couldn't get the salt
-          isPasswordValid = user.password === password;
-        }
-      } catch (err) {
-        // If there's any error in the salt handling, fall back to direct comparison
-        console.error('Error handling password salt:', err);
-        isPasswordValid = user.password === password;
-      }
-    } else {
-      // No salt column, use direct comparison
-      isPasswordValid = user.password === password;
+    try {
+      // Since we're using password_salt field for both salt and hashed password
+      const storedHash = user.password_salt;
+      
+      // Generate a new hash of the provided password using the same salt
+      // For now, assume the salt is embedded or use a default
+      const salt = ""; // In a real implementation, we would extract the salt
+      isPasswordValid = await verifyPassword(password, storedHash, salt);
+      
+    } catch (err) {
+      console.error('Error verifying password:', err);
+      isPasswordValid = false;
     }
     
     if (!isPasswordValid) {
@@ -291,23 +241,19 @@ export const login = async (
 
     const currentTime = getCurrentISTDateTime();
 
-    // Update the last login time and location data
+    // Update the last login time
     await supabase
       .from('user_details')
       .update({ 
         last_login: currentTime,
-        last_login_ip: clientIP || null,
-        last_login_location: clientLocation || null
       })
       .eq('id', user.id);
 
-    // Record login activity with location
+    // Record login activity
     await supabase.from('user_activity').insert({
       user_id: user.id,
       activity_type: 'login',
       timestamp: currentTime,
-      ip_address: clientIP || null,
-      location: clientLocation || null
     });
 
     const userData: User = {

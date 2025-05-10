@@ -93,7 +93,7 @@ export const getUserLoginHistory = async (
     // Fetch login activity records for the user
     const { data, error } = await supabase
       .from('user_activity')
-      .select('timestamp, location, ip_address')
+      .select('timestamp')
       .eq('user_id', userId)
       .eq('activity_type', 'login')
       .order('timestamp', { ascending: false })
@@ -109,11 +109,11 @@ export const getUserLoginHistory = async (
     
     // Check if data exists and has the expected format
     if (data && Array.isArray(data)) {
-      // Map the data to the expected format
+      // Map the data to the expected format - only timestamp is available
       const loginHistory = data.map(record => ({
         timestamp: record.timestamp,
-        location: record.location,
-        ip_address: record.ip_address
+        location: null,  // These fields don't exist in the table
+        ip_address: null
       }));
       
       return {
