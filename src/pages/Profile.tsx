@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileDetails from '@/components/profile/ProfileDetails';
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
+import LoginHistory from '@/components/profile/LoginHistory';
 import { useAuth } from '@/context/AuthContext';
 import { changePassword, updateUserProfile } from '@/services/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -206,31 +207,35 @@ const Profile: React.FC = () => {
           />
         ) : (
           <>
-            <ProfileDetails 
-              user={user} 
-              onUpdateProfile={handleUpdateProfile}
-              onChangePassword={() => setIsChangingPassword(true)}
-              onRefreshCredit={handleRefreshCredit}
-              onRecalculateCredit={handleRecalculateCredit}
-              isUpdating={isUpdating}
-              isRefreshingCredit={isRefreshingCredit}
-              isRecalculatingCredit={isRecalculatingCredit}
-              lastCreditRefresh={lastCreditRefresh}
-            />
-            
-            {isAdmin && (
-              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-100 rounded-md">
-                <h3 className="text-lg font-semibold text-yellow-800">Administrator Actions</h3>
-                <p className="text-sm text-yellow-700 mb-4">Use these functions with caution as they affect all users in the system.</p>
-                <button 
-                  onClick={handleFixAllCredits}
-                  disabled={isFixingAllCredits}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:bg-yellow-300"
-                >
-                  {isFixingAllCredits ? 'Recalculating All Credits...' : 'Recalculate All User Credits'}
-                </button>
-              </div>
-            )}
+            <div className="space-y-6">
+              <ProfileDetails 
+                user={user} 
+                onUpdateProfile={handleUpdateProfile}
+                onChangePassword={() => setIsChangingPassword(true)}
+                onRefreshCredit={handleRefreshCredit}
+                onRecalculateCredit={handleRecalculateCredit}
+                isUpdating={isUpdating}
+                isRefreshingCredit={isRefreshingCredit}
+                isRecalculatingCredit={isRecalculatingCredit}
+                lastCreditRefresh={lastCreditRefresh}
+              />
+              
+              <LoginHistory userId={user.id} />
+              
+              {isAdmin && (
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-100 rounded-md">
+                  <h3 className="text-lg font-semibold text-yellow-800">Administrator Actions</h3>
+                  <p className="text-sm text-yellow-700 mb-4">Use these functions with caution as they affect all users in the system.</p>
+                  <button 
+                    onClick={handleFixAllCredits}
+                    disabled={isFixingAllCredits}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded transition-colors disabled:bg-yellow-300"
+                  >
+                    {isFixingAllCredits ? 'Recalculating All Credits...' : 'Recalculate All User Credits'}
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>

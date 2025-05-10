@@ -1,5 +1,5 @@
 
-import { supabase, checkColumnExistsFallback } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError, recordFailedAttempt } from '../../utils/authErrorLogger';
@@ -243,7 +243,7 @@ export const login = async (
           .single();
           
         if (!result.error && result.data) {
-          // Safely check if password_salt property exists before accessing it
+          // Safely check if data exists and has the properties we need
           const userPass = result.data?.password;
           const userSalt = result.data?.password_salt;
           
@@ -355,3 +355,6 @@ export const logout = async (userId: string): Promise<{ success: boolean; messag
     return { success: false, message: 'Failed to logout' };
   }
 };
+
+// Import function from supabaseClient
+import { checkColumnExistsFallback } from '../supabaseClient';

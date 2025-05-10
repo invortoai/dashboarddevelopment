@@ -102,3 +102,38 @@ export const getUserDetails = async (userId: string): Promise<{ success: boolean
     return { success: false, message: 'Failed to retrieve user details' };
   }
 };
+
+export const getUserLoginHistory = async (userId: string): Promise<{ 
+  success: boolean; 
+  message: string; 
+  history?: { 
+    timestamp: string; 
+    location?: string | null; 
+    ip_address?: string | null; 
+  }[] 
+}> => {
+  try {
+    // Fetch login activities from user_activity table
+    const { data, error } = await supabase
+      .from('user_activity')
+      .select('timestamp, ip_address, location')
+      .eq('user_id', userId)
+      .eq('activity_type', 'login')
+      .order('timestamp', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('Error fetching login history:', error);
+      return { success: false, message: 'Failed to retrieve login history' };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Login history retrieved successfully', 
+      history: data || []
+    };
+  } catch (error) {
+    console.error('Get login history error:', error);
+    return { success: false, message: 'Failed to retrieve login history' };
+  }
+};

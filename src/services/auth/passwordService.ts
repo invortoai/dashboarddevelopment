@@ -38,7 +38,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
           .single();
           
         if (!result.error && result.data) {
-          // Safely check if password_salt property exists before accessing it
+          // Safely check if data exists and has the properties we need
           const userPass = result.data?.password;
           const userSalt = result.data?.password_salt;
           
