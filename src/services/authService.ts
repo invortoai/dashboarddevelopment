@@ -243,16 +243,16 @@ export const login = async (
     if (hasSaltColumn) {
       // If salt column exists, we need to fetch the user again to include the column
       try {
-        const { data: userWithSalt, error: saltError } = await supabase
+        const result = await supabase
           .from('user_details')
           .select('password, password_salt')
           .eq('id', user.id)
           .single();
           
-        if (!saltError && userWithSalt) {
+        if (!result.error && result.data) {
           // Safely check if password_salt property exists before accessing it
-          const userPass = userWithSalt.password;
-          const userSalt = userWithSalt.password_salt;
+          const userPass = result.data.password;
+          const userSalt = result.data.password_salt;
           
           if (userPass !== undefined && userSalt !== undefined) {
             // Verify using salt
@@ -462,16 +462,16 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     if (hasSaltColumn) {
       // Get the user with salt
       try {
-        const { data: userWithSalt, error: saltError } = await supabase
+        const result = await supabase
           .from('user_details')
           .select('password, password_salt')
           .eq('id', userId)
           .single();
           
-        if (!saltError && userWithSalt) {
+        if (!result.error && result.data) {
           // Safely check if password_salt property exists before accessing it
-          const userPass = userWithSalt.password;
-          const userSalt = userWithSalt.password_salt;
+          const userPass = result.data.password;
+          const userSalt = result.data.password_salt;
           
           if (userPass !== undefined && userSalt !== undefined) {
             // Verify using salt
