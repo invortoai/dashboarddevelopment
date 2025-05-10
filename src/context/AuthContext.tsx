@@ -7,7 +7,7 @@ import {
   login as serviceLogin, 
   logout as serviceLogout, 
   getUserDetails 
-} from '@/services/authService';
+} from '@/services/auth';
 import { supabase } from '@/services/supabaseClient';
 import { 
   resetFailedAttempts

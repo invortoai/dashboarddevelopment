@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileDetails from '@/components/profile/ProfileDetails';
 import ChangePasswordForm from '@/components/profile/ChangePasswordForm';
 import { useAuth } from '@/context/AuthContext';
-import { changePassword, updateUserProfile } from '@/services/authService';
+import { changePassword, updateUserProfile } from '@/services/auth';
 import { useToast } from '@/hooks/use-toast';
 import { recalculateUserCredits } from '@/services/userCredits';
 import { fixAllUserCredits } from '@/services/call/creditFix';
