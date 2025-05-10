@@ -17,15 +17,13 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       return { success: false, message: 'User not found' };
     }
 
-    // Since password_salt column exists and contains the hashed password
+    // Verify using the stored hashed password in password_salt field
     let isPasswordValid = false;
     
     try {
-      // Verify using the stored hashed password in password_salt field
+      // Verify the password using just the stored hash
       const storedHash = user.password_salt;
-      // For now, assume the salt is embedded or use a default
-      const salt = ""; // In a real implementation, we would extract the salt
-      isPasswordValid = await verifyPassword(currentPassword, storedHash, salt);
+      isPasswordValid = await verifyPassword(currentPassword, storedHash);
     } catch (err) {
       console.error('Error in password verification:', err);
       isPasswordValid = false;

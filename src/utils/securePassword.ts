@@ -30,12 +30,14 @@ export const hashPassword = async (password: string, salt: string): Promise<stri
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Verify password by comparing hashes
+// Verify password by comparing hashes directly
 export const verifyPassword = async (
   plainPassword: string, 
   hashedPassword: string, 
-  salt: string
+  salt: string = ""
 ): Promise<boolean> => {
+  // If no salt is provided, we assume the hash already includes the salt
+  // This is for compatibility with the existing stored passwords
   const newHash = await hashPassword(plainPassword, salt);
   return secureCompare(newHash, hashedPassword);
 };

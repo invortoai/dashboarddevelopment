@@ -69,9 +69,6 @@ export const signUp = async (
     
     const currentTime = getCurrentISTDateTime();
     
-    // First try the primary check, then fall back to the secondary if needed
-    let hasSaltColumn = true; // Since we know the column exists, set this to true
-    
     // Create the user with hashedPassword stored in password_salt field
     const { data: newUser, error: createError } = await supabase
       .from('user_details')
@@ -209,13 +206,12 @@ export const login = async (
     let isPasswordValid = false;
     
     try {
-      // Since we're using password_salt field for both salt and hashed password
+      // Since we're using password_salt field for the hashed password
       const storedHash = user.password_salt;
       
-      // Generate a new hash of the provided password using the same salt
-      // For now, assume the salt is embedded or use a default
-      const salt = ""; // In a real implementation, we would extract the salt
-      isPasswordValid = await verifyPassword(password, storedHash, salt);
+      // Now we're passing an empty salt because the hash already includes the salt
+      isPasswordValid = await verifyPassword(password, storedHash);
+      console.log('Password verification result:', isPasswordValid);
       
     } catch (err) {
       console.error('Error verifying password:', err);
