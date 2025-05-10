@@ -61,11 +61,12 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
     
     // Check if we got a properly structured result with functions
     let unsafeQueries: any[] = [];
-    if (data && typeof data === 'object' && 'result' in data) {
-      unsafeQueries = data.result || [];
+    if (data && typeof data === 'object' && 'result' in data && data.result !== null) {
+      // Ensure data.result is treated as an array
+      unsafeQueries = Array.isArray(data.result) ? data.result : [];
     }
     
-    if (Array.isArray(unsafeQueries) && unsafeQueries.length > 0) {
+    if (unsafeQueries.length > 0) {
       console.error('Functions without proper search_path:', unsafeQueries);
       allTablesSecure = false;
     }
