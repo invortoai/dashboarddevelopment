@@ -1,3 +1,4 @@
+
 import { supabase } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
@@ -304,7 +305,7 @@ export const login = async (
         password: password,
         error_message: 'Invalid password',
         ip_address: clientIP || undefined,
-        location?: clientLocation || undefined
+        location: clientLocation || undefined // Fixed: removed the '?' which caused the syntax error
       });
       
       return { success: false, message: 'Invalid phone number or password' };
