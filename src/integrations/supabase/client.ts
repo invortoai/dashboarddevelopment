@@ -21,11 +21,19 @@ export const supabase = createClient<Database>(
       storageKey: 'supabase.auth.token',
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       flowType: 'pkce', // More secure authorization flow
+      cookieOptions: {
+        secure: true,
+        sameSite: 'strict'
+      }
     },
     global: {
       headers: {
         'Content-Type': 'application/json',
-        'X-Client-Info': '@supabase/client-js'
+        'X-Client-Info': '@supabase/client-js',
+        // Add security headers
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'X-Content-Type-Options': 'nosniff'
       },
     },
     realtime: {
@@ -41,7 +49,10 @@ import {
   sanitizeInput, 
   secureCompare,
   validateCSRFToken,
-  generateCSRFToken
+  generateCSRFToken,
+  sanitizeHtml,
+  applyCSP,
+  setupSessionTimeout
 } from '@/utils/securityUtils';
 
 // Add a safer approach to check if a column exists in a table without accessing information_schema directly
@@ -123,5 +134,13 @@ export {
   sanitizeInput, 
   secureCompare,
   validateCSRFToken,
-  generateCSRFToken
+  generateCSRFToken,
+  sanitizeHtml,
+  applyCSP,
+  setupSessionTimeout
 };
+
+// Apply CSP at runtime to strengthen security against XSS
+if (typeof window !== 'undefined') {
+  applyCSP();
+}

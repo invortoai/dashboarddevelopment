@@ -3,3 +3,9 @@ project_id = "jcazvdqmxlzpdwgzlyph"
 
 [functions."execute_safe_sql"]
 verify_jwt = true
+
+# Ensure all edge functions require authentication by default
+# Individual functions can override this setting
+[functions]
+verify_jwt = true
+

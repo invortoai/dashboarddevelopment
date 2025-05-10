@@ -95,6 +95,22 @@ export const sanitizeInput = (input: string): string => {
     .trim();
 };
 
+// Enhanced XSS prevention for HTML content
+export const sanitizeHtml = (html: string): string => {
+  if (!html) return '';
+  
+  return html
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/`/g, '&#x60;')
+    .replace(/\(/g, '&#40;')
+    .replace(/\)/g, '&#41;')
+    .replace(/\{/g, '&#123;')
+    .replace(/\}/g, '&#125;');
+};
+
 // Validate CSRF token with secure comparison
 export const validateCSRFToken = (token: string): boolean => {
   const storedToken = secureTokenStorage.getToken('csrf_token');
@@ -110,7 +126,59 @@ export const generateCSRFToken = (): string => {
   return token;
 };
 
-// Add requireAuth function that was missing
+// Content Security Policy helper
+export const applyCSP = (): void => {
+  // Only run on the client
+  if (typeof document !== 'undefined') {
+    // Create CSP meta tag
+    const meta = document.createElement('meta');
+    meta.httpEquiv = "Content-Security-Policy";
+    meta.content = 
+      "default-src 'self';" + 
+      "script-src 'self' 'unsafe-inline';" +
+      "style-src 'self' 'unsafe-inline';" +
+      "img-src 'self' data:;" +
+      `connect-src 'self' https://jcazvdqmxlzpdwgzlyph.supabase.co wss://jcazvdqmxlzpdwgzlyph.supabase.co;`;
+    
+    // Add it to head
+    document.head.appendChild(meta);
+  }
+};
+
+// Session timeout handler
+export const setupSessionTimeout = (timeoutMinutes = 60): () => void => {
+  let timeoutId: number;
+  
+  const resetTimer = () => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => {
+      // Clear session data
+      localStorage.removeItem('sessionInfo');
+      localStorage.removeItem('csrf_token');
+      // Redirect to login page
+      window.location.href = '/login';
+    }, timeoutMinutes * 60 * 1000);
+  };
+  
+  // Reset timer on user activity
+  const activityEvents = ['mousedown', 'keypress', 'scroll', 'touchstart'];
+  activityEvents.forEach(event => {
+    document.addEventListener(event, resetTimer);
+  });
+  
+  // Start timer initially
+  resetTimer();
+  
+  // Return cleanup function
+  return () => {
+    window.clearTimeout(timeoutId);
+    activityEvents.forEach(event => {
+      document.removeEventListener(event, resetTimer);
+    });
+  };
+};
+
+// Require authentication check
 export const requireAuth = async (): Promise<boolean> => {
   try {
     // Check if we have a valid session info in secure storage
@@ -134,3 +202,9 @@ export const requireAuth = async (): Promise<boolean> => {
     return false;
   }
 };
+
+// Check permissions
+export const checkPermission = (requiredPermission: string, userPermissions: string[]): boolean => {
+  return userPermissions.includes(requiredPermission);
+};
+
