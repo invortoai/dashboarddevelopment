@@ -16,7 +16,10 @@ interface SecurityProviderProps {
  * - Session heartbeat for suspicious activity detection
  */
 const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  // Safely access auth context with fallback values
+  const auth = useAuth();
+  const user = auth?.user || null;
+  const isAuthenticated = auth?.isAuthenticated || false;
   const [sessionTimeoutCleanup, setSessionTimeoutCleanup] = useState<(() => void) | null>(null);
   
   // Apply CSP only once on mount
@@ -33,7 +36,9 @@ const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
       
       // Setup heartbeat interval when user is authenticated
       const heartbeatInterval = setInterval(() => {
-        sessionHeartbeat(user.id);
+        if (user?.id) {
+          sessionHeartbeat(user.id);
+        }
       }, 5 * 60 * 1000); // Run every 5 minutes
       
       return () => {

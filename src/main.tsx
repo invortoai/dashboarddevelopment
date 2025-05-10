@@ -1,3 +1,4 @@
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
@@ -5,7 +6,6 @@ import './index.css'
 
 // Add security imports
 import { initializeAppSecurity } from './services/security/initializeAppSecurity';
-import SecurityProvider from './components/security/SecurityProvider';
 
 // Initialize security features
 if (typeof window !== 'undefined') {
@@ -22,11 +22,10 @@ if (typeof window !== 'undefined') {
     });
 }
 
-// Wrap the application with our SecurityProvider
+// In main.tsx we don't need the SecurityProvider
+// since it will be properly placed within App.tsx after AuthProvider
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <SecurityProvider>
-      <App />
-    </SecurityProvider>
+    <App />
   </React.StrictMode>,
 )
