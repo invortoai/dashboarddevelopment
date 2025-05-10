@@ -5,4 +5,10 @@ export { updateUserProfile, getUserDetails, getUserLoginHistory } from './userPr
 export { changePassword } from './passwordService';
 
 // Export security helpers from supabaseClient
-export { sanitizeInput, requireAuth } from '../supabaseClient';
+export { 
+  sanitizeInput, 
+  requireAuth, 
+  secureCompare, 
+  validateCsrfToken, 
+  generateCsrfToken 
+} from '../supabaseClient';

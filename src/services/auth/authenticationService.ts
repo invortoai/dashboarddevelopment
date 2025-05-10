@@ -1,5 +1,5 @@
 
-import { supabase, sanitizeInput } from '../supabaseClient';
+import { supabase, sanitizeInput, requireAuth, validateCsrfToken } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError, recordFailedAttempt } from '../../utils/authErrorLogger';
@@ -347,19 +347,25 @@ export const login = async (
       lastLogin: currentTime
     };
 
+    // Generate CSRF token for enhanced protection
+    const csrfToken = crypto.randomUUID();
+
     // Get the session token for improved session management
     const session = {
       userId: userData.id,
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      csrfToken: csrfToken
     };
     
     // Store session info in localStorage with secure flags
     localStorage.setItem('sessionInfo', JSON.stringify(session));
+    localStorage.setItem('csrf_token', csrfToken);
     
     // Set expiry on session
     setTimeout(() => {
       localStorage.removeItem('sessionInfo');
+      localStorage.removeItem('csrf_token');
     }, 24 * 60 * 60 * 1000);
 
     return { success: true, message: 'Login successful', user: userData };
@@ -394,6 +400,7 @@ export const logout = async (userId: string): Promise<{ success: boolean; messag
     
     // Clear session information
     localStorage.removeItem('sessionInfo');
+    localStorage.removeItem('csrf_token');
     
     return { success: true, message: 'Logout successful' };
   } catch (error) {

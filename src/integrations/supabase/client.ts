@@ -18,7 +18,7 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: 'supabase.auth.token',
-      storage: localStorage,
+      storage: typeof window !== 'undefined' ? localStorage : undefined,
     },
     global: {
       headers: {
@@ -82,12 +82,63 @@ export const checkColumnExistsFallback = async (tableName: string, columnName: s
 // Add helper function to sanitize input for database queries
 export const sanitizeInput = (input: string): string => {
   if (!input) return '';
-  // Basic sanitization to prevent SQL injection
-  return input.replace(/['";]/g, '');
+  // Enhanced sanitization to prevent SQL injection and XSS attacks
+  return input
+    .replace(/['";]/g, '') // Basic SQL injection protection
+    .replace(/[<>]/g, '') // Basic XSS protection
+    .trim();
 };
 
 // Add security helper to limit access to certain routes
 export const requireAuth = async (): Promise<boolean> => {
-  const session = await supabase.auth.getSession();
-  return !!session.data.session;
+  try {
+    const session = await supabase.auth.getSession();
+    // Check if session exists and is not expired
+    if (!session.data.session) return false;
+    
+    const now = new Date();
+    const expiresAt = new Date(session.data.session.expires_at || '');
+    
+    if (expiresAt <= now) {
+      // Session has expired, attempt to refresh
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data.session) {
+        console.error('Failed to refresh session:', error);
+        return false;
+      }
+      return true;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Auth check error:', error);
+    return false;
+  }
+};
+
+// Helper function to securely compare strings (helps prevent timing attacks)
+export const secureCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  
+  return result === 0;
+};
+
+// Helper function to check and validate CSRF tokens
+export const validateCsrfToken = (token: string): boolean => {
+  const storedToken = localStorage.getItem('csrf_token');
+  if (!storedToken) return false;
+  
+  return secureCompare(token, storedToken);
+};
+
+// Helper to generate a CSRF token
+export const generateCsrfToken = (): string => {
+  const token = crypto.randomUUID();
+  localStorage.setItem('csrf_token', token);
+  return token;
 };
