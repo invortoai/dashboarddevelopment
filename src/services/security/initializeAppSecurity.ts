@@ -1,7 +1,6 @@
-
 import { applyCSP, setupSessionTimeout } from '@/utils/securityUtils';
 import { validateDatabaseSecurity } from '../database/securityMigrations';
-import { executeBatchSql } from '../database/sqlExecutor';
+import { executeSql, executeBatchSql } from '../database/sqlExecutor';
 
 /**
  * Initializes all security features for the application
@@ -181,7 +180,46 @@ export const enableDatabaseSecurity = async (): Promise<{ success: boolean; mess
     
     const functionResult = await executeSql(fixFunctionQuery);
     
-    if (hasErrors || !functionResult.success) {
+    // Also fix the other functions with search_path issues
+    const fixUpdateCreditsQuery = `
+      CREATE OR REPLACE FUNCTION public.update_user_credits(user_id_param uuid, credits_to_deduct integer)
+      RETURNS void
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path = ''
+      AS $$
+      BEGIN
+        UPDATE public.user_details
+        SET credit = credit - credits_to_deduct
+        WHERE id = user_id_param;
+      END;
+      $$;
+    `;
+    
+    const fixHashPasswordQuery = `
+      CREATE OR REPLACE FUNCTION public.hash_password(plain_password text)
+      RETURNS text
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      SET search_path = ''
+      AS $$
+      BEGIN
+        -- Using a simple hash for demonstration
+        -- In production, consider more secure options
+        RETURN encode(sha256(plain_password::bytea), 'hex');
+      END;
+      $$;
+    `;
+    
+    // Execute the fixes for all functions with search_path issues
+    const functionFixResults = await Promise.all([
+      executeSql(fixUpdateCreditsQuery),
+      executeSql(fixHashPasswordQuery)
+    ]);
+    
+    const hasFunctionFixErrors = functionFixResults.some(result => !result.success);
+    
+    if (hasErrors || !functionResult.success || hasFunctionFixErrors) {
       return { 
         success: false, 
         message: 'Some database security features could not be enabled' 
