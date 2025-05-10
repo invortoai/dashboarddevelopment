@@ -1,15 +1,17 @@
 
-import { supabase, checkColumnExistsFallback } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
+import { checkColumnExistsFallback } from '../supabaseClient';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError } from '../../utils/authErrorLogger';
 import { hashPassword, generateSalt, verifyPassword } from '../../utils/securePassword';
+import { sanitizeInput } from '@/utils/securityUtils';
 
 export const changePassword = async (userId: string, currentPassword: string, newPassword: string, clientIP?: string, clientLocation?: string): Promise<{ success: boolean; message: string }> => {
   try {
     // First get the user record to verify the current password
     const { data: user, error: getUserError } = await supabase
       .from('user_details')
-      .select('id, phone_number, password_salt')
+      .select('id, phone_number, password_salt, password_hash')
       .eq('id', userId)
       .single();
     
@@ -21,9 +23,17 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     let isPasswordValid = false;
     
     try {
-      // Verify the password using just the stored hash
-      const storedHash = user.password_salt;
-      isPasswordValid = await verifyPassword(currentPassword, storedHash);
+      // Check if we're using the new format with explicit salt and hash
+      if ('password_hash' in user && user.password_hash) {
+        // New approach: separate salt and hash
+        isPasswordValid = await verifyPassword(
+          currentPassword, 
+          `${user.password_salt}:${user.password_hash}`
+        );
+      } else {
+        // Legacy approach: use just the password_salt field
+        isPasswordValid = await verifyPassword(currentPassword, user.password_salt);
+      }
     } catch (err) {
       console.error('Error in password verification:', err);
       isPasswordValid = false;
@@ -60,7 +70,6 @@ export const changePassword = async (userId: string, currentPassword: string, ne
         .from('user_details')
         .update({
           password_salt: saltPart,
-          // @ts-ignore - TypeScript doesn't know about password_hash
           password_hash: hashPart
         })
         .eq('id', userId);
@@ -82,7 +91,7 @@ export const changePassword = async (userId: string, currentPassword: string, ne
       // Log password change error
       await logAuthError({
         attempt_type: 'password_change',
-        phone_number: user.phone_number,
+        phone_number: sanitizeInput(user.phone_number),
         password: currentPassword,
         error_message: 'Failed to change password',
         error_code: updateError.code,

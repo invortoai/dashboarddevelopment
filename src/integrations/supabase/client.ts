@@ -9,6 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Enhanced security configuration for the Supabase client
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -19,6 +20,7 @@ export const supabase = createClient<Database>(
       detectSessionInUrl: true,
       storageKey: 'supabase.auth.token',
       storage: typeof window !== 'undefined' ? localStorage : undefined,
+      flowType: 'pkce', // More secure authorization flow
     },
     global: {
       headers: {
@@ -34,15 +36,25 @@ export const supabase = createClient<Database>(
   }
 );
 
+// Security utilities imported from the new security utils module
+import { 
+  sanitizeInput, 
+  secureCompare,
+  validateCSRFToken,
+  generateCSRFToken
+} from '@/utils/securityUtils';
+
 // Add a safer approach to check if a column exists in a table without accessing information_schema directly
 export const checkColumnExists = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
-    // Instead of querying information_schema which causes type errors,
-    // we'll use a safer approach by attempting to select the specific column
-    // and checking if the query succeeds
-    const query = `SELECT "${columnName}" FROM "${tableName}" LIMIT 0`;
-    const { data, error } = await supabase.functions.invoke('execute_sql', {
-      body: { query_text: query }
+    // Use parameterized query to prevent SQL injection
+    const query = {
+      query_text: `SELECT $1::text FROM $2::text LIMIT 0`,
+      params: [columnName, tableName]
+    };
+    
+    const { data, error } = await supabase.functions.invoke('execute_safe_sql', {
+      body: query
     });
     
     // If there's no error, the column exists
@@ -57,7 +69,7 @@ export const checkColumnExists = async (tableName: string, columnName: string): 
 export const checkColumnExistsFallback = async (tableName: string, columnName: string): Promise<boolean> => {
   try {
     // Try to select just that one column from the table with a limit of 1 row
-    // If the column doesn't exist, this will error out
+    // Using type casting to "as any" is necessary here due to dynamic table/column names
     const { error } = await supabase
       .from(tableName as any)
       .select(columnName)
@@ -77,16 +89,6 @@ export const checkColumnExistsFallback = async (tableName: string, columnName: s
     console.error(`Error in fallback check for column ${columnName} in ${tableName}:`, error);
     return false;
   }
-};
-
-// Add helper function to sanitize input for database queries
-export const sanitizeInput = (input: string): string => {
-  if (!input) return '';
-  // Enhanced sanitization to prevent SQL injection and XSS attacks
-  return input
-    .replace(/['";]/g, '') // Basic SQL injection protection
-    .replace(/[<>]/g, '') // Basic XSS protection
-    .trim();
 };
 
 // Add security helper to limit access to certain routes
@@ -116,29 +118,10 @@ export const requireAuth = async (): Promise<boolean> => {
   }
 };
 
-// Helper function to securely compare strings (helps prevent timing attacks)
-export const secureCompare = (a: string, b: string): boolean => {
-  if (a.length !== b.length) return false;
-  
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  
-  return result === 0;
-};
-
-// Helper function to check and validate CSRF tokens
-export const validateCsrfToken = (token: string): boolean => {
-  const storedToken = localStorage.getItem('csrf_token');
-  if (!storedToken) return false;
-  
-  return secureCompare(token, storedToken);
-};
-
-// Helper to generate a CSRF token
-export const generateCsrfToken = (): string => {
-  const token = crypto.randomUUID();
-  localStorage.setItem('csrf_token', token);
-  return token;
+// Export security utilities to be used elsewhere
+export { 
+  sanitizeInput, 
+  secureCompare,
+  validateCSRFToken,
+  generateCSRFToken
 };

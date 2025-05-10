@@ -4,11 +4,11 @@ export { signUp, login, logout, checkPhoneExists } from './authenticationService
 export { updateUserProfile, getUserDetails, getUserLoginHistory } from './userProfileService';
 export { changePassword } from './passwordService';
 
-// Export security helpers from supabaseClient
+// Export security helpers from our new security utilities
 export { 
   sanitizeInput, 
   requireAuth, 
   secureCompare, 
-  validateCsrfToken, 
-  generateCsrfToken 
-} from '../supabaseClient';
+  validateCSRFToken, 
+  generateCSRFToken 
+} from '@/utils/securityUtils';

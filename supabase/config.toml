@@ -1,1 +1,5 @@
+
 project_id = "jcazvdqmxlzpdwgzlyph"
+
+[functions."execute_safe_sql"]
+verify_jwt = true

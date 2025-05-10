@@ -5,7 +5,7 @@
  */
 
 // Generate a cryptographically strong salt
-export const generateSalt = async (length: number = 16): Promise<string> => {
+export const generateSalt = async (length: number = 32): Promise<string> => {
   // Use Web Crypto API to generate random bytes for salt
   const buffer = new Uint8Array(length);
   window.crypto.getRandomValues(buffer);
@@ -38,6 +38,9 @@ export const verifyPassword = async (
   plainPassword: string, 
   storedValue: string
 ): Promise<boolean> => {
+  // Handle empty inputs securely
+  if (!plainPassword || !storedValue) return false;
+  
   // Check if we're using the new format with explicit salt
   if (storedValue.includes(':')) {
     // New format: salt:hash
@@ -50,7 +53,7 @@ export const verifyPassword = async (
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const newHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    // Compare hashes
+    // Use constant-time comparison to prevent timing attacks
     return secureCompare(newHash, storedHash);
   } 
   
@@ -62,7 +65,7 @@ export const verifyPassword = async (
 
 // For securely comparing strings (helps prevent timing attacks)
 export const secureCompare = (a: string, b: string): boolean => {
-  if (a.length !== b.length) return false;
+  if (!a || !b || a.length !== b.length) return false;
   
   let result = 0;
   for (let i = 0; i < a.length; i++) {
