@@ -12,8 +12,15 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
     let allTablesSecure = true;
     
     for (const tableName of tablesWithRls) {
+      // Using execute_sql function instead of direct rpc
       const { data, error } = await supabase
-        .rpc('check_rls_enabled', { table_name: tableName });
+        .rpc('execute_sql', { 
+          query_text: `SELECT EXISTS (
+            SELECT 1 FROM pg_tables 
+            WHERE tablename = '${tableName}' 
+            AND rowsecurity = true
+          )` 
+        });
       
       if (error) {
         console.error(`Error checking RLS for ${tableName}:`, error);
@@ -28,16 +35,31 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
     }
     
     // Check for proper search_path configuration in functions
-    const { data: functions, error: funcError } = await supabase
-      .rpc('list_functions_without_search_path');
+    const { data, error } = await supabase
+      .rpc('execute_sql', { 
+        query_text: `
+          SELECT proname, nspname
+          FROM pg_proc p
+          JOIN pg_namespace n ON p.pronamespace = n.oid
+          WHERE p.prosecdef = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM pg_proc_info pi
+            WHERE pi.oid = p.oid
+            AND pi.proargnames @> ARRAY['search_path']
+          )
+          AND n.nspname = 'public'
+        `
+      });
     
-    if (funcError) {
-      console.error('Error checking function security:', funcError);
+    if (error) {
+      console.error('Error checking function security:', error);
       return false;
     }
     
-    if (functions && functions.length > 0) {
-      console.error('Functions without proper search_path:', functions);
+    // Check if we got an array response and if it has any items
+    if (data && typeof data === 'object' && Array.isArray(data) && data.length > 0) {
+      console.error('Functions without proper search_path:', data);
       allTablesSecure = false;
     }
     
