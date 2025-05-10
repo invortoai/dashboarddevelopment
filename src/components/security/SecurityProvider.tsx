@@ -17,10 +17,18 @@ interface SecurityProviderProps {
  */
 const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
   // Safely access auth context with fallback values
-  const auth = useAuth();
-  const user = auth?.user || null;
-  const isAuthenticated = auth?.isAuthenticated || false;
+  let user = null;
+  let isAuthenticated = false;
   const [sessionTimeoutCleanup, setSessionTimeoutCleanup] = useState<(() => void) | null>(null);
+  
+  // Try to get auth context, but don't crash if it's not available
+  try {
+    const auth = useAuth();
+    user = auth?.user;
+    isAuthenticated = auth?.isAuthenticated || false;
+  } catch (error) {
+    console.warn("Auth context not available for SecurityProvider, using default values");
+  }
   
   // Apply CSP only once on mount
   useEffect(() => {
@@ -37,7 +45,8 @@ const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) => {
       // Setup heartbeat interval when user is authenticated
       const heartbeatInterval = setInterval(() => {
         if (user?.id) {
-          sessionHeartbeat(user.id);
+          sessionHeartbeat(user.id)
+            .catch(err => console.error('Session heartbeat error:', err));
         }
       }, 5 * 60 * 1000); // Run every 5 minutes
       

@@ -17,14 +17,21 @@ import CallDetailsPage from "./pages/CallDetailsPage";
 import Analytics from "./pages/Analytics";
 import Profile from "./pages/Profile";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
-          {/* SecurityProvider must be placed inside AuthProvider */}
           <SecurityProvider>
             <Toaster />
             <Sonner />
