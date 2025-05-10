@@ -16,7 +16,20 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storageKey: 'supabase.auth.token',
+      storage: localStorage,
+    },
+    global: {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Client-Info': '@supabase/client-js'
+      },
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 );
@@ -64,4 +77,17 @@ export const checkColumnExistsFallback = async (tableName: string, columnName: s
     console.error(`Error in fallback check for column ${columnName} in ${tableName}:`, error);
     return false;
   }
+};
+
+// Add helper function to sanitize input for database queries
+export const sanitizeInput = (input: string): string => {
+  if (!input) return '';
+  // Basic sanitization to prevent SQL injection
+  return input.replace(/['";]/g, '');
+};
+
+// Add security helper to limit access to certain routes
+export const requireAuth = async (): Promise<boolean> => {
+  const session = await supabase.auth.getSession();
+  return !!session.data.session;
 };

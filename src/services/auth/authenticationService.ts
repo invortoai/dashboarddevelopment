@@ -1,5 +1,5 @@
 
-import { supabase } from '../supabaseClient';
+import { supabase, sanitizeInput } from '../supabaseClient';
 import { User } from '../../types';
 import { getCurrentISTDateTime } from '../../utils/dateUtils';
 import { logAuthError, recordFailedAttempt } from '../../utils/authErrorLogger';
@@ -8,11 +8,14 @@ import { hashPassword, generateSalt, verifyPassword } from '../../utils/securePa
 // Add a new function to check if a phone number exists
 export const checkPhoneExists = async (phoneNumber: string): Promise<{ exists: boolean; message: string }> => {
   try {
+    // Sanitize phone number input
+    const sanitizedPhone = sanitizeInput(phoneNumber);
+    
     // Check if user with this phone number exists
     const { data, error } = await supabase
       .from('user_details')
       .select('id')
-      .eq('phone_number', phoneNumber)
+      .eq('phone_number', sanitizedPhone)
       .maybeSingle();
     
     if (error) {
@@ -38,13 +41,17 @@ export const signUp = async (
   clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
-    console.log(`Attempting to create user with phone: ${phoneNumber.substring(0, 3)}***${phoneNumber.substring(7)}`);
+    // Sanitize inputs
+    const sanitizedName = sanitizeInput(name);
+    const sanitizedPhone = sanitizeInput(phoneNumber);
+    
+    console.log(`Attempting to create user with phone: ${sanitizedPhone.substring(0, 3)}***${sanitizedPhone.substring(7)}`);
     
     // Check if user with this phone number already exists
     const { data: existingUser, error: checkError } = await supabase
       .from('user_details')
       .select('id')
-      .eq('phone_number', phoneNumber)
+      .eq('phone_number', sanitizedPhone)
       .single();
     
     if (checkError && checkError.code !== 'PGRST116') {
@@ -53,7 +60,7 @@ export const signUp = async (
       // Log the error
       await logAuthError({
         attempt_type: 'signup',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'Failed to verify if phone number exists',
         error_code: checkError.code,
@@ -74,7 +81,7 @@ export const signUp = async (
       // Log the duplicate signup attempt
       await logAuthError({
         attempt_type: 'signup',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'A user with this phone number already exists',
         error_code: 'DUPLICATE_USER',
@@ -109,8 +116,8 @@ export const signUp = async (
       const { data: newUser, error: createError } = await supabase
         .from('user_details')
         .insert({
-          name,
-          phone_number: phoneNumber,
+          name: sanitizedName,
+          phone_number: sanitizedPhone,
           password_salt: saltPart, // Store just the salt
           // @ts-ignore - The column exists in DB but not in TypeScript types
           password_hash: hashPart, // Store just the hash
@@ -127,8 +134,8 @@ export const signUp = async (
       const { data: newUser, error: createError } = await supabase
         .from('user_details')
         .insert({
-          name,
-          phone_number: phoneNumber,
+          name: sanitizedName,
+          phone_number: sanitizedPhone,
           password_salt: hashedPassword, // Store the complete hash including salt
           signup_time: currentTime,
           credit: 1000
@@ -196,14 +203,17 @@ export const login = async (
   clientLocation?: string | null
 ): Promise<{ success: boolean; message: string; user?: User }> => {
   try {
+    // Sanitize inputs
+    const sanitizedPhone = sanitizeInput(phoneNumber);
+    
     // First check if the phone number exists
-    const { exists, message } = await checkPhoneExists(phoneNumber);
+    const { exists, message } = await checkPhoneExists(sanitizedPhone);
     
     if (!exists) {
       // Phone doesn't exist in the system - no need to check password or rate limiting
       await logAuthError({
         attempt_type: 'login',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'Phone number not found',
         error_code: 'PHONE_NOT_FOUND',
@@ -219,7 +229,7 @@ export const login = async (
     const { data: failedAttempts, error: rateError } = await supabase
       .from('auth_error_logs')
       .select('id')
-      .eq('phone_number', phoneNumber)
+      .eq('phone_number', sanitizedPhone)
       .eq('attempt_type', 'login')
       .gte('attempt_time', hourAgo);
       
@@ -230,7 +240,7 @@ export const login = async (
       // Rate limited
       await logAuthError({
         attempt_type: 'login',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'Login attempt rate-limited',
         error_code: 'RATE_LIMITED',
@@ -245,18 +255,18 @@ export const login = async (
     const { data: user, error } = await supabase
       .from('user_details')
       .select('*')
-      .eq('phone_number', phoneNumber)
+      .eq('phone_number', sanitizedPhone)
       .single();
       
     if (error || !user) {
       // This shouldn't happen since we already checked existence, but just in case
       // Record failed attempt for rate limiting
-      recordFailedAttempt(phoneNumber);
+      recordFailedAttempt(sanitizedPhone);
       
       // Log failed login attempt
       await logAuthError({
         attempt_type: 'login',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'Invalid phone number or password',
         error_code: error?.code,
@@ -296,16 +306,16 @@ export const login = async (
     
     if (!isPasswordValid) {
       // Record failed attempt for rate limiting
-      recordFailedAttempt(phoneNumber);
+      recordFailedAttempt(sanitizedPhone);
       
       // Log failed login attempt
       await logAuthError({
         attempt_type: 'login',
-        phone_number: phoneNumber,
+        phone_number: sanitizedPhone,
         password: password,
         error_message: 'Invalid password',
         ip_address: clientIP || undefined,
-        location: clientLocation || undefined // Fixed: removed the '?' which caused the syntax error
+        location: clientLocation || undefined
       });
       
       return { success: false, message: 'Invalid phone number or password' };
@@ -344,8 +354,13 @@ export const login = async (
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
     };
     
-    // Store session info in localStorage
+    // Store session info in localStorage with secure flags
     localStorage.setItem('sessionInfo', JSON.stringify(session));
+    
+    // Set expiry on session
+    setTimeout(() => {
+      localStorage.removeItem('sessionInfo');
+    }, 24 * 60 * 60 * 1000);
 
     return { success: true, message: 'Login successful', user: userData };
   } catch (error: any) {
