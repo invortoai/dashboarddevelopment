@@ -10,7 +10,7 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
   try {
     // Check if auth_error_logs table exists and has the right structure
     const { error: tableCheckError } = await supabase
-      .from('auth_error_logs')
+      .from('auth_error_logs' as any)
       .select('id')
       .limit(1);
     
@@ -32,7 +32,7 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
     
     for (const tableName of expectedTables) {
       const { count, error } = await supabase
-        .from(tableName)
+        .from(tableName as any)
         .select('*', { count: 'exact', head: true });
       
       if (error && error.message.includes('does not exist')) {
@@ -80,5 +80,3 @@ export const upgradePasswordStorage = async (userId: string, legacyPassword: str
     return false;
   }
 };
-
-// Note: Removed the second export statement that was causing duplicate exports

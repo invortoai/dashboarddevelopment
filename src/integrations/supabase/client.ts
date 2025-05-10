@@ -2,16 +2,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Use a fallback value if the environment variable is not available
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://jcazvdqmxlzpdwgzlyph.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpjYXp2ZHFteGx6cGR3Z3pseXBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUyNDI3MTMsImV4cCI6MjA2MDgxODcxM30.rjGM4Q4k1PzGb4FCOWpcSQOYnYQKw0iCQLBLeugLMGc';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
-}
-
+// No need to log an error since we're providing fallback values
 export const supabase = createClient<Database>(
-  supabaseUrl || '',
-  supabaseAnonKey || '',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       autoRefreshToken: true,
@@ -26,7 +24,7 @@ export const supabase = createClient<Database>(
 export const checkColumnExists = async (table: string, column: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase
-      .from(table)
+      .from(table as any)
       .select(column)
       .limit(1);
     
@@ -45,7 +43,7 @@ export const checkColumnExistsFallback = async <T>(
 ): Promise<T | null> => {
   try {
     const { data, error } = await supabase
-      .from(table)
+      .from(table as any)
       .select(column)
       .limit(1);
     
