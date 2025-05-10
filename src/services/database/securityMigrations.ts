@@ -19,7 +19,7 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
             SELECT 1 FROM pg_tables 
             WHERE tablename = '${tableName}' 
             AND rowsecurity = true
-          )` 
+          ) as is_enabled` 
         });
       
       if (error) {
@@ -28,7 +28,9 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
         continue;
       }
       
-      if (!data) {
+      // Check if RLS is enabled for this table
+      const isEnabled = data && typeof data === 'object' && 'is_enabled' in data ? data.is_enabled : false;
+      if (!isEnabled) {
         console.error(`RLS not enabled for ${tableName}`);
         allTablesSecure = false;
       }
@@ -38,7 +40,7 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
     const { data, error } = await supabase
       .rpc('execute_sql', { 
         query_text: `
-          SELECT proname, nspname
+          SELECT json_agg(json_build_object('name', proname, 'schema', nspname)) as result
           FROM pg_proc p
           JOIN pg_namespace n ON p.pronamespace = n.oid
           WHERE p.prosecdef = true
@@ -57,9 +59,10 @@ export const validateDatabaseSecurity = async (): Promise<boolean> => {
       return false;
     }
     
-    // Check if we got an array response and if it has any items
-    if (data && typeof data === 'object' && Array.isArray(data) && data.length > 0) {
-      console.error('Functions without proper search_path:', data);
+    // Check if we got a properly structured result with functions
+    const unsafeQueries = data && typeof data === 'object' && data.result ? data.result : [];
+    if (Array.isArray(unsafeQueries) && unsafeQueries.length > 0) {
+      console.error('Functions without proper search_path:', unsafeQueries);
       allTablesSecure = false;
     }
     
