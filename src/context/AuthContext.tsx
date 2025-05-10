@@ -259,12 +259,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error: any) {
       console.error("Sign-in failed:", error.message);
+      // We'll show toast here only, and let the login form handle its own error state
       toast({
         variant: "destructive",
         title: "Sign In Failed",
         description: error.message || "Invalid credentials"
       });
-      throw error;
+      throw error; // Re-throw so the form component can handle it
     }
   };
 

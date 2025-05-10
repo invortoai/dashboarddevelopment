@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { z } from 'zod';
@@ -144,6 +145,7 @@ const LoginForm = () => {
       // Security enhancement: Log login location
       console.log(`Login attempt from ${clientLocation || 'unknown location'}`);
       
+      // Try to sign in - let the AuthContext handle displaying the error toast
       await signIn(cleanPhone, data.password, clientIP, clientLocation);
       
       // If we get here, login was successful
@@ -151,13 +153,9 @@ const LoginForm = () => {
       const from = location.state?.from?.pathname || '/analytics';
       navigate(from, { replace: true });
     } catch (error: any) {
-      console.error("Login failed:", error);
+      // Instead of showing both an error state and a toast, just set the error state
       setLoginError(error.message || "Could not log in with these credentials");
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "Could not log in with these credentials"
-      });
+      // Don't display a toast here, as AuthContext will already display one
     } finally {
       setIsSubmitting(false);
     }
