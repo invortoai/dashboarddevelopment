@@ -1,50 +1,43 @@
 
 /**
  * Secure password hashing utility
- * Note: In a full production environment, this would be replaced with a proper bcrypt implementation
- * on the server-side with Supabase functions
+ * Uses the Web Crypto API for more secure password handling
  */
 
-// Salt generation for password hashing
-export const generateSalt = (length: number = 16): string => {
-  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let salt = '';
+// Generate a cryptographically strong salt
+export const generateSalt = async (length: number = 16): Promise<string> => {
+  // Use Web Crypto API to generate random bytes for salt
+  const buffer = new Uint8Array(length);
+  window.crypto.getRandomValues(buffer);
   
-  // In a real implementation, we would use crypto.randomBytes
-  // This is a simplified version for demonstration
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    salt += charset[randomIndex];
-  }
-  
-  return salt;
+  // Convert to base64 string for storage
+  return btoa(String.fromCharCode.apply(null, [...buffer]));
 };
 
-// Hash password using SHA-256 (browser-compatible version)
-export const hashPassword = (password: string, salt: string): string => {
-  // Using SubtleCrypto API which is available in browsers
-  // For simplicity in this demo, we'll use a simpler approach
-  // that works in the browser without external dependencies
-  
-  // In production, you should use a proper password hashing library or backend function
-  let hash = 0;
+// Hash password using SHA-256 with salt (more secure than the previous implementation)
+export const hashPassword = async (password: string, salt: string): Promise<string> => {
+  // Combine password and salt
   const combinedString = password + salt;
   
-  // Simple string hash function (NOT for production use)
-  for (let i = 0; i < combinedString.length; i++) {
-    const char = combinedString.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
+  // Convert to buffer
+  const msgBuffer = new TextEncoder().encode(combinedString);
   
-  // Convert to hex string and ensure it's positive
-  return Math.abs(hash).toString(16).padStart(8, '0');
+  // Use Web Crypto API to create a secure hash
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgBuffer);
+  
+  // Convert to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Verify password
-export const verifyPassword = (plainPassword: string, hashedPassword: string, salt: string): boolean => {
-  const newHash = hashPassword(plainPassword, salt);
-  return newHash === hashedPassword;
+// Verify password by comparing hashes
+export const verifyPassword = async (
+  plainPassword: string, 
+  hashedPassword: string, 
+  salt: string
+): Promise<boolean> => {
+  const newHash = await hashPassword(plainPassword, salt);
+  return secureCompare(newHash, hashedPassword);
 };
 
 // For securely comparing strings (helps prevent timing attacks)

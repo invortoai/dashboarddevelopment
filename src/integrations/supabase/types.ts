@@ -271,7 +271,7 @@ export type Database = {
           id: string
           last_login: string | null
           name: string
-          password: string
+          password_salt: string
           phone_number: string
           signup_time: string
         }
@@ -280,7 +280,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           name: string
-          password: string
+          password_salt: string
           phone_number: string
           signup_time?: string
         }
@@ -289,7 +289,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           name?: string
-          password?: string
+          password_salt?: string
           phone_number?: string
           signup_time?: string
         }

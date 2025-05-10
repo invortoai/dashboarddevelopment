@@ -64,8 +64,8 @@ export const signUp = async (
     }
 
     // Generate salt and hash password (security enhancement)
-    const salt = generateSalt();
-    const hashedPassword = hashPassword(password, salt);
+    const salt = await generateSalt();
+    const hashedPassword = await hashPassword(password, salt);
     
     const currentTime = getCurrentISTDateTime();
     
@@ -244,12 +244,12 @@ export const login = async (
           
         if (!result.error && result.data) {
           // Safely check if data exists and has the properties we need
-          const userPass = result.data?.password;
-          const userSalt = result.data?.password_salt;
+          const userPass = result.data.password;
+          const userSalt = result.data.password_salt;
           
           if (userPass !== undefined && userSalt !== undefined) {
             // Verify using salt
-            isPasswordValid = verifyPassword(
+            isPasswordValid = await verifyPassword(
               password, 
               String(userPass),
               String(userSalt)

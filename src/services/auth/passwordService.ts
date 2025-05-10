@@ -39,12 +39,12 @@ export const changePassword = async (userId: string, currentPassword: string, ne
           
         if (!result.error && result.data) {
           // Safely check if data exists and has the properties we need
-          const userPass = result.data?.password;
-          const userSalt = result.data?.password_salt;
+          const userPass = result.data.password;
+          const userSalt = result.data.password_salt;
           
           if (userPass !== undefined && userSalt !== undefined) {
             // Verify using salt
-            isPasswordValid = verifyPassword(
+            isPasswordValid = await verifyPassword(
               currentPassword, 
               String(userPass), 
               String(userSalt)
@@ -82,8 +82,8 @@ export const changePassword = async (userId: string, currentPassword: string, ne
     }
     
     // Generate new salt and hash new password
-    const salt = generateSalt();
-    const hashedPassword = hashPassword(newPassword, salt);
+    const salt = await generateSalt();
+    const hashedPassword = await hashPassword(newPassword, salt);
     
     // Prepare update object
     let updateData: any = { 
